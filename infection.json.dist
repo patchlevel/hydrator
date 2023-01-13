@@ -1,0 +1,19 @@
+{
+  "source": {
+    "directories": [
+      "src"
+    ]
+  },
+  "logs": {
+    "text": "infection.log",
+    "stryker": {
+      "report": "1.0.x"
+    }
+  },
+  "mutators": {
+    "@default": true
+  },
+  "minMsi": 56,
+  "minCoveredMsi": 91,
+  "testFrameworkOptions": "--testsuite=unit"
+}
