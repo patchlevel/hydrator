@@ -4,6 +4,9 @@ name: "Check Coding Standard"
 
 on:
     pull_request:
+        branches-ignore:
+            - "[0-9]+.[0-9]+.x"
+            - "renovate/*"
     push:
         branches:
             - "[0-9]+.[0-9]+.x"

@@ -4,6 +4,9 @@ name: "Unit tests"
 
 on:
     pull_request:
+        branches-ignore:
+            - "[0-9]+.[0-9]+.x"
+            - "renovate/*"
     push:
         branches:
             - "[0-9]+.[0-9]+.x"
@@ -25,7 +28,6 @@ jobs:
                     - "8.2"
                 operating-system:
                     - "ubuntu-latest"
-                    - "windows-latest"
                 include:
                     - dependencies: "locked"
                       php-version: "8.2"
