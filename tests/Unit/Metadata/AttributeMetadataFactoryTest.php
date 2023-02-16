@@ -11,6 +11,8 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\BrokenParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DuplicateFieldNameDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\EmailNormalizer;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\IgnoreDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\IgnoreParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileIdNormalizer;
 use PHPUnit\Framework\TestCase;
@@ -153,5 +155,39 @@ final class AttributeMetadataFactoryTest extends TestCase
 
         $metadataFactory = new AttributeMetadataFactory();
         $metadataFactory->metadata(DuplicateFieldNameDto::class);
+    }
+
+    public function testExtendsWithIgnore(): void
+    {
+        $metadataFactory = new AttributeMetadataFactory();
+        $metadata = $metadataFactory->metadata(IgnoreParentDto::class);
+
+        self::assertCount(2, $metadata->properties());
+
+        $emailPropertyMetadata = $metadata->propertyForField('profileId');
+
+        self::assertSame('profileId', $emailPropertyMetadata->propertyName());
+        self::assertSame('profileId', $emailPropertyMetadata->fieldName());
+        self::assertInstanceOf(ProfileIdNormalizer::class, $emailPropertyMetadata->normalizer());
+
+        $emailPropertyMetadata = $metadata->propertyForField('email');
+
+        self::assertSame('email', $emailPropertyMetadata->propertyName());
+        self::assertSame('email', $emailPropertyMetadata->fieldName());
+        self::assertInstanceOf(EmailNormalizer::class, $emailPropertyMetadata->normalizer());
+    }
+
+    public function testIgnore(): void
+    {
+        $metadataFactory = new AttributeMetadataFactory();
+        $metadata = $metadataFactory->metadata(IgnoreDto::class);
+
+        self::assertCount(1, $metadata->properties());
+
+        $emailPropertyMetadata = $metadata->propertyForField('profileId');
+
+        self::assertSame('profileId', $emailPropertyMetadata->propertyName());
+        self::assertSame('profileId', $emailPropertyMetadata->fieldName());
+        self::assertInstanceOf(ProfileIdNormalizer::class, $emailPropertyMetadata->normalizer());
     }
 }

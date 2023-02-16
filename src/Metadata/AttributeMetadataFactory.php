@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Metadata;
 
+use Patchlevel\Hydrator\Attribute\Ignore;
 use Patchlevel\Hydrator\Attribute\NormalizedName;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
 use ReflectionAttribute;
@@ -84,6 +85,10 @@ final class AttributeMetadataFactory implements MetadataFactory
         $properties = [];
 
         foreach ($reflectionClass->getProperties() as $reflectionProperty) {
+            if ($this->hasIgnore($reflectionProperty)) {
+                continue;
+            }
+
             $fieldName = $this->getFieldName($reflectionProperty);
 
             if (array_key_exists($fieldName, $properties)) {
@@ -130,6 +135,11 @@ final class AttributeMetadataFactory implements MetadataFactory
         }
 
         return null;
+    }
+
+    private function hasIgnore(ReflectionProperty $reflectionProperty): bool
+    {
+        return $reflectionProperty->getAttributes(Ignore::class) !== [];
     }
 
     /**
