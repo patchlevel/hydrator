@@ -6,8 +6,13 @@ namespace Patchlevel\Hydrator\Tests\Unit\Metadata;
 
 use Patchlevel\Hydrator\Attribute\NormalizedName;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
+use Patchlevel\Hydrator\Metadata\DuplicatedFieldNameInMetadata;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\BrokenParentDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\DuplicateFieldNameDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\EmailNormalizer;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileIdNormalizer;
 use PHPUnit\Framework\TestCase;
 
 final class AttributeMetadataFactoryTest extends TestCase
@@ -35,9 +40,8 @@ final class AttributeMetadataFactoryTest extends TestCase
         $properties = $metadata->properties();
 
         self::assertCount(1, $properties);
-        self::assertArrayHasKey('name', $properties);
 
-        $propertyMetadata = $properties['name'];
+        $propertyMetadata = $metadata->propertyForField('name');
 
         self::assertSame('name', $propertyMetadata->propertyName());
         self::assertSame('name', $propertyMetadata->fieldName());
@@ -59,9 +63,8 @@ final class AttributeMetadataFactoryTest extends TestCase
         $properties = $metadata->properties();
 
         self::assertCount(1, $properties);
-        self::assertArrayHasKey('name', $properties);
 
-        $propertyMetadata = $properties['name'];
+        $propertyMetadata = $metadata->propertyForField('name');
 
         self::assertSame('name', $propertyMetadata->propertyName());
         self::assertSame('name', $propertyMetadata->fieldName());
@@ -84,9 +87,8 @@ final class AttributeMetadataFactoryTest extends TestCase
         $properties = $metadata->properties();
 
         self::assertCount(1, $properties);
-        self::assertArrayHasKey('name', $properties);
 
-        $propertyMetadata = $properties['name'];
+        $propertyMetadata = $metadata->propertyForField('username');
 
         self::assertSame('name', $propertyMetadata->propertyName());
         self::assertSame('username', $propertyMetadata->fieldName());
@@ -109,12 +111,47 @@ final class AttributeMetadataFactoryTest extends TestCase
         $properties = $metadata->properties();
 
         self::assertCount(1, $properties);
-        self::assertArrayHasKey('email', $properties);
 
-        $propertyMetadata = $properties['email'];
+        $propertyMetadata = $metadata->propertyForField('email');
 
         self::assertSame('email', $propertyMetadata->propertyName());
         self::assertSame('email', $propertyMetadata->fieldName());
         self::assertInstanceOf(EmailNormalizer::class, $propertyMetadata->normalizer());
+    }
+
+    public function testExtends(): void
+    {
+        $metadataFactory = new AttributeMetadataFactory();
+        $metadata = $metadataFactory->metadata(ParentDto::class);
+
+        self::assertCount(2, $metadata->properties());
+
+        $emailPropertyMetadata = $metadata->propertyForField('profileId');
+
+        self::assertSame('profileId', $emailPropertyMetadata->propertyName());
+        self::assertSame('profileId', $emailPropertyMetadata->fieldName());
+        self::assertInstanceOf(ProfileIdNormalizer::class, $emailPropertyMetadata->normalizer());
+
+        $emailPropertyMetadata = $metadata->propertyForField('email');
+
+        self::assertSame('email', $emailPropertyMetadata->propertyName());
+        self::assertSame('email', $emailPropertyMetadata->fieldName());
+        self::assertInstanceOf(EmailNormalizer::class, $emailPropertyMetadata->normalizer());
+    }
+
+    public function testExtendsDuplicatedFieldName(): void
+    {
+        $this->expectException(DuplicatedFieldNameInMetadata::class);
+
+        $metadataFactory = new AttributeMetadataFactory();
+        $metadataFactory->metadata(BrokenParentDto::class);
+    }
+
+    public function testSameClassDuplicatedFieldName(): void
+    {
+        $this->expectException(DuplicatedFieldNameInMetadata::class);
+
+        $metadataFactory = new AttributeMetadataFactory();
+        $metadataFactory->metadata(DuplicateFieldNameDto::class);
     }
 }
