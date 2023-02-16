@@ -7,7 +7,11 @@ namespace Patchlevel\Hydrator\Metadata;
 interface MetadataFactory
 {
     /**
-     * @param class-string $class
+     * @param class-string<T> $class
+     *
+     * @return ClassMetadata<T>
+     *
+     * @template T of object
      */
     public function metadata(string $class): ClassMetadata;
 }

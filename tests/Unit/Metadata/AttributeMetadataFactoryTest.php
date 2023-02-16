@@ -26,7 +26,7 @@ final class AttributeMetadataFactoryTest extends TestCase
     public function testWithProperties(): void
     {
         $object = new class {
-            public string $name;
+            public ?string $name = null;
         };
 
         $metadataFactory = new AttributeMetadataFactory();

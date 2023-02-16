@@ -18,12 +18,19 @@ final class AttributeMetadataFactory implements MetadataFactory
     private array $classMetadata = [];
 
     /**
-     * @param class-string $class
+     * @param class-string<T> $class
+     *
+     * @return ClassMetadata<T>
+     *
+     * @template T of object
      */
     public function metadata(string $class): ClassMetadata
     {
         if (array_key_exists($class, $this->classMetadata)) {
-            return $this->classMetadata[$class];
+            /** @var ClassMetadata<T> $classMetadata */
+            $classMetadata = $this->classMetadata[$class];
+
+            return $classMetadata;
         }
 
         $reflectionClass = new ReflectionClass($class);
