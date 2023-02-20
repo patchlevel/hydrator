@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Hydrator;
 
+use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\MetadataFactory;
 use Throwable;
 use TypeError;
@@ -11,7 +12,7 @@ use TypeError;
 final class MetadataHydrator implements Hydrator
 {
     public function __construct(
-        private readonly MetadataFactory $metadataFactory
+        private readonly MetadataFactory $metadataFactory = new AttributeMetadataFactory()
     ) {
     }
 
