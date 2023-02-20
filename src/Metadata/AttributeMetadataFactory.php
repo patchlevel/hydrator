@@ -85,6 +85,10 @@ final class AttributeMetadataFactory implements MetadataFactory
         $properties = [];
 
         foreach ($reflectionClass->getProperties() as $reflectionProperty) {
+            if ($reflectionProperty->isStatic()) {
+                continue;
+            }
+
             if ($this->hasIgnore($reflectionProperty)) {
                 continue;
             }

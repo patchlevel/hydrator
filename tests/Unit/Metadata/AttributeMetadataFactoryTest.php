@@ -64,6 +64,20 @@ final class AttributeMetadataFactoryTest extends TestCase
         self::assertNull($propertyMetadata->normalizer());
     }
 
+    public function testSkipStaticProperties(): void
+    {
+        $object = new class {
+            public static string $name = "foo";
+        };
+
+        $metadataFactory = new AttributeMetadataFactory();
+        $metadata = $metadataFactory->metadata($object::class);
+
+        $properties = $metadata->properties();
+
+        self::assertCount(0, $properties);
+    }
+
     public function testWithConstructorProperties(): void
     {
         $object = new class ('Foo') {
