@@ -11,6 +11,7 @@ use ReflectionClass;
 use ReflectionProperty;
 
 use function array_key_exists;
+use function array_values;
 
 final class AttributeMetadataFactory implements MetadataFactory
 {
@@ -35,30 +36,73 @@ final class AttributeMetadataFactory implements MetadataFactory
 
         $reflectionClass = new ReflectionClass($class);
 
-        $this->classMetadata[$class] = new ClassMetadata(
+        return $this->getClassMetadata($reflectionClass);
+    }
+
+    /**
+     * @param ReflectionClass<T> $reflectionClass
+     *
+     * @return ClassMetadata<T>
+     *
+     * @template T of object
+     */
+    private function getClassMetadata(ReflectionClass $reflectionClass): ClassMetadata
+    {
+        $class = $reflectionClass->getName();
+
+        if (array_key_exists($class, $this->classMetadata)) {
+            /** @var ClassMetadata<T> $classMetadata */
+            $classMetadata = $this->classMetadata[$class];
+
+            return $classMetadata;
+        }
+
+        $metadata = new ClassMetadata(
             $reflectionClass,
             $this->getPropertyMetadataList($reflectionClass)
         );
 
-        return $this->classMetadata[$class];
+        $parentMetadataClass = $reflectionClass->getParentClass();
+
+        if ($parentMetadataClass) {
+            $metadata = $this->mergeMetadata(
+                $metadata,
+                $this->getClassMetadata($parentMetadataClass)
+            );
+        }
+
+        $this->classMetadata[$class] = $metadata;
+
+        return $metadata;
     }
 
     /**
-     * @return array<string, PropertyMetadata>
+     * @return list<PropertyMetadata>
      */
     private function getPropertyMetadataList(ReflectionClass $reflectionClass): array
     {
         $properties = [];
 
         foreach ($reflectionClass->getProperties() as $reflectionProperty) {
-            $properties[$reflectionProperty->getName()] = new PropertyMetadata(
+            $fieldName = $this->getFieldName($reflectionProperty);
+
+            if (array_key_exists($fieldName, $properties)) {
+                throw DuplicatedFieldNameInMetadata::inClass(
+                    $fieldName,
+                    $reflectionClass->getName(),
+                    $properties[$fieldName]->propertyName(),
+                    $reflectionProperty->getName()
+                );
+            }
+
+            $properties[$fieldName] = new PropertyMetadata(
                 $reflectionProperty,
-                $this->getFieldName($reflectionProperty),
+                $fieldName,
                 $this->getNormalizer($reflectionProperty)
             );
         }
 
-        return $properties;
+        return array_values($properties);
     }
 
     private function getFieldName(ReflectionProperty $reflectionProperty): string
@@ -86,5 +130,34 @@ final class AttributeMetadataFactory implements MetadataFactory
         }
 
         return null;
+    }
+
+    /**
+     * @param ClassMetadata<T> $parent
+     *
+     * @return ClassMetadata<T>
+     *
+     * @template T of object
+     */
+    private function mergeMetadata(ClassMetadata $parent, ClassMetadata $child): ClassMetadata
+    {
+        $properties = [];
+
+        foreach ($parent->properties() as $property) {
+            $properties[$property->fieldName()] = $property;
+        }
+
+        foreach ($child->properties() as $property) {
+            if (array_key_exists($property->fieldName(), $properties)) {
+                throw DuplicatedFieldNameInMetadata::byInheritance($property->fieldName(), $parent->className(), $child->className());
+            }
+
+            $properties[$property->fieldName()] = $property;
+        }
+
+        return new ClassMetadata(
+            $parent->reflection(),
+            array_values($properties)
+        );
     }
 }

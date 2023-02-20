@@ -10,6 +10,7 @@ use Patchlevel\Hydrator\Hydrator\NormalizationFailure;
 use Patchlevel\Hydrator\Hydrator\TypeMismatch;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer;
@@ -37,6 +38,19 @@ final class MetadataEventHydratorTest extends TestCase
         );
     }
 
+    public function testExtractWithInheritance(): void
+    {
+        $event = new ParentDto(
+            ProfileId::fromString('1'),
+            Email::fromString('info@patchlevel.de')
+        );
+
+        self::assertEquals(
+            ['profileId' => '1', 'email' => 'info@patchlevel.de'],
+            $this->hydrator->extract($event)
+        );
+    }
+
     public function testHydrate(): void
     {
         $expected = new ProfileCreated(
@@ -46,6 +60,21 @@ final class MetadataEventHydratorTest extends TestCase
 
         $event = $this->hydrator->hydrate(
             ProfileCreated::class,
+            ['profileId' => '1', 'email' => 'info@patchlevel.de']
+        );
+
+        self::assertEquals($expected, $event);
+    }
+
+    public function testHydrateWithInheritance(): void
+    {
+        $expected = new ParentDto(
+            ProfileId::fromString('1'),
+            Email::fromString('info@patchlevel.de')
+        );
+
+        $event = $this->hydrator->hydrate(
+            ParentDto::class,
             ['profileId' => '1', 'email' => 'info@patchlevel.de']
         );
 

@@ -12,11 +12,11 @@ use ReflectionClass;
 final class ClassMetadata
 {
     /**
-     * @param ReflectionClass<T> $reflection
+     * @param ReflectionClass<T>     $reflection
+     * @param list<PropertyMetadata> $properties
      */
     public function __construct(
         private readonly ReflectionClass $reflection,
-        /** @var array<string, PropertyMetadata> */
         private readonly array $properties = [],
     ) {
     }
@@ -38,11 +38,22 @@ final class ClassMetadata
     }
 
     /**
-     * @return array<string, PropertyMetadata>
+     * @return list<PropertyMetadata>
      */
     public function properties(): array
     {
         return $this->properties;
+    }
+
+    public function propertyForField(string $name): PropertyMetadata
+    {
+        foreach ($this->properties as $property) {
+            if ($property->fieldName() === $name) {
+                return $property;
+            }
+        }
+
+        throw PropertyMetadataNotFound::withName($name);
     }
 
     /**
