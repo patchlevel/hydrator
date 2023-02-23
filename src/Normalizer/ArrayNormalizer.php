@@ -27,7 +27,7 @@ final class ArrayNormalizer implements Normalizer
         }
 
         if (!is_array($value)) {
-            throw new InvalidArgument();
+            throw InvalidArgument::withWrongType('array', $value);
         }
 
         return array_map(fn (mixed $value): mixed => $this->normalizer->normalize($value), $value);
@@ -43,7 +43,7 @@ final class ArrayNormalizer implements Normalizer
         }
 
         if (!is_array($value)) {
-            throw new InvalidArgument();
+            throw InvalidArgument::withWrongType('array', $value);
         }
 
         return array_map(fn (mixed $value): mixed => $this->normalizer->denormalize($value), $value);

@@ -67,7 +67,7 @@ final class AttributeMetadataFactoryTest extends TestCase
     public function testSkipStaticProperties(): void
     {
         $object = new class {
-            public static string $name = "foo";
+            public static string $name = 'foo';
         };
 
         $metadataFactory = new AttributeMetadataFactory();

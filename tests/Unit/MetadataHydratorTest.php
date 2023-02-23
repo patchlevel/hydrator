@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Patchlevel\Hydrator\Tests\Unit\Hydrator;
+namespace Patchlevel\Hydrator\Tests\Unit;
 
-use Patchlevel\Hydrator\Hydrator\DenormalizationFailure;
-use Patchlevel\Hydrator\Hydrator\MetadataHydrator;
-use Patchlevel\Hydrator\Hydrator\NormalizationFailure;
-use Patchlevel\Hydrator\Hydrator\TypeMismatch;
+use Patchlevel\Hydrator\DenormalizationFailure;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
+use Patchlevel\Hydrator\MetadataHydrator;
+use Patchlevel\Hydrator\NormalizationFailure;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer;
+use Patchlevel\Hydrator\TypeMismatch;
 use PHPUnit\Framework\TestCase;
 
-final class MetadataEventHydratorTest extends TestCase
+final class MetadataHydratorTest extends TestCase
 {
     private MetadataHydrator $hydrator;
 

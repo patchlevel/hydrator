@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Metadata;
 
-use Patchlevel\Hydrator\Hydrator\HydratorException;
+use RuntimeException;
 
 use function sprintf;
 
-final class PropertyMetadataNotFound extends HydratorException
+final class PropertyMetadataNotFound extends RuntimeException implements MetadataException
 {
     private function __construct(string $message)
     {

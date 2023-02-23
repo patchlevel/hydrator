@@ -27,7 +27,7 @@ final class EnumNormalizer implements Normalizer
         }
 
         if (!$value instanceof BackedEnum) {
-            throw new InvalidArgument();
+            throw InvalidArgument::withWrongType('\BackedEnum', $value);
         }
 
         return $value->value;
@@ -40,15 +40,15 @@ final class EnumNormalizer implements Normalizer
         }
 
         if (!is_string($value) && !is_int($value)) {
-            throw new InvalidArgument();
+            throw InvalidArgument::withWrongType('string|int', $value);
         }
 
         $enumClass = $this->enum;
 
         try {
             return $enumClass::from($value);
-        } catch (ValueError) {
-            throw new InvalidArgument();
+        } catch (ValueError $error) {
+            throw InvalidArgument::fromValueError($error);
         }
     }
 }

@@ -2,13 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Patchlevel\Hydrator\Hydrator;
+namespace Patchlevel\Hydrator;
 
+use RuntimeException;
 use TypeError;
 
 use function sprintf;
 
-final class TypeMismatch extends HydratorException
+final class TypeMismatch extends RuntimeException implements HydratorException
 {
     /**
      * @param class-string $class
