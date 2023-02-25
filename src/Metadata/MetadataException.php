@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Metadata;
 
-use RuntimeException;
+use Patchlevel\Hydrator\HydratorException;
 
-abstract class MetadataException extends RuntimeException
+interface MetadataException extends HydratorException
 {
 }

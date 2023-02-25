@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Patchlevel\Hydrator\Hydrator;
+namespace Patchlevel\Hydrator;
 
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\MetadataFactory;

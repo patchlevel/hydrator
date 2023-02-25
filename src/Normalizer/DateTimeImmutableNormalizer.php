@@ -24,7 +24,7 @@ final class DateTimeImmutableNormalizer implements Normalizer
         }
 
         if (!$value instanceof DateTimeImmutable) {
-            throw new InvalidArgument();
+            throw InvalidArgument::withWrongType('\DateTimeImmutable', $value);
         }
 
         return $value->format($this->format);
@@ -37,7 +37,7 @@ final class DateTimeImmutableNormalizer implements Normalizer
         }
 
         if (!is_string($value)) {
-            throw new InvalidArgument();
+            throw InvalidArgument::withWrongType('string', $value);
         }
 
         $date = DateTimeImmutable::createFromFormat($this->format, $value);

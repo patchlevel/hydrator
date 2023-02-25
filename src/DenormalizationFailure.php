@@ -2,13 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Patchlevel\Hydrator\Hydrator;
+namespace Patchlevel\Hydrator;
 
+use RuntimeException;
 use Throwable;
 
 use function sprintf;
 
-final class DenormalizationFailure extends HydratorException
+final class DenormalizationFailure extends RuntimeException implements HydratorException
 {
     /**
      * @param class-string $class

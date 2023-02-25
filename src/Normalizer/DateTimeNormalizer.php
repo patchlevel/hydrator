@@ -24,7 +24,7 @@ final class DateTimeNormalizer implements Normalizer
         }
 
         if (!$value instanceof DateTime) {
-            throw new InvalidArgument();
+            throw InvalidArgument::withWrongType('\DateTime', $value);
         }
 
         return $value->format($this->format);
@@ -37,7 +37,7 @@ final class DateTimeNormalizer implements Normalizer
         }
 
         if (!is_string($value)) {
-            throw new InvalidArgument();
+            throw InvalidArgument::withWrongType('string', $value);
         }
 
         $date = DateTime::createFromFormat($this->format, $value);

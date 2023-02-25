@@ -19,7 +19,7 @@ final class DateTimeZoneNormalizer implements Normalizer
         }
 
         if (!$value instanceof DateTimeZone) {
-            throw new InvalidArgument();
+            throw InvalidArgument::withWrongType('\DateTimeZone', $value);
         }
 
         return $value->getName();
@@ -32,7 +32,7 @@ final class DateTimeZoneNormalizer implements Normalizer
         }
 
         if (!is_string($value)) {
-            throw new InvalidArgument();
+            throw InvalidArgument::withWrongType('string', $value);
         }
 
         return new DateTimeZone($value);
