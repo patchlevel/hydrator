@@ -8,6 +8,7 @@ use Patchlevel\Hydrator\DenormalizationFailure;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\MetadataHydrator;
 use Patchlevel\Hydrator\NormalizationFailure;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\DefaultDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated;
@@ -64,6 +65,18 @@ final class MetadataHydratorTest extends TestCase
         );
 
         self::assertEquals($expected, $event);
+    }
+
+    public function testHydrateWithDefaults(): void
+    {
+        $object = $this->hydrator->hydrate(
+            DefaultDto::class,
+            ['name' => 'test']
+        );
+
+        self::assertEquals('test', $object->name);
+        self::assertEquals(new Email('info@patchlevel.de'), $object->email);
+        self::assertEquals(true, $object->admin);
     }
 
     public function testHydrateWithInheritance(): void
