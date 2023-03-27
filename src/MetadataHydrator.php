@@ -5,9 +5,13 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator;
 
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
+use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Metadata\MetadataFactory;
+use ReflectionParameter;
 use Throwable;
 use TypeError;
+
+use function array_key_exists;
 
 final class MetadataHydrator implements Hydrator
 {
@@ -29,9 +33,31 @@ final class MetadataHydrator implements Hydrator
         $metadata = $this->metadataFactory->metadata($class);
         $object = $metadata->newInstance();
 
+        $constructorParameters = null;
+
         foreach ($metadata->properties() as $propertyMetadata) {
+            if (!array_key_exists($propertyMetadata->fieldName(), $data)) {
+                if (!$propertyMetadata->reflection()->isPromoted()) {
+                    continue;
+                }
+
+                if ($constructorParameters === null) {
+                    $constructorParameters = $this->promotedConstructorParametersWithDefaultValue($metadata);
+                }
+
+                if (!array_key_exists($propertyMetadata->propertyName(), $constructorParameters)) {
+                    continue;
+                }
+
+                /** @psalm-suppress MixedAssignment */
+                $defaultValue = $constructorParameters[$propertyMetadata->propertyName()]->getDefaultValue();
+                $propertyMetadata->setValue($object, $defaultValue);
+
+                continue;
+            }
+
             /** @psalm-suppress MixedAssignment */
-            $value = $data[$propertyMetadata->fieldName()] ?? null;
+            $value = $data[$propertyMetadata->fieldName()];
 
             $normalizer = $propertyMetadata->normalizer();
 
@@ -97,5 +123,34 @@ final class MetadataHydrator implements Hydrator
         }
 
         return $data;
+    }
+
+    /**
+     * @return array<string, ReflectionParameter>
+     */
+    private function promotedConstructorParametersWithDefaultValue(ClassMetadata $metadata): array
+    {
+        $constructor = $metadata->reflection()->getConstructor();
+
+        if (!$constructor) {
+            return [];
+        }
+
+        $parameters = $constructor->getParameters();
+        $result = [];
+
+        foreach ($parameters as $parameter) {
+            if (!$parameter->isPromoted()) {
+                continue;
+            }
+
+            if (!$parameter->isDefaultValueAvailable()) {
+                continue;
+            }
+
+            $result[$parameter->getName()] = $parameter;
+        }
+
+        return $result;
     }
 }
