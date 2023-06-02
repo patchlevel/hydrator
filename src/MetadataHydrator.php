@@ -16,7 +16,7 @@ use function array_key_exists;
 final class MetadataHydrator implements Hydrator
 {
     public function __construct(
-        private readonly MetadataFactory $metadataFactory = new AttributeMetadataFactory()
+        private readonly MetadataFactory $metadataFactory = new AttributeMetadataFactory(),
     ) {
     }
 
@@ -70,7 +70,7 @@ final class MetadataHydrator implements Hydrator
                         $class,
                         $propertyMetadata->propertyName(),
                         $normalizer::class,
-                        $e
+                        $e,
                     );
                 }
             }
@@ -81,7 +81,7 @@ final class MetadataHydrator implements Hydrator
                 throw new TypeMismatch(
                     $class,
                     $propertyMetadata->propertyName(),
-                    $e
+                    $e,
                 );
             }
         }
@@ -89,9 +89,7 @@ final class MetadataHydrator implements Hydrator
         return $object;
     }
 
-    /**
-     * @return array<string, mixed>
-     */
+    /** @return array<string, mixed> */
     public function extract(object $object): array
     {
         $metadata = $this->metadataFactory->metadata($object::class);
@@ -113,7 +111,7 @@ final class MetadataHydrator implements Hydrator
                         $object::class,
                         $propertyMetadata->propertyName(),
                         $normalizer::class,
-                        $e
+                        $e,
                     );
                 }
             }
@@ -125,9 +123,7 @@ final class MetadataHydrator implements Hydrator
         return $data;
     }
 
-    /**
-     * @return array<string, ReflectionParameter>
-     */
+    /** @return array<string, ReflectionParameter> */
     private function promotedConstructorParametersWithDefaultValue(ClassMetadata $metadata): array
     {
         $constructor = $metadata->reflection()->getConstructor();

@@ -6,9 +6,7 @@ namespace Patchlevel\Hydrator\Metadata;
 
 use ReflectionClass;
 
-/**
- * @template T of object
- */
+/** @template T of object */
 final class ClassMetadata
 {
     /**
@@ -21,25 +19,19 @@ final class ClassMetadata
     ) {
     }
 
-    /**
-     * @return ReflectionClass<T>
-     */
+    /** @return ReflectionClass<T> */
     public function reflection(): ReflectionClass
     {
         return $this->reflection;
     }
 
-    /**
-     * @return class-string<T>
-     */
+    /** @return class-string<T> */
     public function className(): string
     {
         return $this->reflection->getName();
     }
 
-    /**
-     * @return list<PropertyMetadata>
-     */
+    /** @return list<PropertyMetadata> */
     public function properties(): array
     {
         return $this->properties;
@@ -56,9 +48,7 @@ final class ClassMetadata
         throw PropertyMetadataNotFound::withName($name);
     }
 
-    /**
-     * @return T
-     */
+    /** @return T */
     public function newInstance(): object
     {
         return $this->reflection->newInstanceWithoutConstructor();

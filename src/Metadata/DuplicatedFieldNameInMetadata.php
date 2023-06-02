@@ -26,14 +26,12 @@ final class DuplicatedFieldNameInMetadata extends RuntimeException implements Me
                 'field name "%s" is duplicated due to inheritance between %s and %s',
                 $fieldName,
                 $classA,
-                $classB
-            )
+                $classB,
+            ),
         );
     }
 
-    /**
-     * @param class-string $class
-     */
+    /** @param class-string $class */
     public static function inClass(string $fieldName, string $class, string $propertyA, string $propertyB): self
     {
         return new self(
@@ -42,8 +40,8 @@ final class DuplicatedFieldNameInMetadata extends RuntimeException implements Me
                 $fieldName,
                 $class,
                 $propertyA,
-                $propertyB
-            )
+                $propertyB,
+            ),
         );
     }
 }

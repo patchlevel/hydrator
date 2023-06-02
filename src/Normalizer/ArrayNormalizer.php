@@ -13,14 +13,12 @@ use function is_array;
 final class ArrayNormalizer implements Normalizer
 {
     public function __construct(
-        private readonly Normalizer $normalizer
+        private readonly Normalizer $normalizer,
     ) {
     }
 
-    /**
-     * @return array<array-key, mixed>|null
-     */
-    public function normalize(mixed $value): ?array
+    /** @return array<array-key, mixed>|null */
+    public function normalize(mixed $value): array|null
     {
         if ($value === null) {
             return null;
@@ -33,10 +31,8 @@ final class ArrayNormalizer implements Normalizer
         return array_map(fn (mixed $value): mixed => $this->normalizer->normalize($value), $value);
     }
 
-    /**
-     * @return array<array-key, mixed>|null
-     */
-    public function denormalize(mixed $value): ?array
+    /** @return array<array-key, mixed>|null */
+    public function denormalize(mixed $value): array|null
     {
         if ($value === null) {
             return null;

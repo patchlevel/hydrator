@@ -60,7 +60,7 @@ final class AttributeMetadataFactory implements MetadataFactory
 
         $metadata = new ClassMetadata(
             $reflectionClass,
-            $this->getPropertyMetadataList($reflectionClass)
+            $this->getPropertyMetadataList($reflectionClass),
         );
 
         $parentMetadataClass = $reflectionClass->getParentClass();
@@ -68,7 +68,7 @@ final class AttributeMetadataFactory implements MetadataFactory
         if ($parentMetadataClass) {
             $metadata = $this->mergeMetadata(
                 $metadata,
-                $this->getClassMetadata($parentMetadataClass)
+                $this->getClassMetadata($parentMetadataClass),
             );
         }
 
@@ -77,9 +77,7 @@ final class AttributeMetadataFactory implements MetadataFactory
         return $metadata;
     }
 
-    /**
-     * @return list<PropertyMetadata>
-     */
+    /** @return list<PropertyMetadata> */
     private function getPropertyMetadataList(ReflectionClass $reflectionClass): array
     {
         $properties = [];
@@ -100,14 +98,14 @@ final class AttributeMetadataFactory implements MetadataFactory
                     $fieldName,
                     $reflectionClass->getName(),
                     $properties[$fieldName]->propertyName(),
-                    $reflectionProperty->getName()
+                    $reflectionProperty->getName(),
                 );
             }
 
             $properties[$fieldName] = new PropertyMetadata(
                 $reflectionProperty,
                 $fieldName,
-                $this->getNormalizer($reflectionProperty)
+                $this->getNormalizer($reflectionProperty),
             );
         }
 
@@ -127,11 +125,11 @@ final class AttributeMetadataFactory implements MetadataFactory
         return $attribute->name();
     }
 
-    private function getNormalizer(ReflectionProperty $reflectionProperty): ?Normalizer
+    private function getNormalizer(ReflectionProperty $reflectionProperty): Normalizer|null
     {
         $attributeReflectionList = $reflectionProperty->getAttributes(
             Normalizer::class,
-            ReflectionAttribute::IS_INSTANCEOF
+            ReflectionAttribute::IS_INSTANCEOF,
         );
 
         if ($attributeReflectionList !== []) {
@@ -171,7 +169,7 @@ final class AttributeMetadataFactory implements MetadataFactory
 
         return new ClassMetadata(
             $parent->reflection(),
-            array_values($properties)
+            array_values($properties),
         );
     }
 }

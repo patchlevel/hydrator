@@ -12,7 +12,7 @@ final class PropertyMetadata
     public function __construct(
         private readonly ReflectionProperty $reflection,
         private readonly string $fieldName,
-        private readonly ?Normalizer $normalizer = null
+        private readonly Normalizer|null $normalizer = null,
     ) {
     }
 
@@ -31,7 +31,7 @@ final class PropertyMetadata
         return $this->fieldName;
     }
 
-    public function normalizer(): ?Normalizer
+    public function normalizer(): Normalizer|null
     {
         return $this->normalizer;
     }

@@ -47,7 +47,7 @@ final class AttributeMetadataFactoryTest extends TestCase
     public function testWithProperties(): void
     {
         $object = new class {
-            public ?string $name = null;
+            public string|null $name = null;
         };
 
         $metadataFactory = new AttributeMetadataFactory();
@@ -82,7 +82,7 @@ final class AttributeMetadataFactoryTest extends TestCase
     {
         $object = new class ('Foo') {
             public function __construct(
-                public string $name
+                public string $name,
             ) {
             }
         };
@@ -106,7 +106,7 @@ final class AttributeMetadataFactoryTest extends TestCase
         $object = new class ('Foo') {
             public function __construct(
                 #[NormalizedName('username')]
-                public string $name
+                public string $name,
             ) {
             }
         };
@@ -130,7 +130,7 @@ final class AttributeMetadataFactoryTest extends TestCase
         $object = new class (Email::fromString('info@patchlevel.de')) {
             public function __construct(
                 #[EmailNormalizer]
-                public Email $email
+                public Email $email,
             ) {
             }
         };

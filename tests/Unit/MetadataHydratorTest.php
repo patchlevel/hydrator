@@ -30,12 +30,12 @@ final class MetadataHydratorTest extends TestCase
     {
         $event = new ProfileCreated(
             ProfileId::fromString('1'),
-            Email::fromString('info@patchlevel.de')
+            Email::fromString('info@patchlevel.de'),
         );
 
         self::assertEquals(
             ['profileId' => '1', 'email' => 'info@patchlevel.de'],
-            $this->hydrator->extract($event)
+            $this->hydrator->extract($event),
         );
     }
 
@@ -43,12 +43,12 @@ final class MetadataHydratorTest extends TestCase
     {
         $event = new ParentDto(
             ProfileId::fromString('1'),
-            Email::fromString('info@patchlevel.de')
+            Email::fromString('info@patchlevel.de'),
         );
 
         self::assertEquals(
             ['profileId' => '1', 'email' => 'info@patchlevel.de'],
-            $this->hydrator->extract($event)
+            $this->hydrator->extract($event),
         );
     }
 
@@ -56,12 +56,12 @@ final class MetadataHydratorTest extends TestCase
     {
         $expected = new ProfileCreated(
             ProfileId::fromString('1'),
-            Email::fromString('info@patchlevel.de')
+            Email::fromString('info@patchlevel.de'),
         );
 
         $event = $this->hydrator->hydrate(
             ProfileCreated::class,
-            ['profileId' => '1', 'email' => 'info@patchlevel.de']
+            ['profileId' => '1', 'email' => 'info@patchlevel.de'],
         );
 
         self::assertEquals($expected, $event);
@@ -71,7 +71,7 @@ final class MetadataHydratorTest extends TestCase
     {
         $object = $this->hydrator->hydrate(
             DefaultDto::class,
-            ['name' => 'test']
+            ['name' => 'test'],
         );
 
         self::assertEquals('test', $object->name);
@@ -83,12 +83,12 @@ final class MetadataHydratorTest extends TestCase
     {
         $expected = new ParentDto(
             ProfileId::fromString('1'),
-            Email::fromString('info@patchlevel.de')
+            Email::fromString('info@patchlevel.de'),
         );
 
         $event = $this->hydrator->hydrate(
             ParentDto::class,
-            ['profileId' => '1', 'email' => 'info@patchlevel.de']
+            ['profileId' => '1', 'email' => 'info@patchlevel.de'],
         );
 
         self::assertEquals($expected, $event);
@@ -100,7 +100,7 @@ final class MetadataHydratorTest extends TestCase
 
         $this->hydrator->hydrate(
             ProfileCreated::class,
-            ['profileId' => null, 'email' => null]
+            ['profileId' => null, 'email' => null],
         );
     }
 
@@ -110,7 +110,7 @@ final class MetadataHydratorTest extends TestCase
 
         $this->hydrator->hydrate(
             ProfileCreated::class,
-            ['profileId' => 123, 'email' => 123]
+            ['profileId' => 123, 'email' => 123],
         );
     }
 
@@ -119,7 +119,7 @@ final class MetadataHydratorTest extends TestCase
         $this->expectException(NormalizationFailure::class);
 
         $this->hydrator->extract(
-            new WrongNormalizer(true)
+            new WrongNormalizer(true),
         );
     }
 }

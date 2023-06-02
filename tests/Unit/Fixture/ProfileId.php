@@ -6,6 +6,7 @@ namespace Patchlevel\Hydrator\Tests\Unit\Fixture;
 
 final class ProfileId
 {
+    /** @phpcs:ignore SlevomatCodingStandard.Classes.RequireConstructorPropertyPromotion.RequiredConstructorPropertyPromotion */
     private string $id;
 
     private function __construct(string $id)

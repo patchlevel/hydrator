@@ -6,6 +6,7 @@ namespace Patchlevel\Hydrator\Tests\Unit\Fixture;
 
 final class Email
 {
+    /** @phpcs:ignore SlevomatCodingStandard.Classes.RequireConstructorPropertyPromotion.RequiredConstructorPropertyPromotion */
     private string $value;
 
     public function __construct(string $value)

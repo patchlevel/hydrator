@@ -10,7 +10,7 @@ use Attribute;
 final class NormalizedName
 {
     public function __construct(
-        private readonly string $name
+        private readonly string $name,
     ) {
     }
 

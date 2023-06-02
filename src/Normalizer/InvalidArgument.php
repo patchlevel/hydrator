@@ -19,8 +19,8 @@ final class InvalidArgument extends InvalidArgumentException implements Hydrator
             sprintf(
                 'type "%s" was expected but "%s" was passed.',
                 $expected,
-                get_debug_type($value)
-            )
+                get_debug_type($value),
+            ),
         );
     }
 
