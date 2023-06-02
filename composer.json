@@ -23,7 +23,7 @@
   },
   "require-dev": {
     "cspray/phinal": "^2.0",
-    "infection/infection": "^0.26.13",
+    "infection/infection": "^0.27.0",
     "patchlevel/coding-standard": "^1.2.0",
     "phpbench/phpbench": "^1.2.6",
     "phpspec/prophecy-phpunit": "^2.0.1",
