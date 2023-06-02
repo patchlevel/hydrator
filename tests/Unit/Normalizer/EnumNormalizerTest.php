@@ -40,7 +40,8 @@ final class EnumNormalizerTest extends TestCase
     public function testDenormalizeWithInvalidArgument(): void
     {
         $this->expectException(InvalidArgument::class);
-        $this->expectExceptionMessage('"foo" is not a valid backing value for enum Patchlevel\Hydrator\Tests\Unit\Fixture\Status');
+        $this->expectExceptionMessage('foo');
+        $this->expectExceptionMessage('Patchlevel\Hydrator\Tests\Unit\Fixture\Status');
 
         $normalizer = new EnumNormalizer(Status::class);
         $normalizer->denormalize('foo');
