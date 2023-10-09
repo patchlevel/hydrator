@@ -3,14 +3,11 @@
 name: "Unit tests"
 
 on:
-    pull_request:
-        branches-ignore:
-            - "[0-9]+.[0-9]+.x"
-            - "renovate/*"
-    push:
-        branches:
-            - "[0-9]+.[0-9]+.x"
-            - "renovate/*"
+  pull_request:
+  push:
+    branches:
+      - "[0-9]+.[0-9]+.x"
+      - "renovate/*"
 
 jobs:
     phpunit:

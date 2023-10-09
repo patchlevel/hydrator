@@ -15,10 +15,13 @@ final class HydratorBench
 {
     private Hydrator $hydrator;
 
-    public function setUp(): void
+    public function __construct()
     {
         $this->hydrator = new MetadataHydrator();
+    }
 
+    public function setUp(): void
+    {
         $object = $this->hydrator->hydrate(ProfileCreated::class, [
             'profileId' => '1',
             'name' => 'foo',
@@ -45,7 +48,7 @@ final class HydratorBench
     }
 
     #[Bench\Revs(10)]
-    public function benchHydrate1_000Objects(): void
+    public function benchHydrate1000Objects(): void
     {
         for ($i = 0; $i < 1_000; $i++) {
             $this->hydrator->hydrate(ProfileCreated::class, [
@@ -56,7 +59,7 @@ final class HydratorBench
     }
 
     #[Bench\Revs(10)]
-    public function benchExtract1_000Objects(): void
+    public function benchExtract1000Objects(): void
     {
         $object = new ProfileCreated(ProfileId::fromString('1'), 'foo');
 
@@ -66,7 +69,7 @@ final class HydratorBench
     }
 
     #[Bench\Revs(10)]
-    public function benchHydrate1_000_000Objects(): void
+    public function benchHydrate1000000Objects(): void
     {
         for ($i = 0; $i < 1_000_000; $i++) {
             $this->hydrator->hydrate(ProfileCreated::class, [
@@ -77,7 +80,7 @@ final class HydratorBench
     }
 
     #[Bench\Revs(10)]
-    public function benchExtract1_000_000Objects(): void
+    public function benchExtract1000000Objects(): void
     {
         $object = new ProfileCreated(ProfileId::fromString('1'), 'foo');
 
