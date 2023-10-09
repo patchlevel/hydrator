@@ -30,7 +30,7 @@
     "phpbench/phpbench": "^1.2.6",
     "phpspec/prophecy-phpunit": "^2.0.1",
     "phpstan/phpstan": "^1.8.2",
-    "phpunit/phpunit": "^9.5.23",
+    "phpunit/phpunit": "^10.0.0",
     "psalm/plugin-phpunit": "^0.18.0",
     "roave/infection-static-analysis-plugin": "^1.22.0",
     "symfony/var-dumper": "^5.4.1|^6.0.1",
