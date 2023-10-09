@@ -53,4 +53,20 @@ final class ClassMetadata
     {
         return $this->reflection->newInstanceWithoutConstructor();
     }
+
+    /** @return array{className: class-string<T>, properties: list<PropertyMetadata>} */
+    public function __serialize(): array
+    {
+        return [
+            'className' => $this->reflection->getName(),
+            'properties' => $this->properties,
+        ];
+    }
+
+    /** @param array{className: class-string<T>, properties: list<PropertyMetadata>} $data */
+    public function __unserialize(array $data): void
+    {
+        $this->reflection = new ReflectionClass($data['className']);
+        $this->properties = $data['properties'];
+    }
 }
