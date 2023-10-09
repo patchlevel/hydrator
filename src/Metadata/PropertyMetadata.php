@@ -45,4 +45,23 @@ final class PropertyMetadata
     {
         return $this->reflection->getValue($object);
     }
+
+    /** @return array{className: class-string, property: string, fieldName: string, normalizer: Normalizer|null} */
+    public function __serialize(): array
+    {
+        return [
+            'className' => $this->reflection->getDeclaringClass()->getName(),
+            'property' => $this->reflection->getName(),
+            'fieldName' => $this->fieldName,
+            'normalizer' => $this->normalizer,
+        ];
+    }
+
+    /** @param array{className: class-string, property: string, fieldName: string, normalizer: Normalizer|null} $data */
+    public function __unserialize(array $data): void
+    {
+        $this->reflection = new ReflectionProperty($data['className'], $data['property']);
+        $this->fieldName = $data['fieldName'];
+        $this->normalizer = $data['normalizer'];
+    }
 }
