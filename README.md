@@ -92,9 +92,8 @@ final class DTO
 }
 ```
 
-!!! note
-
-    The keys from the arrays are taken over here.
+> [!NOTE]
+> The keys from the arrays are taken over here.
 
 #### DateTimeImmutable
 
@@ -124,9 +123,8 @@ final class DTO
 }
 ```
 
-!!! note
-
-    You can read about how the format is structured in the [php docs](https://www.php.net/manual/de/datetime.format.php).
+> [!NOTE]
+> You can read about how the format is structured in the [php docs](https://www.php.net/manual/de/datetime.format.php).
 
 #### DateTime
 
@@ -154,9 +152,8 @@ final class DTO
 }
 ```
 
-!!! note
-
-    You can read about how the format is structured in the [php docs](https://www.php.net/manual/de/datetime.format.php).
+> [!NOTE]
+> You can read about how the format is structured in the [php docs](https://www.php.net/manual/de/datetime.format.php).
 
 #### DateTimeZone
 
@@ -249,9 +246,8 @@ class NameNormalizer implements Normalizer
 }
 ```
 
-!!! warning
-
-    The important thing is that the result of Normalize is serializable!
+> [!WARNING]
+> The important thing is that the result of Normalize is serializable!
 
 Now we can also use the normalizer directly.
 
@@ -286,9 +282,8 @@ The whole thing looks like this
 ]
 ```
 
-!!! tip
-
-    You can also rename properties to events without having a backwards compatibility break by keeping the serialized name.
+> [!TIP]
+> You can also rename properties to events without having a backwards compatibility break by keeping the serialized name.
 
 ### Ignore
 
