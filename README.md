@@ -1,4 +1,4 @@
-[![Mutation testing badge](https://img.shields.io/endpoint?style=flat&url=https%3A%2F%2Fbadge-api.stryker-mutator.io%2Fgithub.com%2Fpatchlevel%2Fhydrator%2F2.0.x)](https://dashboard.stryker-mutator.io/reports/github.com/patchlevel/hydrator/2.0.x)
+[![Mutation testing badge](https://img.shields.io/endpoint?style=flat&url=https%3A%2F%2Fbadge-api.stryker-mutator.io%2Fgithub.com%2Fpatchlevel%2Fhydrator%2F1.0.x)](https://dashboard.stryker-mutator.io/reports/github.com/patchlevel/hydrator/1.0.x)
 [![Type Coverage](https://shepherd.dev/github/patchlevel/hydrator/coverage.svg)](https://shepherd.dev/github/patchlevel/hydrator)
 [![Latest Stable Version](https://poser.pugx.org/patchlevel/hydrator/v)](//packagist.org/packages/patchlevel/hydrator)
 [![License](https://poser.pugx.org/patchlevel/hydrator/license)](//packagist.org/packages/patchlevel/hydrator)
