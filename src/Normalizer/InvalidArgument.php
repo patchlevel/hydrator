@@ -6,6 +6,7 @@ namespace Patchlevel\Hydrator\Normalizer;
 
 use InvalidArgumentException;
 use Patchlevel\Hydrator\HydratorException;
+use Throwable;
 use ValueError;
 
 use function get_debug_type;
@@ -24,8 +25,14 @@ final class InvalidArgument extends InvalidArgumentException implements Hydrator
         );
     }
 
+    /** @deprecated use ::fromThrowable() */
     public static function fromValueError(ValueError $error): self
     {
-        return new self($error->getMessage(), 0, $error);
+        return self::fromThrowable($error);
+    }
+
+    public static function fromThrowable(Throwable $exception): self
+    {
+        return new self($exception->getMessage(), 0, $exception);
     }
 }

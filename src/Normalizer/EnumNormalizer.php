@@ -7,7 +7,7 @@ namespace Patchlevel\Hydrator\Normalizer;
 use Attribute;
 use BackedEnum;
 use ReflectionType;
-use ValueError;
+use Throwable;
 
 use function is_int;
 use function is_string;
@@ -50,8 +50,8 @@ final class EnumNormalizer implements Normalizer, ReflectionTypeAwareNormalizer
 
         try {
             return $enum::from($value);
-        } catch (ValueError $error) {
-            throw InvalidArgument::fromValueError($error);
+        } catch (Throwable $error) {
+            throw InvalidArgument::fromThrowable($error);
         }
     }
 
