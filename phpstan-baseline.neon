@@ -1,2 +1,6 @@
 parameters:
-	ignoreErrors: []
+	ignoreErrors:
+		-
+			message: "#^Dead catch \\- Patchlevel\\\\Hydrator\\\\CircularReference is never thrown in the try block\\.$#"
+			count: 1
+			path: src/MetadataHydrator.php
