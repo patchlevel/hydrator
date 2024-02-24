@@ -6,17 +6,18 @@ namespace Patchlevel\Hydrator\Normalizer;
 
 use Attribute;
 use BackedEnum;
+use ReflectionType;
 use ValueError;
 
 use function is_int;
 use function is_string;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
-final class EnumNormalizer implements Normalizer
+final class EnumNormalizer implements Normalizer, ReflectionTypeAwareNormalizer
 {
+    /** @param class-string<BackedEnum>|null $enum */
     public function __construct(
-        /** @var class-string<BackedEnum> */
-        private readonly string $enum,
+        private string|null $enum = null,
     ) {
     }
 
@@ -26,8 +27,10 @@ final class EnumNormalizer implements Normalizer
             return null;
         }
 
-        if (!$value instanceof $this->enum) {
-            throw InvalidArgument::withWrongType($this->enum . '|null', $value);
+        $enum = $this->getEnum();
+
+        if (!$value instanceof $enum) {
+            throw InvalidArgument::withWrongType($enum . '|null', $value);
         }
 
         return $value->value;
@@ -43,12 +46,31 @@ final class EnumNormalizer implements Normalizer
             throw InvalidArgument::withWrongType('string|int|null', $value);
         }
 
-        $enumClass = $this->enum;
+        $enum = $this->getEnum();
 
         try {
-            return $enumClass::from($value);
+            return $enum::from($value);
         } catch (ValueError $error) {
             throw InvalidArgument::fromValueError($error);
         }
+    }
+
+    public function setReflectionType(ReflectionType $reflectionType): void
+    {
+        if ($this->enum !== null) {
+            return;
+        }
+
+        $this->enum = ReflectionTypeUtil::classStringInstanceOf($reflectionType, BackedEnum::class);
+    }
+
+    /** @return class-string<BackedEnum> */
+    public function getEnum(): string
+    {
+        if ($this->enum === null) {
+            throw InvalidType::missingType();
+        }
+
+        return $this->enum;
     }
 }

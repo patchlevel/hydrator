@@ -6,17 +6,18 @@ namespace Patchlevel\Hydrator\Normalizer;
 
 use Attribute;
 use Patchlevel\Hydrator\Hydrator;
+use ReflectionType;
 
 use function is_array;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
-final class ObjectNormalizer implements Normalizer, HydratorAwareNormalizer
+final class ObjectNormalizer implements Normalizer, ReflectionTypeAwareNormalizer, HydratorAwareNormalizer
 {
-    public Hydrator|null $hydrator = null;
+    private Hydrator|null $hydrator = null;
 
+    /** @param class-string|null $className */
     public function __construct(
-        /** @var class-string */
-        public readonly string $className,
+        private string|null $className = null,
     ) {
     }
 
@@ -31,8 +32,10 @@ final class ObjectNormalizer implements Normalizer, HydratorAwareNormalizer
             return null;
         }
 
-        if (!$value instanceof $this->className) {
-            throw InvalidArgument::withWrongType($this->className . '|null', $value);
+        $className = $this->getClassName();
+
+        if (!$value instanceof $className) {
+            throw InvalidArgument::withWrongType($className . '|null', $value);
         }
 
         return $this->hydrator->extract($value);
@@ -52,7 +55,9 @@ final class ObjectNormalizer implements Normalizer, HydratorAwareNormalizer
             throw InvalidArgument::withWrongType('array<string, mixed>|null', $value);
         }
 
-        return $this->hydrator->hydrate($this->className, $value);
+        $className = $this->getClassName();
+
+        return $this->hydrator->hydrate($className, $value);
     }
 
     public function setHydrator(Hydrator $hydrator): void
@@ -60,11 +65,29 @@ final class ObjectNormalizer implements Normalizer, HydratorAwareNormalizer
         $this->hydrator = $hydrator;
     }
 
-    /** @return array{className: class-string, hydrator: null} */
+    public function setReflectionType(ReflectionType $reflectionType): void
+    {
+        if ($this->className !== null) {
+            return;
+        }
+
+        $this->className = ReflectionTypeUtil::classString($reflectionType);
+    }
+
+    /** @return class-string */
+    public function getClassName(): string
+    {
+        if ($this->className === null) {
+            throw InvalidType::missingType();
+        }
+
+        return $this->className;
+    }
+
     public function __serialize(): array
     {
         return [
-            'className' => $this->className,
+            'type' => $this->className,
             'hydrator' => null,
         ];
     }
