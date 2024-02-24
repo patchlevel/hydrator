@@ -7,14 +7,20 @@ namespace Patchlevel\Hydrator;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Metadata\MetadataFactory;
+use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
 use ReflectionParameter;
 use Throwable;
 use TypeError;
 
 use function array_key_exists;
+use function array_values;
+use function spl_object_id;
 
 final class MetadataHydrator implements Hydrator
 {
+    /** @var array<int, class-string> */
+    private array $stack = [];
+
     public function __construct(
         private readonly MetadataFactory $metadataFactory = new AttributeMetadataFactory(),
     ) {
@@ -62,6 +68,10 @@ final class MetadataHydrator implements Hydrator
             $normalizer = $propertyMetadata->normalizer();
 
             if ($normalizer) {
+                if ($normalizer instanceof HydratorAwareNormalizer) {
+                    $normalizer->setHydrator($this);
+                }
+
                 try {
                     /** @psalm-suppress MixedAssignment */
                     $value = $normalizer->denormalize($value);
@@ -92,35 +102,56 @@ final class MetadataHydrator implements Hydrator
     /** @return array<string, mixed> */
     public function extract(object $object): array
     {
-        $metadata = $this->metadataFactory->metadata($object::class);
+        $objectId = spl_object_id($object);
 
-        $data = [];
+        if (array_key_exists($objectId, $this->stack)) {
+            $references = array_values($this->stack);
+            $references[] = $object::class;
 
-        foreach ($metadata->properties() as $propertyMetadata) {
-            /** @psalm-suppress MixedAssignment */
-            $value = $propertyMetadata->getValue($object);
-
-            $normalizer = $propertyMetadata->normalizer();
-
-            if ($normalizer) {
-                try {
-                    /** @psalm-suppress MixedAssignment */
-                    $value = $normalizer->normalize($value);
-                } catch (Throwable $e) {
-                    throw new NormalizationFailure(
-                        $object::class,
-                        $propertyMetadata->propertyName(),
-                        $normalizer::class,
-                        $e,
-                    );
-                }
-            }
-
-            /** @psalm-suppress MixedAssignment */
-            $data[$propertyMetadata->fieldName()] = $value;
+            throw new CircularReference($references);
         }
 
-        return $data;
+        $this->stack[$objectId] = $object::class;
+
+        try {
+            $metadata = $this->metadataFactory->metadata($object::class);
+
+            $data = [];
+
+            foreach ($metadata->properties() as $propertyMetadata) {
+                /** @psalm-suppress MixedAssignment */
+                $value = $propertyMetadata->getValue($object);
+
+                $normalizer = $propertyMetadata->normalizer();
+
+                if ($normalizer) {
+                    if ($normalizer instanceof HydratorAwareNormalizer) {
+                        $normalizer->setHydrator($this);
+                    }
+
+                    try {
+                        /** @psalm-suppress MixedAssignment */
+                        $value = $normalizer->normalize($value);
+                    } catch (CircularReference $e) {
+                        throw $e;
+                    } catch (Throwable $e) {
+                        throw new NormalizationFailure(
+                            $object::class,
+                            $propertyMetadata->propertyName(),
+                            $normalizer::class,
+                            $e,
+                        );
+                    }
+                }
+
+                /** @psalm-suppress MixedAssignment */
+                $data[$propertyMetadata->fieldName()] = $value;
+            }
+
+            return $data;
+        } finally {
+            unset($this->stack[$objectId]);
+        }
     }
 
     /** @return array<string, ReflectionParameter> */

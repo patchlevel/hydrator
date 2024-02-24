@@ -4,14 +4,19 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Unit;
 
+use Patchlevel\Hydrator\CircularReference;
 use Patchlevel\Hydrator\DenormalizationFailure;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\MetadataHydrator;
 use Patchlevel\Hydrator\NormalizationFailure;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle1Dto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle2Dto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle3Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DefaultDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWrapper;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer;
 use Patchlevel\Hydrator\TypeMismatch;
@@ -50,6 +55,37 @@ final class MetadataHydratorTest extends TestCase
             ['profileId' => '1', 'email' => 'info@patchlevel.de'],
             $this->hydrator->extract($event),
         );
+    }
+
+    public function testExtractWithHydratorAwareNormalizer(): void
+    {
+        $event = new ProfileCreatedWrapper(
+            new ProfileCreated(
+                ProfileId::fromString('1'),
+                Email::fromString('info@patchlevel.de'),
+            ),
+        );
+
+        self::assertEquals(
+            ['event' => ['profileId' => '1', 'email' => 'info@patchlevel.de']],
+            $this->hydrator->extract($event),
+        );
+    }
+
+    public function testExtractCircularReference(): void
+    {
+        $this->expectException(CircularReference::class);
+        $this->expectExceptionMessage('Circular reference detected: Patchlevel\Hydrator\Tests\Unit\Fixture\Circle1Dto -> Patchlevel\Hydrator\Tests\Unit\Fixture\Circle2Dto -> Patchlevel\Hydrator\Tests\Unit\Fixture\Circle3Dto -> Patchlevel\Hydrator\Tests\Unit\Fixture\Circle1Dto');
+
+        $dto1 = new Circle1Dto();
+        $dto2 = new Circle2Dto();
+        $dto3 = new Circle3Dto();
+
+        $dto1->to = $dto2;
+        $dto2->to = $dto3;
+        $dto3->to = $dto1;
+
+        $this->hydrator->extract($dto1);
     }
 
     public function testHydrate(): void
@@ -94,7 +130,26 @@ final class MetadataHydratorTest extends TestCase
         self::assertEquals($expected, $event);
     }
 
-    public function testWithTypeMismatch(): void
+    public function testHydrateWithHydratorAwareNormalizer(): void
+    {
+        $expected = new ProfileCreatedWrapper(
+            new ProfileCreated(
+                ProfileId::fromString('1'),
+                Email::fromString('info@patchlevel.de'),
+            ),
+        );
+
+        $event = $this->hydrator->hydrate(
+            ProfileCreatedWrapper::class,
+            [
+                'event' => ['profileId' => '1', 'email' => 'info@patchlevel.de'],
+            ],
+        );
+
+        self::assertEquals($expected, $event);
+    }
+
+    public function testHydrateWithTypeMismatch(): void
     {
         $this->expectException(TypeMismatch::class);
 

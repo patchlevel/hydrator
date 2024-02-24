@@ -182,6 +182,23 @@ final class DTO {
 }
 ```
 
+#### Object
+
+If you have a complex object that you want to normalize, you can use the `ObjectNormalizer`.
+This use the hydrator internally to normalize the object.
+
+```php
+use Patchlevel\Hydrator\Normalizer\ObjectNormalizer;
+
+final class DTO {
+    #[ObjectNormalizer(AnohterDto::class)]
+    public AnohterDto $anotherDto;
+}
+```
+
+> [!WARNING]
+> Circular references are not supported and will result in an exception.
+
 ### Custom Normalizer
 
 Since we only offer normalizers for PHP native things,

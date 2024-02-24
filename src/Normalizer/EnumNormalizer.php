@@ -26,8 +26,8 @@ final class EnumNormalizer implements Normalizer
             return null;
         }
 
-        if (!$value instanceof BackedEnum) {
-            throw InvalidArgument::withWrongType('\BackedEnum', $value);
+        if (!$value instanceof $this->enum) {
+            throw InvalidArgument::withWrongType($this->enum . '|null', $value);
         }
 
         return $value->value;
@@ -40,7 +40,7 @@ final class EnumNormalizer implements Normalizer
         }
 
         if (!is_string($value) && !is_int($value)) {
-            throw InvalidArgument::withWrongType('string|int', $value);
+            throw InvalidArgument::withWrongType('string|int|null', $value);
         }
 
         $enumClass = $this->enum;
