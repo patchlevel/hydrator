@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Patchlevel\Hydrator\Tests\Benchmark;
+namespace Patchlevel\Hydrator\Tests\Unit\Metadata;
 
 use Patchlevel\Hydrator\Attribute\NormalizedName;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;

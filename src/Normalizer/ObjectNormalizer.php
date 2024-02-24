@@ -84,6 +84,7 @@ final class ObjectNormalizer implements Normalizer, ReflectionTypeAwareNormalize
         return $this->className;
     }
 
+    /** @return array{type: class-string|null, hydrator: null} */
     public function __serialize(): array
     {
         return [
