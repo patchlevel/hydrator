@@ -65,9 +65,9 @@ final class ObjectNormalizer implements Normalizer, ReflectionTypeAwareNormalize
         $this->hydrator = $hydrator;
     }
 
-    public function setReflectionType(ReflectionType $reflectionType): void
+    public function handleReflectionType(ReflectionType|null $reflectionType): void
     {
-        if ($this->className !== null) {
+        if ($this->className !== null || $reflectionType === null) {
             return;
         }
 
@@ -84,11 +84,11 @@ final class ObjectNormalizer implements Normalizer, ReflectionTypeAwareNormalize
         return $this->className;
     }
 
-    /** @return array{type: class-string|null, hydrator: null} */
+    /** @return array{className: class-string|null, hydrator: null} */
     public function __serialize(): array
     {
         return [
-            'type' => $this->className,
+            'className' => $this->className,
             'hydrator' => null,
         ];
     }

@@ -68,7 +68,7 @@ final class EnumNormalizerTest extends TestCase
     public function testAutoDetect(): void
     {
         $normalizer = new EnumNormalizer();
-        $normalizer->setReflectionType($this->reflectionType(AutoTypeDto::class, 'status'));
+        $normalizer->handleReflectionType($this->reflectionType(AutoTypeDto::class, 'status'));
 
         self::assertEquals(Status::class, $normalizer->getEnum());
     }
@@ -76,7 +76,7 @@ final class EnumNormalizerTest extends TestCase
     public function testAutoDetectOverrideNotPossible(): void
     {
         $normalizer = new EnumNormalizer(AnotherEnum::class);
-        $normalizer->setReflectionType($this->reflectionType(AutoTypeDto::class, 'status'));
+        $normalizer->handleReflectionType($this->reflectionType(AutoTypeDto::class, 'status'));
 
         self::assertEquals(AnotherEnum::class, $normalizer->getEnum());
     }
@@ -86,6 +86,16 @@ final class EnumNormalizerTest extends TestCase
         $this->expectException(InvalidType::class);
 
         $normalizer = new EnumNormalizer();
+        $normalizer->getEnum();
+    }
+
+    public function testAutoDetectMissingTypeBecauseNull(): void
+    {
+        $this->expectException(InvalidType::class);
+
+        $normalizer = new EnumNormalizer();
+        $normalizer->handleReflectionType(null);
+
         $normalizer->getEnum();
     }
 

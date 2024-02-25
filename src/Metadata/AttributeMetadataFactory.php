@@ -140,11 +140,7 @@ final class AttributeMetadataFactory implements MetadataFactory
         $normalizer = $attributeReflectionList[0]->newInstance();
 
         if ($normalizer instanceof ReflectionTypeAwareNormalizer) {
-            $type = $reflectionProperty->getType();
-
-            if ($type) {
-                $normalizer->setReflectionType($type);
-            }
+            $normalizer->handleReflectionType($reflectionProperty->getType());
         }
 
         return $normalizer;
@@ -172,7 +168,11 @@ final class AttributeMetadataFactory implements MetadataFactory
 
         foreach ($child->properties() as $property) {
             if (array_key_exists($property->fieldName(), $properties)) {
-                throw DuplicatedFieldNameInMetadata::byInheritance($property->fieldName(), $parent->className(), $child->className());
+                throw DuplicatedFieldNameInMetadata::byInheritance(
+                    $property->fieldName(),
+                    $parent->className(),
+                    $child->className(),
+                );
             }
 
             $properties[$property->fieldName()] = $property;

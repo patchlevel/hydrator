@@ -21,6 +21,7 @@ use ReflectionType;
 use RuntimeException;
 
 use function serialize;
+use function unserialize;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final class ObjectNormalizerTest extends TestCase
@@ -137,7 +138,7 @@ final class ObjectNormalizerTest extends TestCase
 
         $normalizer = new ObjectNormalizer();
         $normalizer->setHydrator($hydrator->reveal());
-        $normalizer->setReflectionType($this->reflectionType(AutoTypeDto::class, 'profileCreated'));
+        $normalizer->handleReflectionType($this->reflectionType(AutoTypeDto::class, 'profileCreated'));
 
         self::assertEquals(ProfileCreated::class, $normalizer->getClassName());
     }
@@ -148,7 +149,7 @@ final class ObjectNormalizerTest extends TestCase
 
         $normalizer = new ObjectNormalizer(AutoTypeDto::class);
         $normalizer->setHydrator($hydrator->reveal());
-        $normalizer->setReflectionType($this->reflectionType(AutoTypeDto::class, 'profileCreated'));
+        $normalizer->handleReflectionType($this->reflectionType(AutoTypeDto::class, 'profileCreated'));
 
         self::assertEquals(AutoTypeDto::class, $normalizer->getClassName());
     }
@@ -165,6 +166,19 @@ final class ObjectNormalizerTest extends TestCase
         $normalizer->getClassName();
     }
 
+    public function testAutoDetectMissingTypeBecauseNull(): void
+    {
+        $this->expectException(InvalidType::class);
+
+        $hydrator = $this->prophesize(Hydrator::class);
+
+        $normalizer = new ObjectNormalizer();
+        $normalizer->setHydrator($hydrator->reveal());
+        $normalizer->handleReflectionType(null);
+
+        $normalizer->getClassName();
+    }
+
     public function testSerialize(): void
     {
         $hydrator = $this->prophesize(Hydrator::class);
@@ -172,10 +186,12 @@ final class ObjectNormalizerTest extends TestCase
         $normalizer = new ObjectNormalizer(ProfileCreated::class);
         $normalizer->setHydrator($hydrator->reveal());
 
-        self::assertEquals(
-            'O:47:"Patchlevel\Hydrator\Normalizer\ObjectNormalizer":2:{s:4:"type";s:53:"Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated";s:8:"hydrator";N;}',
-            serialize($normalizer),
-        );
+        $serialized = serialize($normalizer);
+
+        $normalizer2 = unserialize($serialized);
+
+        self::assertInstanceOf(ObjectNormalizer::class, $normalizer2);
+        self::assertEquals(new ObjectNormalizer(ProfileCreated::class), $normalizer2);
     }
 
     /** @param class-string $class */

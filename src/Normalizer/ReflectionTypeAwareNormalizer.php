@@ -8,5 +8,9 @@ use ReflectionType;
 
 interface ReflectionTypeAwareNormalizer
 {
-    public function setReflectionType(ReflectionType $reflectionType): void;
+    /**
+     * Allows to handle the reflection type of the property.
+     * Null means no reflection type exists.
+     */
+    public function handleReflectionType(ReflectionType|null $reflectionType): void;
 }
