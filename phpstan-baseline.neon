@@ -4,3 +4,8 @@ parameters:
 			message: "#^Dead catch \\- Patchlevel\\\\Hydrator\\\\CircularReference is never thrown in the try block\\.$#"
 			count: 1
 			path: src/MetadataHydrator.php
+
+		-
+			message: "#^Method Patchlevel\\\\Hydrator\\\\Normalizer\\\\ReflectionTypeUtil\\:\\:classStringInstanceOf\\(\\) should return class\\-string\\<T\\> but returns class\\-string\\<T\\>\\|\\(string&T\\)\\.$#"
+			count: 1
+			path: src/Normalizer/ReflectionTypeUtil.php

@@ -7,13 +7,21 @@ namespace Patchlevel\Hydrator\Tests\Unit\Normalizer;
 use Attribute;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\Normalizer\InvalidArgument;
+use Patchlevel\Hydrator\Normalizer\InvalidType;
 use Patchlevel\Hydrator\Normalizer\MissingHydrator;
 use Patchlevel\Hydrator\Normalizer\ObjectNormalizer;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\AutoTypeDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
 use PHPUnit\Framework\TestCase;
 use Prophecy\PhpUnit\ProphecyTrait;
+use ReflectionClass;
+use ReflectionType;
+use RuntimeException;
+
+use function serialize;
+use function unserialize;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final class ObjectNormalizerTest extends TestCase
@@ -122,5 +130,82 @@ final class ObjectNormalizerTest extends TestCase
             $expected,
             $normalizer->denormalize(['profileId' => '1', 'email' => 'info@patchlevel.de']),
         );
+    }
+
+    public function testAutoDetect(): void
+    {
+        $hydrator = $this->prophesize(Hydrator::class);
+
+        $normalizer = new ObjectNormalizer();
+        $normalizer->setHydrator($hydrator->reveal());
+        $normalizer->handleReflectionType($this->reflectionType(AutoTypeDto::class, 'profileCreated'));
+
+        self::assertEquals(ProfileCreated::class, $normalizer->getClassName());
+    }
+
+    public function testAutoDetectOverrideNotPossible(): void
+    {
+        $hydrator = $this->prophesize(Hydrator::class);
+
+        $normalizer = new ObjectNormalizer(AutoTypeDto::class);
+        $normalizer->setHydrator($hydrator->reveal());
+        $normalizer->handleReflectionType($this->reflectionType(AutoTypeDto::class, 'profileCreated'));
+
+        self::assertEquals(AutoTypeDto::class, $normalizer->getClassName());
+    }
+
+    public function testAutoDetectMissingType(): void
+    {
+        $this->expectException(InvalidType::class);
+
+        $hydrator = $this->prophesize(Hydrator::class);
+
+        $normalizer = new ObjectNormalizer();
+        $normalizer->setHydrator($hydrator->reveal());
+
+        $normalizer->getClassName();
+    }
+
+    public function testAutoDetectMissingTypeBecauseNull(): void
+    {
+        $this->expectException(InvalidType::class);
+
+        $hydrator = $this->prophesize(Hydrator::class);
+
+        $normalizer = new ObjectNormalizer();
+        $normalizer->setHydrator($hydrator->reveal());
+        $normalizer->handleReflectionType(null);
+
+        $normalizer->getClassName();
+    }
+
+    public function testSerialize(): void
+    {
+        $hydrator = $this->prophesize(Hydrator::class);
+
+        $normalizer = new ObjectNormalizer(ProfileCreated::class);
+        $normalizer->setHydrator($hydrator->reveal());
+
+        $serialized = serialize($normalizer);
+
+        $normalizer2 = unserialize($serialized);
+
+        self::assertInstanceOf(ObjectNormalizer::class, $normalizer2);
+        self::assertEquals(new ObjectNormalizer(ProfileCreated::class), $normalizer2);
+    }
+
+    /** @param class-string $class */
+    private function reflectionType(string $class, string $property): ReflectionType
+    {
+        $reflection = new ReflectionClass($class);
+        $property = $reflection->getProperty($property);
+
+        $type = $property->getType();
+
+        if (!$type instanceof ReflectionType) {
+            throw new RuntimeException('no type');
+        }
+
+        return $type;
     }
 }

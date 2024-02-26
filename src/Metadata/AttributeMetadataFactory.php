@@ -7,6 +7,7 @@ namespace Patchlevel\Hydrator\Metadata;
 use Patchlevel\Hydrator\Attribute\Ignore;
 use Patchlevel\Hydrator\Attribute\NormalizedName;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
+use Patchlevel\Hydrator\Normalizer\ReflectionTypeAwareNormalizer;
 use ReflectionAttribute;
 use ReflectionClass;
 use ReflectionProperty;
@@ -132,11 +133,17 @@ final class AttributeMetadataFactory implements MetadataFactory
             ReflectionAttribute::IS_INSTANCEOF,
         );
 
-        if ($attributeReflectionList !== []) {
-            return $attributeReflectionList[0]->newInstance();
+        if ($attributeReflectionList === []) {
+            return null;
         }
 
-        return null;
+        $normalizer = $attributeReflectionList[0]->newInstance();
+
+        if ($normalizer instanceof ReflectionTypeAwareNormalizer) {
+            $normalizer->handleReflectionType($reflectionProperty->getType());
+        }
+
+        return $normalizer;
     }
 
     private function hasIgnore(ReflectionProperty $reflectionProperty): bool
@@ -161,7 +168,11 @@ final class AttributeMetadataFactory implements MetadataFactory
 
         foreach ($child->properties() as $property) {
             if (array_key_exists($property->fieldName(), $properties)) {
-                throw DuplicatedFieldNameInMetadata::byInheritance($property->fieldName(), $parent->className(), $child->className());
+                throw DuplicatedFieldNameInMetadata::byInheritance(
+                    $property->fieldName(),
+                    $parent->className(),
+                    $child->className(),
+                );
             }
 
             $properties[$property->fieldName()] = $property;

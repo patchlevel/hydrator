@@ -177,7 +177,7 @@ For this, the enum FQCN must also be pass so that the `EnumNormalizer` knows whi
 use Patchlevel\Hydrator\Normalizer\EnumNormalizer;
 
 final class DTO {
-    #[EnumNormalizer(Status::class)]
+    #[EnumNormalizer]
     public Status $status;
 }
 ```
@@ -191,8 +191,11 @@ This use the hydrator internally to normalize the object.
 use Patchlevel\Hydrator\Normalizer\ObjectNormalizer;
 
 final class DTO {
-    #[ObjectNormalizer(AnohterDto::class)]
+    #[ObjectNormalizer]
     public AnohterDto $anotherDto;
+    
+    #[ObjectNormalizer(AnohterDto::class)]
+    public object $object;
 }
 ```
 
