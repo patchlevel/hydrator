@@ -162,7 +162,8 @@ To normalize a `DateTimeZone` one can use the `DateTimeZoneNormalizer`.
 ```php
 use Patchlevel\Hydrator\Normalizer\DateTimeZoneNormalizer;
 
-final class DTO {
+final class DTO
+{
     #[DateTimeZoneNormalizer]
     public DateTimeZone $timeZone;
 }
@@ -176,7 +177,8 @@ For this, the enum FQCN must also be pass so that the `EnumNormalizer` knows whi
 ```php
 use Patchlevel\Hydrator\Normalizer\EnumNormalizer;
 
-final class DTO {
+final class DTO
+{
     #[EnumNormalizer]
     public Status $status;
 }
@@ -190,12 +192,19 @@ This use the hydrator internally to normalize the object.
 ```php
 use Patchlevel\Hydrator\Normalizer\ObjectNormalizer;
 
-final class DTO {
+final class DTO
+{
     #[ObjectNormalizer]
     public AnohterDto $anotherDto;
     
     #[ObjectNormalizer(AnohterDto::class)]
     public object $object;
+}
+
+final class AnotherDto
+{
+    #[EnumNormalizer]
+    public Status $status;
 }
 ```
 
