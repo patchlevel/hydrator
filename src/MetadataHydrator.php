@@ -7,10 +7,16 @@ namespace Patchlevel\Hydrator;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Metadata\MetadataFactory;
+use Patchlevel\Hydrator\Metadata\PropertyMetadata;
 use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
+use Patchlevel\Hydrator\Normalizer\ServiceResolverNormalizer;
+use Patchlevel\Hydrator\Normalizer\Normalizer;
+use Patchlevel\Hydrator\Normalizer\NormalizerConfig;
+use Psr\Container\ContainerInterface;
 use ReflectionParameter;
 use Throwable;
 use TypeError;
+use WeakMap;
 
 use function array_key_exists;
 use function array_values;
@@ -21,9 +27,16 @@ final class MetadataHydrator implements Hydrator
     /** @var array<int, class-string> */
     private array $stack = [];
 
+    /**
+     * @var WeakMap<NormalizerConfig, ServiceResolverNormalizer>
+     */
+    private WeakMap $serviceResolverNormalizerMap;
+
     public function __construct(
         private readonly MetadataFactory $metadataFactory = new AttributeMetadataFactory(),
+        private readonly ContainerInterface|null $container = null,
     ) {
+        $this->serviceResolverNormalizerMap = new WeakMap();
     }
 
     /**
@@ -64,8 +77,7 @@ final class MetadataHydrator implements Hydrator
 
             /** @psalm-suppress MixedAssignment */
             $value = $data[$propertyMetadata->fieldName()];
-
-            $normalizer = $propertyMetadata->normalizer();
+            $normalizer = $this->normalizer($propertyMetadata);
 
             if ($normalizer) {
                 if ($normalizer instanceof HydratorAwareNormalizer) {
@@ -121,8 +133,7 @@ final class MetadataHydrator implements Hydrator
             foreach ($metadata->properties() as $propertyMetadata) {
                 /** @psalm-suppress MixedAssignment */
                 $value = $propertyMetadata->getValue($object);
-
-                $normalizer = $propertyMetadata->normalizer();
+                $normalizer = $this->normalizer($propertyMetadata);
 
                 if ($normalizer) {
                     if ($normalizer instanceof HydratorAwareNormalizer) {
@@ -179,5 +190,17 @@ final class MetadataHydrator implements Hydrator
         }
 
         return $result;
+    }
+
+    private function normalizer(PropertyMetadata $propertyMetadata): Normalizer|null
+    {
+        $normalizer = $propertyMetadata->normalizer();
+
+        if ($normalizer instanceof NormalizerConfig) {
+            $normalizer = $this->serviceResolverNormalizerMap[$normalizer]
+                ??= new ServiceResolverNormalizer($normalizer, $this->container);
+        }
+
+        return $normalizer;
     }
 }

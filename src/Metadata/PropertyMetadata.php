@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Metadata;
 
 use Patchlevel\Hydrator\Normalizer\Normalizer;
+use Patchlevel\Hydrator\Normalizer\NormalizerConfig;
 use ReflectionProperty;
 
 final class PropertyMetadata
@@ -12,7 +13,7 @@ final class PropertyMetadata
     public function __construct(
         private readonly ReflectionProperty $reflection,
         private readonly string $fieldName,
-        private readonly Normalizer|null $normalizer = null,
+        private readonly Normalizer|NormalizerConfig|null $normalizer = null,
     ) {
     }
 
@@ -31,7 +32,7 @@ final class PropertyMetadata
         return $this->fieldName;
     }
 
-    public function normalizer(): Normalizer|null
+    public function normalizer(): Normalizer|NormalizerConfig|null
     {
         return $this->normalizer;
     }
