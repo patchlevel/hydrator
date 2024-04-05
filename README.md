@@ -308,6 +308,25 @@ final class AnotherDto
 > [!WARNING]
 > Circular references are not supported and will result in an exception.
 
+#### Union Object
+
+If you have a union type from multiple classes, then you can use the `UnionObjectNormalizer` normalizer
+
+```php
+use Patchlevel\Hydrator\Normalizer\UnionObjectNormalizer;
+
+#[UnionObjectNormalizer([
+  ContentBlock::class => 'content',
+  CodeBlock::class => 'code'
+])]
+interface Block
+{
+}
+```
+
+> [!NOTE]
+> Auto detection of the type is not possible. You have to specify the type yourself.
+
 #### Inline
 
 The `InlineNormalizer` allows you to define normalization and denormalization logic directly via closures.
