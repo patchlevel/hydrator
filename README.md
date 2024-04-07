@@ -208,8 +208,28 @@ final class AnotherDto
 }
 ```
 
+#### Union Object
+
+If you have a union type from multiple classes, then you can use the `UnionObjectNormalizer` normalizer
+
+```php
+use Patchlevel\Hydrator\Normalizer\UnionObjectNormalizer;
+
+final class DTO
+{
+    #[UnionObjectNormalizer([
+        Foo::class => 'foo',
+        Bar::class => 'bar'
+    ])]
+    public Foo|Bar|null $object;
+}
+```
+
 > [!WARNING]
 > Circular references are not supported and will result in an exception.
+
+> [!NOTE]
+> Auto detection of the type is not possible. You have to specify the type yourself.
 
 ### Custom Normalizer
 
