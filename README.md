@@ -5,7 +5,8 @@
 
 # Hydrator
 
-With this library you can hydrate objects from array into objects and back again.
+With this library you can hydrate objects from array into objects and back again 
+with a focus on data processing from and into a database.
 It has now been outsourced by the [event-sourcing](https://github.com/patchlevel/event-sourcing) library as a separate library.
 
 ## Installation
@@ -332,4 +333,113 @@ readonly class ProfileCreated
     ) {
     }
 }
+```
+
+### Cryptography
+
+The library also offers the possibility to encrypt and decrypt personal data.
+
+#### PersonalData
+
+First of all, we have to mark the fields that contain personal data.
+For our example, we use events, but you can do the same with aggregates.
+
+```php
+use Patchlevel\Hydrator\Attribute\PersonalData;
+
+final class DTO 
+{
+    #[PersonalData]
+    public readonly string|null $email;
+}
+```
+
+If the information could not be decrypted, then a fallback value is inserted.
+The default fallback value is `null`.
+You can change this by setting the `fallback` parameter.
+In this case `unknown` is added:
+
+```php
+use Patchlevel\Hydrator\Attribute\PersonalData;
+
+final class DTO
+{
+    public function __construct(
+        #[PersonalData(fallback: 'unknown')]
+        public readonly string $email,
+    ) {
+    }
+}
+```
+
+> [!DANGER]
+> You have to deal with this case in your business logic such as aggregates and subscriptions.
+
+> [!WARNING]
+> You need to define a subject ID to use the personal data attribute.
+
+#### DataSubjectId
+
+In order for the correct key to be used, a subject ID must be defined.
+Without Subject Id, no personal data can be encrypted or decrypted.
+
+```php
+use Patchlevel\Hydrator\Attribute\DataSubjectId;
+use Patchlevel\Hydrator\Attribute\PersonalData;
+
+final class EmailChanged
+{
+    public function __construct(
+        #[DataSubjectId]
+        public readonly string $personId,
+        #[PersonalData(fallback: 'unknown')]
+        public readonly string|null $email,
+    ) {
+    }
+}
+```
+
+> [!WARNING]
+> A subject ID can not be a personal data.
+
+#### Configure Cryptography
+
+Here we show you how to configure the cryptography.
+
+```php
+use Patchlevel\Hydrator\Cryptography\PersonalDataPayloadCryptographer;
+use Patchlevel\Hydrator\Cryptography\Store\CipherKeyStore;
+use Patchlevel\Hydrator\Metadata\Event\EventMetadataFactory;
+use Patchlevel\Hydrator\MetadataHydrator;
+
+$cipherKeyStore = new InMemoryCipherKeyStore();
+$cryptographer = PersonalDataPayloadCryptographer::createWithOpenssl($cipherKeyStore);
+$hydrator = new MetadataHydrator(cryptographer: $cryptographer);
+```
+
+#### Cipher Key Store
+
+The keys must be stored somewhere. For testing purposes, we offer an in-memory implementation.
+
+```php
+use Patchlevel\Hydrator\Cryptography\Cipher\CipherKey;
+use Patchlevel\Hydrator\Cryptography\Store\InMemoryCipherKeyStore;
+
+$cipherKeyStore = new InMemoryCipherKeyStore();
+
+/** @var CipherKey $cipherKey */
+$cipherKeyStore->store('foo-id', $cipherKey);
+$cipherKey = $cipherKeyStore->get('foo-id');
+$cipherKeyStore->remove('foo-id');
+```
+
+Because we don't know where you want to store the keys, we don't offer any other implementations.
+You should use a database or a key store for this. To do this, you have to implement the `CipherKeyStore` interface.
+
+#### Remove personal data
+
+To remove personal data, you need only remove the key from the store.
+
+```php
+$cipherKeyStore->remove('foo-id');
 ```

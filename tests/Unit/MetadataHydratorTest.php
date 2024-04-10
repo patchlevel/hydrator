@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Tests\Unit;
 
 use Patchlevel\Hydrator\CircularReference;
+use Patchlevel\Hydrator\Cryptography\PayloadCryptographer;
 use Patchlevel\Hydrator\DenormalizationFailure;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\MetadataHydrator;
@@ -21,9 +22,12 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer;
 use Patchlevel\Hydrator\TypeMismatch;
 use PHPUnit\Framework\TestCase;
+use Prophecy\PhpUnit\ProphecyTrait;
 
 final class MetadataHydratorTest extends TestCase
 {
+    use ProphecyTrait;
+
     private MetadataHydrator $hydrator;
 
     public function setUp(): void
@@ -176,5 +180,55 @@ final class MetadataHydratorTest extends TestCase
         $this->hydrator->extract(
             new WrongNormalizer(true),
         );
+    }
+
+    public function testDecrypt(): void
+    {
+        $object = new ProfileCreated(
+            ProfileId::fromString('1'),
+            Email::fromString('info@patchlevel.de'),
+        );
+
+        $payload = ['profileId' => '1', 'email' => 'info@patchlevel.de'];
+        $encryptedPayload = ['profileId' => '1', 'email' => 'encrypted'];
+
+        $metadataFactory = new AttributeMetadataFactory();
+
+        $cryptographer = $this->prophesize(PayloadCryptographer::class);
+        $cryptographer
+            ->decrypt($metadataFactory->metadata(ProfileCreated::class), $encryptedPayload)
+            ->willReturn($payload)
+            ->shouldBeCalledOnce();
+
+        $hydrator = new MetadataHydrator($metadataFactory, $cryptographer->reveal());
+
+        $return = $hydrator->hydrate(ProfileCreated::class, $encryptedPayload);
+
+        self::assertEquals($object, $return);
+    }
+
+    public function testEncrypt(): void
+    {
+        $object = new ProfileCreated(
+            ProfileId::fromString('1'),
+            Email::fromString('info@patchlevel.de'),
+        );
+
+        $payload = ['profileId' => '1', 'email' => 'info@patchlevel.de'];
+        $encryptedPayload = ['profileId' => '1', 'email' => 'encrypted'];
+
+        $metadataFactory = new AttributeMetadataFactory();
+
+        $cryptographer = $this->prophesize(PayloadCryptographer::class);
+        $cryptographer
+            ->encrypt($metadataFactory->metadata(ProfileCreated::class), $payload)
+            ->willReturn($encryptedPayload)
+            ->shouldBeCalledOnce();
+
+        $hydrator = new MetadataHydrator($metadataFactory, $cryptographer->reveal());
+
+        $return = $hydrator->extract($object);
+
+        self::assertSame($encryptedPayload, $return);
     }
 }

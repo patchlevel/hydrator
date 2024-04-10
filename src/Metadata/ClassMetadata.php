@@ -6,7 +6,14 @@ namespace Patchlevel\Hydrator\Metadata;
 
 use ReflectionClass;
 
-/** @template T of object */
+/**
+ * @psalm-type serialized array{
+ *     className: class-string,
+ *     properties: list<PropertyMetadata>,
+ *     dataSubjectIdField: string|null
+ * }
+ * @template T of object
+ */
 final class ClassMetadata
 {
     /**
@@ -16,6 +23,7 @@ final class ClassMetadata
     public function __construct(
         private readonly ReflectionClass $reflection,
         private readonly array $properties = [],
+        private readonly string|null $dataSubjectIdField = null,
     ) {
     }
 
@@ -37,6 +45,11 @@ final class ClassMetadata
         return $this->properties;
     }
 
+    public function dataSubjectIdField(): string|null
+    {
+        return $this->dataSubjectIdField;
+    }
+
     public function propertyForField(string $name): PropertyMetadata
     {
         foreach ($this->properties as $property) {
@@ -54,19 +67,21 @@ final class ClassMetadata
         return $this->reflection->newInstanceWithoutConstructor();
     }
 
-    /** @return array{className: class-string<T>, properties: list<PropertyMetadata>} */
+    /** @return serialized */
     public function __serialize(): array
     {
         return [
             'className' => $this->reflection->getName(),
             'properties' => $this->properties,
+            'dataSubjectIdField' => $this->dataSubjectIdField,
         ];
     }
 
-    /** @param array{className: class-string<T>, properties: list<PropertyMetadata>} $data */
+    /** @param serialized $data */
     public function __unserialize(array $data): void
     {
         $this->reflection = new ReflectionClass($data['className']);
         $this->properties = $data['properties'];
+        $this->dataSubjectIdField = $data['dataSubjectIdField'];
     }
 }

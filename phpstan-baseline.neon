@@ -1,6 +1,26 @@
 parameters:
 	ignoreErrors:
 		-
+			message: "#^Parameter \\#1 \\$key of class Patchlevel\\\\Hydrator\\\\Cryptography\\\\Cipher\\\\CipherKey constructor expects non\\-empty\\-string, string given\\.$#"
+			count: 1
+			path: src/Cryptography/Cipher/OpensslCipherKeyFactory.php
+
+		-
+			message: "#^Parameter \\#3 \\$iv of class Patchlevel\\\\Hydrator\\\\Cryptography\\\\Cipher\\\\CipherKey constructor expects non\\-empty\\-string, string given\\.$#"
+			count: 1
+			path: src/Cryptography/Cipher/OpensslCipherKeyFactory.php
+
+		-
+			message: "#^Parameter \\#2 \\$data of method Patchlevel\\\\Hydrator\\\\Cryptography\\\\Cipher\\\\Cipher\\:\\:decrypt\\(\\) expects string, mixed given\\.$#"
+			count: 1
+			path: src/Cryptography/PersonalDataPayloadCryptographer.php
+
+		-
+			message: "#^Property Patchlevel\\\\Hydrator\\\\Metadata\\\\ClassMetadata\\<T of object\\>\\:\\:\\$reflection \\(ReflectionClass\\<T of object\\>\\) does not accept ReflectionClass\\<object\\>\\.$#"
+			count: 1
+			path: src/Metadata/ClassMetadata.php
+
+		-
 			message: "#^Dead catch \\- Patchlevel\\\\Hydrator\\\\CircularReference is never thrown in the try block\\.$#"
 			count: 1
 			path: src/MetadataHydrator.php

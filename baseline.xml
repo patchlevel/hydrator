@@ -1,5 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<files psalm-version="5.22.2@d768d914152dbbf3486c36398802f74e80cfde48">
+<files psalm-version="5.23.1@8471a896ccea3526b26d082f4461eeea467f10a4">
+  <file src="src/Cryptography/Cipher/OpensslCipherKeyFactory.php">
+    <ArgumentTypeCoercion>
+      <code><![CDATA[openssl_random_pseudo_bytes($this->ivLength)]]></code>
+      <code><![CDATA[openssl_random_pseudo_bytes($this->keyLength)]]></code>
+    </ArgumentTypeCoercion>
+    <LessSpecificReturnStatement>
+      <code><![CDATA[openssl_get_cipher_methods(true)]]></code>
+    </LessSpecificReturnStatement>
+    <MoreSpecificReturnType>
+      <code><![CDATA[list<string>]]></code>
+    </MoreSpecificReturnType>
+  </file>
+  <file src="src/Cryptography/PersonalDataPayloadCryptographer.php">
+    <MixedArgument>
+      <code><![CDATA[$data[$propertyMetadata->fieldName()]]]></code>
+    </MixedArgument>
+    <MixedAssignment>
+      <code><![CDATA[$data[$propertyMetadata->fieldName()]]]></code>
+      <code><![CDATA[$data[$propertyMetadata->fieldName()]]]></code>
+      <code><![CDATA[$data[$propertyMetadata->fieldName()]]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Metadata/AttributeMetadataFactory.php">
+    <MixedAssignment>
+      <code><![CDATA[$personalDataFallback]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Metadata/ClassMetadata.php">
+    <InvalidPropertyAssignmentValue>
+      <code><![CDATA[new ReflectionClass($data['className'])]]></code>
+    </InvalidPropertyAssignmentValue>
+  </file>
   <file src="src/Normalizer/ObjectNormalizer.php">
     <MixedArgument>
       <code><![CDATA[$value]]></code>
@@ -7,5 +39,10 @@
     <MixedArgumentTypeCoercion>
       <code><![CDATA[$value]]></code>
     </MixedArgumentTypeCoercion>
+  </file>
+  <file src="tests/Unit/Cryptography/Cipher/OpensslCipherTest.php">
+    <MixedAssignment>
+      <code><![CDATA[$return]]></code>
+    </MixedAssignment>
   </file>
 </files>
