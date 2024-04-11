@@ -7,12 +7,24 @@ namespace Patchlevel\Hydrator\Metadata;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
 use ReflectionProperty;
 
+/**
+ * @psalm-type serialized = array{
+ *     className: class-string,
+ *     property: string,
+ *     fieldName: string,
+ *     normalizer: Normalizer|null,
+ *     isPersonalData: bool,
+ *     personalDataFallback: mixed
+ * }
+ */
 final class PropertyMetadata
 {
     public function __construct(
         private readonly ReflectionProperty $reflection,
         private readonly string $fieldName,
         private readonly Normalizer|null $normalizer = null,
+        private readonly bool $isPersonalData = false,
+        private readonly mixed $personalDataFallback = null,
     ) {
     }
 
@@ -46,7 +58,17 @@ final class PropertyMetadata
         return $this->reflection->getValue($object);
     }
 
-    /** @return array{className: class-string, property: string, fieldName: string, normalizer: Normalizer|null} */
+    public function isPersonalData(): bool
+    {
+        return $this->isPersonalData;
+    }
+
+    public function personalDataFallback(): mixed
+    {
+        return $this->personalDataFallback;
+    }
+
+    /** @return serialized */
     public function __serialize(): array
     {
         return [
@@ -54,14 +76,18 @@ final class PropertyMetadata
             'property' => $this->reflection->getName(),
             'fieldName' => $this->fieldName,
             'normalizer' => $this->normalizer,
+            'isPersonalData' => $this->isPersonalData,
+            'personalDataFallback' => $this->personalDataFallback,
         ];
     }
 
-    /** @param array{className: class-string, property: string, fieldName: string, normalizer: Normalizer|null} $data */
+    /** @param serialized $data */
     public function __unserialize(array $data): void
     {
         $this->reflection = new ReflectionProperty($data['className'], $data['property']);
         $this->fieldName = $data['fieldName'];
         $this->normalizer = $data['normalizer'];
+        $this->isPersonalData = $data['isPersonalData'];
+        $this->personalDataFallback = $data['personalDataFallback'];
     }
 }

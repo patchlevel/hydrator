@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator;
 
+use Patchlevel\Hydrator\Cryptography\PayloadCryptographer;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Metadata\MetadataFactory;
@@ -23,6 +24,7 @@ final class MetadataHydrator implements Hydrator
 
     public function __construct(
         private readonly MetadataFactory $metadataFactory = new AttributeMetadataFactory(),
+        private readonly PayloadCryptographer|null $cryptographer = null,
     ) {
     }
 
@@ -37,6 +39,11 @@ final class MetadataHydrator implements Hydrator
     public function hydrate(string $class, array $data): object
     {
         $metadata = $this->metadataFactory->metadata($class);
+
+        if ($this->cryptographer) {
+            $data = $this->cryptographer->decrypt($metadata, $data);
+        }
+
         $object = $metadata->newInstance();
 
         $constructorParameters = null;
@@ -146,6 +153,10 @@ final class MetadataHydrator implements Hydrator
 
                 /** @psalm-suppress MixedAssignment */
                 $data[$propertyMetadata->fieldName()] = $value;
+            }
+
+            if ($this->cryptographer) {
+                return $this->cryptographer->encrypt($metadata, $data);
             }
 
             return $data;
