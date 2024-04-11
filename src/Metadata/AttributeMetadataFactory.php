@@ -189,9 +189,20 @@ final class AttributeMetadataFactory implements MetadataFactory
             $properties[$property->fieldName()] = $property;
         }
 
+        $parentDataSubjectIdField = $parent->dataSubjectIdField();
+        $childDataSubjectIdField = $child->dataSubjectIdField();
+
+        if ($parentDataSubjectIdField !== null && $childDataSubjectIdField !== null) {
+            $parentProperty = $parent->propertyForField($parentDataSubjectIdField);
+            $childProperty = $child->propertyForField($childDataSubjectIdField);
+
+            throw new MultipleDataSubjectId($parentProperty->propertyName(), $childProperty->propertyName());
+        }
+
         return new ClassMetadata(
             $parent->reflection(),
             array_values($properties),
+            $parentDataSubjectIdField ?? $childDataSubjectIdField,
         );
     }
 

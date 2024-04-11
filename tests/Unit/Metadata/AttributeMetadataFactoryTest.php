@@ -22,6 +22,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\IgnoreDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\IgnoreParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\MissingSubjectIdDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentWithPersonalDataDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileIdNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
 use PHPUnit\Framework\TestCase;
@@ -333,5 +334,28 @@ final class AttributeMetadataFactoryTest extends TestCase
 
         $metadataFactory = new AttributeMetadataFactory();
         $metadataFactory->metadata($event::class);
+    }
+
+    public function testExtendsWithPersonalData(): void
+    {
+        $metadataFactory = new AttributeMetadataFactory();
+        $metadata = $metadataFactory->metadata(ParentWithPersonalDataDto::class);
+
+        self::assertSame('profileId', $metadata->dataSubjectIdField());
+        self::assertCount(2, $metadata->properties());
+
+        $idPropertyMetadata = $metadata->propertyForField('profileId');
+
+        self::assertSame('profileId', $idPropertyMetadata->propertyName());
+        self::assertSame('profileId', $idPropertyMetadata->fieldName());
+        self::assertFalse($idPropertyMetadata->isPersonalData());
+        self::assertInstanceOf(ProfileIdNormalizer::class, $idPropertyMetadata->normalizer());
+
+        $emailPropertyMetadata = $metadata->propertyForField('email');
+
+        self::assertSame('email', $emailPropertyMetadata->propertyName());
+        self::assertSame('email', $emailPropertyMetadata->fieldName());
+        self::assertTrue($emailPropertyMetadata->isPersonalData());
+        self::assertInstanceOf(EmailNormalizer::class, $emailPropertyMetadata->normalizer());
     }
 }
