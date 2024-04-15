@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Normalizer;
 
 use Attribute;
+use Patchlevel\Hydrator\Hydrator;
 
 use function array_map;
 use function is_array;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
-final class ArrayNormalizer implements Normalizer
+final class ArrayNormalizer implements Normalizer, HydratorAwareNormalizer
 {
     public function __construct(
         private readonly Normalizer $normalizer,
@@ -43,5 +44,14 @@ final class ArrayNormalizer implements Normalizer
         }
 
         return array_map(fn (mixed $value): mixed => $this->normalizer->denormalize($value), $value);
+    }
+
+    public function setHydrator(Hydrator $hydrator): void
+    {
+        if (!$this->normalizer instanceof HydratorAwareNormalizer) {
+            return;
+        }
+
+        $this->normalizer->setHydrator($hydrator);
     }
 }
