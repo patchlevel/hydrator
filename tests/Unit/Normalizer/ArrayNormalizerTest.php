@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Tests\Unit\Normalizer;
 
 use Attribute;
+use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\Normalizer\ArrayNormalizer;
+use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
 use Patchlevel\Hydrator\Normalizer\InvalidArgument;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
 use PHPUnit\Framework\TestCase;
@@ -86,5 +88,16 @@ final class ArrayNormalizerTest extends TestCase
 
         $normalizer = new ArrayNormalizer($innerNormalizer);
         $this->assertEquals([1, 2], $normalizer->denormalize(['1', '2']));
+    }
+
+    public function testPassHydrator(): void
+    {
+        $hydrator = $this->prophesize(Hydrator::class)->reveal();
+        $normalizer = $this->prophesize(Normalizer::class);
+        $normalizer->willImplement(HydratorAwareNormalizer::class);
+        $normalizer->setHydrator($hydrator)->shouldBeCalled();
+
+        $normalizer = new ArrayNormalizer($normalizer->reveal());
+        $normalizer->setHydrator($hydrator);
     }
 }
