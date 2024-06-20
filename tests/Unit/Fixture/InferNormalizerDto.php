@@ -10,6 +10,7 @@ use DateTimeZone;
 
 final class InferNormalizerDto
 {
+    /** @param array<string> $array */
     public function __construct(
         public Status $status,
         public ProfileCreated $profileCreated,
