@@ -17,7 +17,6 @@ use Patchlevel\Hydrator\Normalizer\DateTimeNormalizer;
 use Patchlevel\Hydrator\Normalizer\DateTimeZoneNormalizer;
 use Patchlevel\Hydrator\Normalizer\EnumNormalizer;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
-use Patchlevel\Hydrator\Normalizer\ObjectNormalizer;
 use Patchlevel\Hydrator\Normalizer\ReflectionTypeAwareNormalizer;
 use ReflectionAttribute;
 use ReflectionClass;
