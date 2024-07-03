@@ -188,10 +188,6 @@ final class AttributeMetadataFactory implements MetadataFactory
             return new EnumNormalizer($className);
         }
 
-        if (class_exists($className, false)) {
-            return new ObjectNormalizer($className);
-        }
-
         return null;
     }
 
@@ -303,7 +299,7 @@ final class AttributeMetadataFactory implements MetadataFactory
     }
 
     /** @return array<ReflectionAttribute<Normalizer>> */
-    public function getAttributeReflectionList(ReflectionProperty $reflectionProperty): array
+    private function getAttributeReflectionList(ReflectionProperty $reflectionProperty): array
     {
         $attributeReflectionList = $reflectionProperty->getAttributes(
             Normalizer::class,
@@ -320,7 +316,7 @@ final class AttributeMetadataFactory implements MetadataFactory
             return [];
         }
 
-        if (!class_exists($type->getName(), false)) {
+        if (!class_exists($type->getName())) {
             return [];
         }
 

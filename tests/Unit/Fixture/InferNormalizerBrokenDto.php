@@ -8,15 +8,11 @@ use DateTime;
 use DateTimeImmutable;
 use DateTimeZone;
 
-final class InferNormalizerDto
+final class InferNormalizerBrokenDto
 {
     /** @param array<string> $array */
     public function __construct(
-        public Status $status,
-        public DateTimeImmutable $dateTimeImmutable,
-        public DateTime $dateTime,
-        public DateTimeZone $dateTimeZone,
-        public array $array,
+        public ProfileCreated $profileCreated,
     ) {
     }
 }

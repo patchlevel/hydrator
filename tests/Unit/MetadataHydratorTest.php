@@ -18,6 +18,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle2Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle3Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DefaultDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerBrokenDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\NormalizerInBaseClassDefinedDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDto;
@@ -267,10 +268,6 @@ final class MetadataHydratorTest extends TestCase
     {
         $expected = new InferNormalizerDto(
             Status::Draft,
-            new ProfileCreated(
-                ProfileId::fromString('1'),
-                Email::fromString('info@patchlevel.de'),
-            ),
             new DateTimeImmutable('2015-02-13 22:34:32+01:00'),
             new DateTime('2015-02-13 22:34:32+01:00'),
             new DateTimeZone('EDT'),
@@ -281,7 +278,6 @@ final class MetadataHydratorTest extends TestCase
             InferNormalizerDto::class,
             [
                 'status' => 'draft',
-                'profileCreated' => ['profileId' => '1', 'email' => 'info@patchlevel.de'],
                 'dateTimeImmutable' => '2015-02-13T22:34:32+01:00',
                 'dateTime' => '2015-02-13T22:34:32+01:00',
                 'dateTimeZone' => 'EDT',
@@ -290,5 +286,16 @@ final class MetadataHydratorTest extends TestCase
         );
 
         self::assertEquals($expected, $event);
+    }
+
+    public function testHydrateWithInferNormalizerFailed(): void
+    {
+        $this->expectException(TypeMismatch::class);
+        $event = $this->hydrator->hydrate(
+            InferNormalizerBrokenDto::class,
+            [
+                'profileCreated' => ['profileId' => '1', 'email' => 'info@patchlevel.de'],
+            ],
+        );
     }
 }
