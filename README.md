@@ -289,6 +289,56 @@ final class DTO
 }
 ```
 
+### Define normalizer on class level
+
+You can also set the attribute on the value object on class level. For that the normalizer needs to allow to be set on 
+class level.
+
+```php
+use Patchlevel\Hydrator\Normalizer\Normalizer;
+use Patchlevel\Hydrator\Normalizer\InvalidArgument;
+
+#[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_CLASS)]
+class NameNormalizer implements Normalizer
+{
+    // ... same as before
+}
+```
+
+Then set the attribute on the value object.
+
+
+```php
+#[NameNormalizer]
+final class Name
+{
+    // ... same as before
+}
+```
+
+After that the DTO can then look like this.
+
+```php
+final class DTO
+{
+    public Name $name
+}
+```
+
+### Infer Normalizer
+
+We also integrated a process where the normalizer gets inferred by type. This means you don't need to define the 
+normalizer in for the properties or on class level. Right now this is only possible for Normalizer defined by our 
+library. There are exceptions though, the `ObjectNormalizer` and the `ArrayNormalizer`.
+
+These Normalizer can be inferred:
+
+* `DateTimeImmutableNormalizer` 
+* `DateTimeNormalizer` 
+* `DateTimeZoneNormalizer` 
+* `EnumNormalizer` 
+
+
 ### Normalized Name
 
 By default, the property name is used to name the field in the normalized result.

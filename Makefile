@@ -8,9 +8,10 @@ vendor: composer.lock
 cs-check: vendor                                                                ## run phpcs
 	vendor/bin/phpcs
 
-.PHONY: phpcs-fix
+.PHONY: cs
 cs: vendor                                                                      ## run phpcs fixer
-	vendor/bin/phpcbf
+	vendor/bin/phpcbf || true
+	vendor/bin/phpcs
 
 .PHONY: phpstan
 phpstan: vendor                                                                 ## run phpstan static code analyser

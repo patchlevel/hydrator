@@ -4,18 +4,29 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Metadata;
 
+use BackedEnum;
+use DateTime;
+use DateTimeImmutable;
+use DateTimeZone;
 use Patchlevel\Hydrator\Attribute\DataSubjectId;
 use Patchlevel\Hydrator\Attribute\Ignore;
 use Patchlevel\Hydrator\Attribute\NormalizedName;
 use Patchlevel\Hydrator\Attribute\PersonalData;
+use Patchlevel\Hydrator\Normalizer\DateTimeImmutableNormalizer;
+use Patchlevel\Hydrator\Normalizer\DateTimeNormalizer;
+use Patchlevel\Hydrator\Normalizer\DateTimeZoneNormalizer;
+use Patchlevel\Hydrator\Normalizer\EnumNormalizer;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
 use Patchlevel\Hydrator\Normalizer\ReflectionTypeAwareNormalizer;
 use ReflectionAttribute;
 use ReflectionClass;
+use ReflectionNamedType;
 use ReflectionProperty;
 
 use function array_key_exists;
 use function array_values;
+use function class_exists;
+use function is_a;
 
 final class AttributeMetadataFactory implements MetadataFactory
 {
@@ -132,29 +143,51 @@ final class AttributeMetadataFactory implements MetadataFactory
             return $reflectionProperty->getName();
         }
 
-        $attribute = $attributeReflectionList[0]->newInstance();
-
-        return $attribute->name();
+        return $attributeReflectionList[0]->newInstance()->name();
     }
 
     private function getNormalizer(ReflectionProperty $reflectionProperty): Normalizer|null
     {
-        $attributeReflectionList = $reflectionProperty->getAttributes(
-            Normalizer::class,
-            ReflectionAttribute::IS_INSTANCEOF,
-        );
+        $attributeReflectionList = $this->getAttributeReflectionList($reflectionProperty);
+        $reflectionPropertyType = $reflectionProperty->getType();
 
         if ($attributeReflectionList === []) {
+            if ($reflectionPropertyType instanceof ReflectionNamedType) {
+                return $this->inferNormalizer($reflectionPropertyType);
+            }
+
             return null;
         }
 
         $normalizer = $attributeReflectionList[0]->newInstance();
 
         if ($normalizer instanceof ReflectionTypeAwareNormalizer) {
-            $normalizer->handleReflectionType($reflectionProperty->getType());
+            $normalizer->handleReflectionType($reflectionPropertyType);
         }
 
         return $normalizer;
+    }
+
+    private function inferNormalizer(ReflectionNamedType $type): Normalizer|null
+    {
+        $className = $type->getName();
+
+        $normalizer = match ($className) {
+            DateTimeImmutable::class => new DateTimeImmutableNormalizer(),
+            DateTime::class => new DateTimeNormalizer(),
+            DateTimeZone::class => new DateTimeZoneNormalizer(),
+            default => null,
+        };
+
+        if ($normalizer) {
+            return $normalizer;
+        }
+
+        if (is_a($className, BackedEnum::class, true)) {
+            return new EnumNormalizer($className);
+        }
+
+        return null;
     }
 
     private function hasIgnore(ReflectionProperty $reflectionProperty): bool
@@ -262,5 +295,33 @@ final class AttributeMetadataFactory implements MetadataFactory
         if ($hasPersonalData && $metadata->dataSubjectIdField() === null) {
             throw new MissingDataSubjectId($metadata->className());
         }
+    }
+
+    /** @return array<ReflectionAttribute<Normalizer>> */
+    private function getAttributeReflectionList(ReflectionProperty $reflectionProperty): array
+    {
+        $attributeReflectionList = $reflectionProperty->getAttributes(
+            Normalizer::class,
+            ReflectionAttribute::IS_INSTANCEOF,
+        );
+
+        if ($attributeReflectionList !== []) {
+            return $attributeReflectionList;
+        }
+
+        $type = $reflectionProperty->getType();
+
+        if (!$type instanceof ReflectionNamedType) {
+            return [];
+        }
+
+        if (!class_exists($type->getName())) {
+            return [];
+        }
+
+        return (new ReflectionClass($type->getName()))->getAttributes(
+            Normalizer::class,
+            ReflectionAttribute::IS_INSTANCEOF,
+        );
     }
 }

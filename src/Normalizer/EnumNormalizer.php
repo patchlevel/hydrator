@@ -12,7 +12,7 @@ use Throwable;
 use function is_int;
 use function is_string;
 
-#[Attribute(Attribute::TARGET_PROPERTY)]
+#[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_CLASS)]
 final class EnumNormalizer implements Normalizer, ReflectionTypeAwareNormalizer
 {
     /** @param class-string<BackedEnum>|null $enum */

@@ -10,7 +10,7 @@ use ReflectionType;
 
 use function is_array;
 
-#[Attribute(Attribute::TARGET_PROPERTY)]
+#[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_CLASS)]
 final class ObjectNormalizer implements Normalizer, ReflectionTypeAwareNormalizer, HydratorAwareNormalizer
 {
     private Hydrator|null $hydrator = null;
