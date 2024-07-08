@@ -9,7 +9,7 @@ use Patchlevel\Hydrator\Attribute\Ignore;
 final class IgnoreDto
 {
     public function __construct(
-        #[ProfileIdNormalizer]
+        #[IdNormalizer]
         public ProfileId $profileId,
         #[EmailNormalizer]
         #[Ignore]
