@@ -13,6 +13,7 @@ use Patchlevel\Hydrator\DenormalizationFailure;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\MetadataHydrator;
 use Patchlevel\Hydrator\NormalizationFailure;
+use Patchlevel\Hydrator\NormalizationMissing;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle1Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle2Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle3Dto;
@@ -100,6 +101,19 @@ final class MetadataHydratorTest extends TestCase
         $dto3->to = $dto1;
 
         $this->hydrator->extract($dto1);
+    }
+
+    public function testExtractWithInferNormalizerFailed(): void
+    {
+        $this->expectException(NormalizationMissing::class);
+        $this->hydrator->extract(
+            new InferNormalizerBrokenDto(
+                new ProfileCreated(
+                    ProfileId::fromString('1'),
+                    Email::fromString('info@patchlevel.de'),
+                ),
+            ),
+        );
     }
 
     public function testHydrate(): void

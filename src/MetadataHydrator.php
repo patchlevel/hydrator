@@ -15,6 +15,7 @@ use TypeError;
 
 use function array_key_exists;
 use function array_values;
+use function is_object;
 use function spl_object_id;
 
 final class MetadataHydrator implements Hydrator
@@ -149,6 +150,10 @@ final class MetadataHydrator implements Hydrator
                             $e,
                         );
                     }
+                }
+
+                if (is_object($value)) {
+                    throw new NormalizationMissing($object::class, $propertyMetadata->propertyName());
                 }
 
                 /** @psalm-suppress MixedAssignment */
