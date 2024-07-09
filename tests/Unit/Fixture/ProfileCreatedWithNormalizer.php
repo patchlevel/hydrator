@@ -10,7 +10,6 @@ use Patchlevel\Hydrator\Normalizer\ObjectNormalizer;
 final class ProfileCreatedWithNormalizer
 {
     public function __construct(
-        #[ProfileIdNormalizer]
         public ProfileId $profileId,
         #[EmailNormalizer]
         public Email $email,

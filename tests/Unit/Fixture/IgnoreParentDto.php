@@ -9,7 +9,7 @@ use Patchlevel\Hydrator\Attribute\Ignore;
 final class IgnoreParentDto extends ChildDto
 {
     public function __construct(
-        #[ProfileIdNormalizer]
+        #[IdNormalizer]
         public ProfileId $profileId,
         #[Ignore]
         private Email $email,

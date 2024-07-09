@@ -148,28 +148,28 @@ final class AttributeMetadataFactory implements MetadataFactory
 
     private function getNormalizer(ReflectionProperty $reflectionProperty): Normalizer|null
     {
-        $attributeReflectionList = $this->getAttributeReflectionList($reflectionProperty);
-        $reflectionPropertyType = $reflectionProperty->getType();
+        $normalizer = $this->findNormalizer($reflectionProperty);
 
-        if ($attributeReflectionList === []) {
-            if ($reflectionPropertyType instanceof ReflectionNamedType) {
-                return $this->inferNormalizer($reflectionPropertyType);
-            }
-
-            return null;
+        if (!$normalizer) {
+            $normalizer = $this->inferNormalizer($reflectionProperty);
         }
 
-        $normalizer = $attributeReflectionList[0]->newInstance();
-
         if ($normalizer instanceof ReflectionTypeAwareNormalizer) {
+            $reflectionPropertyType = $reflectionProperty->getType();
             $normalizer->handleReflectionType($reflectionPropertyType);
         }
 
         return $normalizer;
     }
 
-    private function inferNormalizer(ReflectionNamedType $type): Normalizer|null
+    private function inferNormalizer(ReflectionProperty $property): Normalizer|null
     {
+        $type = $property->getType();
+
+        if (!$type instanceof ReflectionNamedType) {
+            return null;
+        }
+
         $className = $type->getName();
 
         $normalizer = match ($className) {
@@ -297,8 +297,7 @@ final class AttributeMetadataFactory implements MetadataFactory
         }
     }
 
-    /** @return array<ReflectionAttribute<Normalizer>> */
-    private function getAttributeReflectionList(ReflectionProperty $reflectionProperty): array
+    private function findNormalizer(ReflectionProperty $reflectionProperty): Normalizer|null
     {
         $attributeReflectionList = $reflectionProperty->getAttributes(
             Normalizer::class,
@@ -306,22 +305,51 @@ final class AttributeMetadataFactory implements MetadataFactory
         );
 
         if ($attributeReflectionList !== []) {
-            return $attributeReflectionList;
+            return $attributeReflectionList[0]->newInstance();
         }
 
         $type = $reflectionProperty->getType();
 
         if (!$type instanceof ReflectionNamedType) {
-            return [];
+            return null;
         }
 
         if (!class_exists($type->getName())) {
-            return [];
+            return null;
         }
 
-        return (new ReflectionClass($type->getName()))->getAttributes(
+        return $this->findNormalizerOnClass(new ReflectionClass($type->getName()));
+    }
+
+    private function findNormalizerOnClass(ReflectionClass $reflectionClass): Normalizer|null
+    {
+        $attributes = $reflectionClass->getAttributes(
             Normalizer::class,
             ReflectionAttribute::IS_INSTANCEOF,
         );
+
+        if ($attributes !== []) {
+            return $attributes[0]->newInstance();
+        }
+
+        $parent = $reflectionClass->getParentClass();
+
+        if ($parent) {
+            $normalizer = $this->findNormalizerOnClass($parent);
+
+            if ($normalizer !== null) {
+                return $normalizer;
+            }
+        }
+
+        foreach ($reflectionClass->getInterfaces() as $interface) {
+            $normalizer = $this->findNormalizerOnClass($interface);
+
+            if ($normalizer !== null) {
+                return $normalizer;
+            }
+        }
+
+        return null;
     }
 }

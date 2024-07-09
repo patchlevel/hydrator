@@ -11,7 +11,7 @@ use Patchlevel\Hydrator\Attribute\PersonalData;
 final class PersonalDataProfileCreated
 {
     public function __construct(
-        #[ProfileIdNormalizer]
+        #[IdNormalizer]
         #[NormalizedName('id')]
         #[DataSubjectId]
         public ProfileId $profileId,
