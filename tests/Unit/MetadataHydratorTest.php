@@ -20,6 +20,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\DefaultDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerBrokenDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithNullableDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\NormalizerInBaseClassDefinedDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated;
@@ -282,6 +283,28 @@ final class MetadataHydratorTest extends TestCase
                 'dateTime' => '2015-02-13T22:34:32+01:00',
                 'dateTimeZone' => 'EDT',
                 'array' => ['foo'],
+            ],
+        );
+
+        self::assertEquals($expected, $event);
+    }
+
+    public function testHydrateWithInferNormalizerAndNullableProperties(): void
+    {
+        $expected = new InferNormalizerWithNullableDto(
+            null,
+            null,
+            null,
+            null,
+        );
+
+        $event = $this->hydrator->hydrate(
+            InferNormalizerWithNullableDto::class,
+            [
+                'status' => null,
+                'dateTimeImmutable' => null,
+                'dateTime' => null,
+                'dateTimeZone' => null,
             ],
         );
 
