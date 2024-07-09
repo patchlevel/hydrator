@@ -7,7 +7,7 @@ namespace Patchlevel\Hydrator\Tests\Unit\Fixture;
 final class ParentDto extends ChildDto
 {
     public function __construct(
-        #[ProfileIdNormalizer]
+        #[IdNormalizer]
         public ProfileId $profileId,
         Email $email,
     ) {

@@ -18,12 +18,12 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\BrokenParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DuplicateFieldNameDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\EmailNormalizer;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\IdNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\IgnoreDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\IgnoreParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\MissingSubjectIdDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentWithPersonalDataDto;
-use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileIdNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
 use PHPUnit\Framework\TestCase;
 
@@ -197,7 +197,7 @@ final class AttributeMetadataFactoryTest extends TestCase
 
         self::assertSame('profileId', $emailPropertyMetadata->propertyName());
         self::assertSame('profileId', $emailPropertyMetadata->fieldName());
-        self::assertInstanceOf(ProfileIdNormalizer::class, $emailPropertyMetadata->normalizer());
+        self::assertInstanceOf(IdNormalizer::class, $emailPropertyMetadata->normalizer());
 
         $emailPropertyMetadata = $metadata->propertyForField('email');
 
@@ -233,7 +233,7 @@ final class AttributeMetadataFactoryTest extends TestCase
 
         self::assertSame('profileId', $emailPropertyMetadata->propertyName());
         self::assertSame('profileId', $emailPropertyMetadata->fieldName());
-        self::assertInstanceOf(ProfileIdNormalizer::class, $emailPropertyMetadata->normalizer());
+        self::assertInstanceOf(IdNormalizer::class, $emailPropertyMetadata->normalizer());
 
         $emailPropertyMetadata = $metadata->propertyForField('email');
 
@@ -253,7 +253,7 @@ final class AttributeMetadataFactoryTest extends TestCase
 
         self::assertSame('profileId', $emailPropertyMetadata->propertyName());
         self::assertSame('profileId', $emailPropertyMetadata->fieldName());
-        self::assertInstanceOf(ProfileIdNormalizer::class, $emailPropertyMetadata->normalizer());
+        self::assertInstanceOf(IdNormalizer::class, $emailPropertyMetadata->normalizer());
     }
 
     public function testIgnoreNotFoundProperty(): void
@@ -349,7 +349,7 @@ final class AttributeMetadataFactoryTest extends TestCase
         self::assertSame('profileId', $idPropertyMetadata->propertyName());
         self::assertSame('profileId', $idPropertyMetadata->fieldName());
         self::assertFalse($idPropertyMetadata->isPersonalData());
-        self::assertInstanceOf(ProfileIdNormalizer::class, $idPropertyMetadata->normalizer());
+        self::assertInstanceOf(IdNormalizer::class, $idPropertyMetadata->normalizer());
 
         $emailPropertyMetadata = $metadata->propertyForField('email');
 

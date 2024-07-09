@@ -9,7 +9,7 @@ use Patchlevel\Hydrator\Attribute\DataSubjectId;
 final class ParentWithPersonalDataDto extends ChildWithPersonalDataDto
 {
     public function __construct(
-        #[ProfileIdNormalizer]
+        #[IdNormalizer]
         #[DataSubjectId]
         public ProfileId $profileId,
         Email $email,

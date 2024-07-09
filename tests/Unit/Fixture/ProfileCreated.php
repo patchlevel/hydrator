@@ -7,7 +7,7 @@ namespace Patchlevel\Hydrator\Tests\Unit\Fixture;
 final class ProfileCreated
 {
     public function __construct(
-        #[ProfileIdNormalizer]
+        #[IdNormalizer]
         public ProfileId $profileId,
         #[EmailNormalizer]
         public Email $email,

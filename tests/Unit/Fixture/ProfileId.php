@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Unit\Fixture;
 
-final class ProfileId
+final class ProfileId implements Id
 {
     /** @phpcs:ignore SlevomatCodingStandard.Classes.RequireConstructorPropertyPromotion.RequiredConstructorPropertyPromotion */
     private string $id;

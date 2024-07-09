@@ -291,7 +291,7 @@ final class MetadataHydratorTest extends TestCase
     public function testHydrateWithInferNormalizerFailed(): void
     {
         $this->expectException(TypeMismatch::class);
-        $event = $this->hydrator->hydrate(
+        $this->hydrator->hydrate(
             InferNormalizerBrokenDto::class,
             [
                 'profileCreated' => ['profileId' => '1', 'email' => 'info@patchlevel.de'],
