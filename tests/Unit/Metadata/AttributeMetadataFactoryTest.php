@@ -7,6 +7,8 @@ namespace Patchlevel\Hydrator\Tests\Unit\Metadata;
 use Patchlevel\Hydrator\Attribute\DataSubjectId;
 use Patchlevel\Hydrator\Attribute\NormalizedName;
 use Patchlevel\Hydrator\Attribute\PersonalData;
+use Patchlevel\Hydrator\Attribute\PostHydrate;
+use Patchlevel\Hydrator\Attribute\PreExtract;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\DuplicatedFieldNameInMetadata;
 use Patchlevel\Hydrator\Metadata\MissingDataSubjectId;
@@ -38,6 +40,8 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadata = $metadataFactory->metadata($object::class);
 
         self::assertCount(0, $metadata->properties());
+        self::assertCount(0, $metadata->preExtractCallbacks());
+        self::assertCount(0, $metadata->postHydrateCallbacks());
     }
 
     public function testNotFoundProperty(): void
@@ -357,5 +361,54 @@ final class AttributeMetadataFactoryTest extends TestCase
         self::assertSame('email', $emailPropertyMetadata->fieldName());
         self::assertTrue($emailPropertyMetadata->isPersonalData());
         self::assertInstanceOf(EmailNormalizer::class, $emailPropertyMetadata->normalizer());
+    }
+
+    public function testHooks(): void
+    {
+        $object = new class {
+            #[PreExtract]
+            private function preExtract(): void
+            {
+            }
+
+            #[PostHydrate]
+            private function postHydrate(): void
+            {
+            }
+        };
+
+        $metadataFactory = new AttributeMetadataFactory();
+        $metadata = $metadataFactory->metadata($object::class);
+
+        $preExtract = $metadata->preExtractCallbacks();
+
+        self::assertCount(1, $preExtract);
+        self::assertSame('preExtract', $preExtract[0]->methodName());
+
+        $postHydrate = $metadata->postHydrateCallbacks();
+
+        self::assertCount(1, $postHydrate);
+        self::assertSame('postHydrate', $postHydrate[0]->methodName());
+    }
+
+    public function testSkipStaticHook(): void
+    {
+        $object = new class {
+            #[PreExtract]
+            private static function preExtract(): void
+            {
+            }
+
+            #[PostHydrate]
+            private static function postHydrate(): void
+            {
+            }
+        };
+
+        $metadataFactory = new AttributeMetadataFactory();
+        $metadata = $metadataFactory->metadata($object::class);
+
+        self::assertCount(0, $metadata->preExtractCallbacks());
+        self::assertCount(0, $metadata->postHydrateCallbacks());
     }
 }

@@ -10,7 +10,9 @@ use ReflectionClass;
  * @psalm-type serialized array{
  *     className: class-string,
  *     properties: list<PropertyMetadata>,
- *     dataSubjectIdField: string|null
+ *     dataSubjectIdField: string|null,
+ *     postHydrateCallbacks: list<CallbackMetadata>,
+ *     preExtractCallbacks: list<CallbackMetadata>,
  * }
  * @template T of object
  */
@@ -19,11 +21,15 @@ final class ClassMetadata
     /**
      * @param ReflectionClass<T>     $reflection
      * @param list<PropertyMetadata> $properties
+     * @param list<CallbackMetadata> $postHydrateCallbacks
+     * @param list<CallbackMetadata> $preExtractCallbacks
      */
     public function __construct(
         private readonly ReflectionClass $reflection,
         private readonly array $properties = [],
         private readonly string|null $dataSubjectIdField = null,
+        private readonly array $postHydrateCallbacks = [],
+        private readonly array $preExtractCallbacks = [],
     ) {
     }
 
@@ -43,6 +49,18 @@ final class ClassMetadata
     public function properties(): array
     {
         return $this->properties;
+    }
+
+    /** @return list<CallbackMetadata> */
+    public function postHydrateCallbacks(): array
+    {
+        return $this->postHydrateCallbacks;
+    }
+
+    /** @return list<CallbackMetadata> */
+    public function preExtractCallbacks(): array
+    {
+        return $this->preExtractCallbacks;
     }
 
     public function dataSubjectIdField(): string|null
@@ -74,6 +92,8 @@ final class ClassMetadata
             'className' => $this->reflection->getName(),
             'properties' => $this->properties,
             'dataSubjectIdField' => $this->dataSubjectIdField,
+            'postHydrateCallbacks' => $this->postHydrateCallbacks,
+            'preExtractCallbacks' => $this->preExtractCallbacks,
         ];
     }
 
@@ -83,5 +103,7 @@ final class ClassMetadata
         $this->reflection = new ReflectionClass($data['className']);
         $this->properties = $data['properties'];
         $this->dataSubjectIdField = $data['dataSubjectIdField'];
+        $this->postHydrateCallbacks = $data['postHydrateCallbacks'];
+        $this->preExtractCallbacks = $data['preExtractCallbacks'];
     }
 }
