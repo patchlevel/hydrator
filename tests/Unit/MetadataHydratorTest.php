@@ -18,6 +18,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle1Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle2Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle3Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DefaultDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\DtoWithHooks;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerBrokenDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerDto;
@@ -114,6 +115,13 @@ final class MetadataHydratorTest extends TestCase
                 ),
             ),
         );
+    }
+
+    public function testExtractWithHooks(): void
+    {
+        $data = $this->hydrator->extract(new DtoWithHooks());
+
+        self::assertEquals(['postHydrateCalled' => false, 'preExtractCalled' => true], $data);
     }
 
     public function testHydrate(): void
@@ -334,5 +342,13 @@ final class MetadataHydratorTest extends TestCase
                 'profileCreated' => ['profileId' => '1', 'email' => 'info@patchlevel.de'],
             ],
         );
+    }
+
+    public function testHydrateWithHooks(): void
+    {
+        $object = $this->hydrator->hydrate(DtoWithHooks::class, ['postHydrateCalled' => false, 'preExtractCalled' => false]);
+
+        self::assertEquals(true, $object->postHydrateCalled);
+        self::assertEquals(false, $object->preExtractCalled);
     }
 }

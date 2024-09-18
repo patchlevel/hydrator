@@ -12,6 +12,8 @@ use Patchlevel\Hydrator\Attribute\DataSubjectId;
 use Patchlevel\Hydrator\Attribute\Ignore;
 use Patchlevel\Hydrator\Attribute\NormalizedName;
 use Patchlevel\Hydrator\Attribute\PersonalData;
+use Patchlevel\Hydrator\Attribute\PostHydrate;
+use Patchlevel\Hydrator\Attribute\PreExtract;
 use Patchlevel\Hydrator\Normalizer\DateTimeImmutableNormalizer;
 use Patchlevel\Hydrator\Normalizer\DateTimeNormalizer;
 use Patchlevel\Hydrator\Normalizer\DateTimeZoneNormalizer;
@@ -24,6 +26,7 @@ use ReflectionNamedType;
 use ReflectionProperty;
 
 use function array_key_exists;
+use function array_merge;
 use function array_values;
 use function class_exists;
 use function is_a;
@@ -80,6 +83,8 @@ final class AttributeMetadataFactory implements MetadataFactory
             $reflectionClass,
             $this->getPropertyMetadataList($reflectionClass),
             $this->getSubjectIdField($reflectionClass),
+            $this->getPostHydrateCallbacks($reflectionClass),
+            $this->getPreExtractCallbacks($reflectionClass),
         );
 
         $parentMetadataClass = $reflectionClass->getParentClass();
@@ -133,6 +138,50 @@ final class AttributeMetadataFactory implements MetadataFactory
         }
 
         return array_values($properties);
+    }
+
+    /** @return list<CallbackMetadata> */
+    private function getPostHydrateCallbacks(ReflectionClass $reflection): array
+    {
+        $methods = [];
+
+        foreach ($reflection->getMethods() as $reflectionMethod) {
+            if ($reflectionMethod->isStatic()) {
+                continue;
+            }
+
+            $attributeReflectionList = $reflectionMethod->getAttributes(PostHydrate::class);
+
+            if ($attributeReflectionList === []) {
+                continue;
+            }
+
+            $methods[] = new CallbackMetadata($reflectionMethod);
+        }
+
+        return $methods;
+    }
+
+    /** @return list<CallbackMetadata> */
+    private function getPreExtractCallbacks(ReflectionClass $reflection): array
+    {
+        $methods = [];
+
+        foreach ($reflection->getMethods() as $reflectionMethod) {
+            if ($reflectionMethod->isStatic()) {
+                continue;
+            }
+
+            $attributeReflectionList = $reflectionMethod->getAttributes(PreExtract::class);
+
+            if ($attributeReflectionList === []) {
+                continue;
+            }
+
+            $methods[] = new CallbackMetadata($reflectionMethod);
+        }
+
+        return $methods;
     }
 
     private function getFieldName(ReflectionProperty $reflectionProperty): string
@@ -236,6 +285,8 @@ final class AttributeMetadataFactory implements MetadataFactory
             $parent->reflection(),
             array_values($properties),
             $parentDataSubjectIdField ?? $childDataSubjectIdField,
+            array_merge($parent->postHydrateCallbacks(), $child->postHydrateCallbacks()),
+            array_merge($parent->preExtractCallbacks(), $child->preExtractCallbacks()),
         );
     }
 

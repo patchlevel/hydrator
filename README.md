@@ -385,6 +385,31 @@ readonly class ProfileCreated
 }
 ```
 
+### Hooks
+
+Sometimes you need to do something before extract or after hydrate process.
+For this we have the `PreExtract` and `PostHydrate` attributes.
+
+```php
+use Patchlevel\Hydrator\Attribute\PostHydrate;
+use Patchlevel\Hydrator\Attribute\PreExtract;
+
+readonly class Dto 
+{    
+    #[PostHydrate]
+    private function postHydrate(): void
+    {
+        // do something
+    }
+    
+    #[PreExtract]
+    private function preExtract(): void
+    {
+        // do something
+    }
+}
+```
+
 ### Cryptography
 
 The library also offers the possibility to encrypt and decrypt personal data.

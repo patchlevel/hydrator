@@ -104,6 +104,10 @@ final class MetadataHydrator implements Hydrator
             }
         }
 
+        foreach ($metadata->postHydrateCallbacks() as $callback) {
+            $callback->invoke($object);
+        }
+
         return $object;
     }
 
@@ -123,6 +127,10 @@ final class MetadataHydrator implements Hydrator
 
         try {
             $metadata = $this->metadataFactory->metadata($object::class);
+
+            foreach ($metadata->preExtractCallbacks() as $callback) {
+                $callback->invoke($object);
+            }
 
             $data = [];
 
