@@ -43,7 +43,7 @@ final class MetadataHydratorTest extends TestCase
 
     public function setUp(): void
     {
-        $this->hydrator = new MetadataHydrator(new AttributeMetadataFactory());
+        $this->hydrator = new MetadataHydrator();
     }
 
     public function testExtract(): void

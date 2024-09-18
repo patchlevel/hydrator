@@ -111,6 +111,9 @@ final class DTO
 }
 ```
 
+> [!TIP]
+> You do not need to specify the DateTimeImmutableNormalizer, as the Hydrator can guess it from the type definition.
+
 You can also define the format. Either describe it yourself as a string or use one of the existing constants.
 The default is `DateTimeImmutable::ATOM`.
 
@@ -141,6 +144,9 @@ final class DTO
 }
 ```
 
+> [!TIP]
+> You do not need to specify the DateTimeNormalizer, as the Hydrator can guess it from the type definition.
+
 You can also specify the format here. The default is `DateTime::ATOM`.
 
 ```php
@@ -170,6 +176,9 @@ final class DTO
 }
 ```
 
+> [!TIP]
+> You do not need to specify the DateTimeZoneNormalizer, as the Hydrator can guess it from the type definition.
+
 #### Enum
 
 Backed enums can also be normalized.
@@ -184,6 +193,9 @@ final class DTO
     public Status $status;
 }
 ```
+
+> [!TIP]
+> You do not need to specify the EnumNormalizer, as the Hydrator can guess it from the type definition.
 
 #### Object
 
@@ -325,11 +337,10 @@ final class DTO
 }
 ```
 
-### Infer Normalizer
+### Guess Normalizer
 
 We also integrated a process where the normalizer gets inferred by type. This means you don't need to define the 
-normalizer in for the properties or on class level. Right now this is only possible for Normalizer defined by our 
-library. There are exceptions though, the `ObjectNormalizer` and the `ArrayNormalizer`.
+normalizer in for the properties or on class level. 
 
 These Normalizer can be inferred:
 
@@ -338,6 +349,43 @@ These Normalizer can be inferred:
 * `DateTimeZoneNormalizer` 
 * `EnumNormalizer` 
 
+You can also create your own guesser:
+
+```php
+use Patchlevel\Hydrator\Guesser\Guesser;
+use Patchlevel\Hydrator\Normalizer\Normalizer;
+
+final class MyGuesser implements Guesser
+{
+    /** @param class-string $className */ 
+    public function guess(string $className): Normalizer|null
+    {
+        if ($className === Name::class) {
+            return new NameNormalizer();
+        }
+        
+        return null;
+    }
+}
+```
+
+After that you can use the guesser in the hydrator.
+
+```php
+use Patchlevel\Hydrator\Guesser\BuiltInGuesser;
+use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
+use Patchlevel\Hydrator\MetadataHydrator;
+
+$hydrator = new MetadataHydrator(
+    new AttributeMetadataFactory([
+        new MyGuesser(),
+        new BuiltInGuesser()
+    ])
+);
+```
+
+> [!WARNING]
+> Do not forget to add the built-in guesser.
 
 ### Normalized Name
 
@@ -422,7 +470,7 @@ final class DTO
 }
 ```
 
-> [!DANGER]
+> [!CAUTION]
 > You have to deal with this case in your business logic such as aggregates and subscriptions.
 
 > [!WARNING]

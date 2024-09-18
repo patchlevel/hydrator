@@ -4,18 +4,12 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Metadata;
 
-use BackedEnum;
-use DateTime;
-use DateTimeImmutable;
-use DateTimeZone;
 use Patchlevel\Hydrator\Attribute\DataSubjectId;
 use Patchlevel\Hydrator\Attribute\Ignore;
 use Patchlevel\Hydrator\Attribute\NormalizedName;
 use Patchlevel\Hydrator\Attribute\PersonalData;
-use Patchlevel\Hydrator\Normalizer\DateTimeImmutableNormalizer;
-use Patchlevel\Hydrator\Normalizer\DateTimeNormalizer;
-use Patchlevel\Hydrator\Normalizer\DateTimeZoneNormalizer;
-use Patchlevel\Hydrator\Normalizer\EnumNormalizer;
+use Patchlevel\Hydrator\Guesser\BuiltInGuesser;
+use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
 use Patchlevel\Hydrator\Normalizer\ReflectionTypeAwareNormalizer;
 use ReflectionAttribute;
@@ -26,12 +20,19 @@ use ReflectionProperty;
 use function array_key_exists;
 use function array_values;
 use function class_exists;
-use function is_a;
 
 final class AttributeMetadataFactory implements MetadataFactory
 {
     /** @var array<class-string, ClassMetadata> */
     private array $classMetadata = [];
+
+    /** @param iterable<Guesser> $guessers */
+    public function __construct(
+        private readonly iterable $guessers = [
+            new BuiltInGuesser(),
+        ],
+    ) {
+    }
 
     /**
      * @param class-string<T> $class
@@ -172,19 +173,16 @@ final class AttributeMetadataFactory implements MetadataFactory
 
         $className = $type->getName();
 
-        $normalizer = match ($className) {
-            DateTimeImmutable::class => new DateTimeImmutableNormalizer(),
-            DateTime::class => new DateTimeNormalizer(),
-            DateTimeZone::class => new DateTimeZoneNormalizer(),
-            default => null,
-        };
-
-        if ($normalizer) {
-            return $normalizer;
+        if (!class_exists($className)) {
+            return null;
         }
 
-        if (is_a($className, BackedEnum::class, true)) {
-            return new EnumNormalizer($className);
+        foreach ($this->guessers as $guesser) {
+            $normalizer = $guesser->guess($className);
+
+            if ($normalizer !== null) {
+                return $normalizer;
+            }
         }
 
         return null;
