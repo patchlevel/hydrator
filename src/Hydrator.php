@@ -12,6 +12,8 @@ interface Hydrator
      *
      * @return T
      *
+     * @throws ClassNotSupported if the class is not supported or not found.
+     *
      * @template T of object
      */
     public function hydrate(string $class, array $data): object;

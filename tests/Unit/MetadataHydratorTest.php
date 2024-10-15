@@ -8,6 +8,7 @@ use DateTime;
 use DateTimeImmutable;
 use DateTimeZone;
 use Patchlevel\Hydrator\CircularReference;
+use Patchlevel\Hydrator\ClassNotSupported;
 use Patchlevel\Hydrator\Cryptography\PayloadCryptographer;
 use Patchlevel\Hydrator\DenormalizationFailure;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
@@ -137,6 +138,16 @@ final class MetadataHydratorTest extends TestCase
         );
 
         self::assertEquals($expected, $event);
+    }
+
+    public function testHydrateUnknownClass(): void
+    {
+        $this->expectException(ClassNotSupported::class);
+
+        $this->hydrator->hydrate(
+            'Unknown',
+            ['profileId' => '1', 'email' => 'info@patchlevel.de'],
+        );
     }
 
     public function testHydrateWithDefaults(): void
