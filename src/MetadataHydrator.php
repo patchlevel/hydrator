@@ -7,6 +7,7 @@ namespace Patchlevel\Hydrator;
 use Patchlevel\Hydrator\Cryptography\PayloadCryptographer;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
+use Patchlevel\Hydrator\Metadata\ClassNotFound;
 use Patchlevel\Hydrator\Metadata\MetadataFactory;
 use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
 use ReflectionParameter;
@@ -39,7 +40,11 @@ final class MetadataHydrator implements Hydrator
      */
     public function hydrate(string $class, array $data): object
     {
-        $metadata = $this->metadataFactory->metadata($class);
+        try {
+            $metadata = $this->metadataFactory->metadata($class);
+        } catch (ClassNotFound $e) {
+            throw new ClassNotSupported($class, $e);
+        }
 
         if ($this->cryptographer) {
             $data = $this->cryptographer->decrypt($metadata, $data);

@@ -10,6 +10,7 @@ use Patchlevel\Hydrator\Attribute\PersonalData;
 use Patchlevel\Hydrator\Attribute\PostHydrate;
 use Patchlevel\Hydrator\Attribute\PreExtract;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
+use Patchlevel\Hydrator\Metadata\ClassNotFound;
 use Patchlevel\Hydrator\Metadata\DuplicatedFieldNameInMetadata;
 use Patchlevel\Hydrator\Metadata\MissingDataSubjectId;
 use Patchlevel\Hydrator\Metadata\MultipleDataSubjectId;
@@ -75,6 +76,14 @@ final class AttributeMetadataFactoryTest extends TestCase
         self::assertSame('name', $propertyMetadata->propertyName());
         self::assertSame('name', $propertyMetadata->fieldName());
         self::assertNull($propertyMetadata->normalizer());
+    }
+
+    public function testUnknownClass(): void
+    {
+        $this->expectException(ClassNotFound::class);
+
+        $metadataFactory = new AttributeMetadataFactory();
+        $metadataFactory->metadata('Unknown');
     }
 
     public function testSkipStaticProperties(): void

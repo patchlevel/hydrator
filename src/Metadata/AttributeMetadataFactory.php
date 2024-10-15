@@ -22,6 +22,7 @@ use Patchlevel\Hydrator\Normalizer\Normalizer;
 use Patchlevel\Hydrator\Normalizer\ReflectionTypeAwareNormalizer;
 use ReflectionAttribute;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionNamedType;
 use ReflectionProperty;
 
@@ -52,7 +53,11 @@ final class AttributeMetadataFactory implements MetadataFactory
             return $classMetadata;
         }
 
-        $reflectionClass = new ReflectionClass($class);
+        try {
+            $reflectionClass = new ReflectionClass($class);
+        } catch (ReflectionException) {
+            throw new ClassNotFound($class);
+        }
 
         $classMetadata = $this->getClassMetadata($reflectionClass);
 

@@ -16,6 +16,11 @@ parameters:
 			path: src/Cryptography/PersonalDataPayloadCryptographer.php
 
 		-
+			message: "#^Dead catch \\- ReflectionException is never thrown in the try block\\.$#"
+			count: 1
+			path: src/Metadata/AttributeMetadataFactory.php
+
+		-
 			message: "#^Property Patchlevel\\\\Hydrator\\\\Metadata\\\\ClassMetadata\\<T of object\\>\\:\\:\\$reflection \\(ReflectionClass\\<T of object\\>\\) does not accept ReflectionClass\\<object\\>\\.$#"
 			count: 1
 			path: src/Metadata/ClassMetadata.php
