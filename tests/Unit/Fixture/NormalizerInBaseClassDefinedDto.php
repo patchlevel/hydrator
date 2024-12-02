@@ -10,7 +10,12 @@ final class NormalizerInBaseClassDefinedDto
     public function __construct(
         public StatusWithNormalizer $status,
         public ProfileCreatedWithNormalizer $profileCreated,
-        public array $array,
+        /** @var StatusWithNormalizer[] */
+        public array $defaultArray = [],
+        /** @var list<StatusWithNormalizer> */
+        public array $listArray = [],
+        /** @var iterable<StatusWithNormalizer> */
+        public array $iterableArray = [],
     ) {
     }
 }

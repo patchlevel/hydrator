@@ -6,12 +6,14 @@ namespace Patchlevel\Hydrator\Normalizer;
 
 use Attribute;
 use Patchlevel\Hydrator\Hydrator;
+use Symfony\Component\TypeInfo\Type;
+use Symfony\Component\TypeInfo\Type\CollectionType;
 
 use function array_map;
 use function is_array;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
-final class ArrayNormalizer implements Normalizer, HydratorAwareNormalizer
+final class ArrayNormalizer implements Normalizer, TypeAwareNormalizer, HydratorAwareNormalizer
 {
     public function __construct(
         private readonly Normalizer $normalizer,
@@ -53,5 +55,14 @@ final class ArrayNormalizer implements Normalizer, HydratorAwareNormalizer
         }
 
         $this->normalizer->setHydrator($hydrator);
+    }
+
+    public function handleType(Type|null $type): void
+    {
+        if (!$type instanceof CollectionType && $this->normalizer instanceof TypeAwareNormalizer) {
+            return;
+        }
+
+        $this->normalizer->handleType($type->getCollectionValueType());
     }
 }

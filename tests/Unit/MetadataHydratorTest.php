@@ -283,7 +283,9 @@ final class MetadataHydratorTest extends TestCase
                 ProfileId::fromString('1'),
                 Email::fromString('info@patchlevel.de'),
             ),
-            ['foo'],
+            [StatusWithNormalizer::Draft],
+            [StatusWithNormalizer::Draft],
+            [StatusWithNormalizer::Draft],
         );
 
         $event = $this->hydrator->hydrate(
@@ -291,7 +293,9 @@ final class MetadataHydratorTest extends TestCase
             [
                 'status' => 'draft',
                 'profileCreated' => ['profileId' => '1', 'email' => 'info@patchlevel.de'],
-                'array' => ['foo'],
+                'defaultArray' => ['draft'],
+                'listArray' => ['draft'],
+                'iterableArray' => ['draft'],
             ],
         );
 

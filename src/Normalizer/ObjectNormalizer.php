@@ -7,11 +7,13 @@ namespace Patchlevel\Hydrator\Normalizer;
 use Attribute;
 use Patchlevel\Hydrator\Hydrator;
 use ReflectionType;
+use Symfony\Component\TypeInfo\Type;
+use Symfony\Component\TypeInfo\Type\ObjectType;
 
 use function is_array;
 
 #[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_CLASS)]
-final class ObjectNormalizer implements Normalizer, ReflectionTypeAwareNormalizer, HydratorAwareNormalizer
+final class ObjectNormalizer implements Normalizer, ReflectionTypeAwareNormalizer, TypeAwareNormalizer, HydratorAwareNormalizer
 {
     private Hydrator|null $hydrator = null;
 
@@ -72,6 +74,15 @@ final class ObjectNormalizer implements Normalizer, ReflectionTypeAwareNormalize
         }
 
         $this->className = ReflectionTypeUtil::classString($reflectionType);
+    }
+
+    public function handleType(Type|null $type): void
+    {
+        if ($this->className !== null || !$type instanceof ObjectType) {
+            return;
+        }
+
+        $this->className = $type->getClassName();
     }
 
     /** @return class-string */

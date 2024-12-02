@@ -7,13 +7,15 @@ namespace Patchlevel\Hydrator\Normalizer;
 use Attribute;
 use BackedEnum;
 use ReflectionType;
+use Symfony\Component\TypeInfo\Type;
+use Symfony\Component\TypeInfo\Type\BackedEnumType;
 use Throwable;
 
 use function is_int;
 use function is_string;
 
 #[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_CLASS)]
-final class EnumNormalizer implements Normalizer, ReflectionTypeAwareNormalizer
+final class EnumNormalizer implements Normalizer, ReflectionTypeAwareNormalizer, TypeAwareNormalizer
 {
     /** @param class-string<BackedEnum>|null $enum */
     public function __construct(
@@ -62,6 +64,15 @@ final class EnumNormalizer implements Normalizer, ReflectionTypeAwareNormalizer
         }
 
         $this->enum = ReflectionTypeUtil::classStringInstanceOf($reflectionType, BackedEnum::class);
+    }
+
+    public function handleType(Type|null $type): void
+    {
+        if ($this->enum !== null || !$type instanceof BackedEnumType) {
+            return;
+        }
+
+        $this->enum = $type->getClassName();
     }
 
     /** @return class-string<BackedEnum> */
