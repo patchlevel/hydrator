@@ -399,11 +399,11 @@ final class MetadataHydratorTest extends TestCase
         $object = $this->hydrator->hydrate(PropertyHooks::class, [
             'firstName' => 'David',
             'lastName' => 'Badura',
-            'fullName' => 'David Badura',
         ]);
 
-        self::assertEquals([
-
-        ], $object);
+        self::assertEquals(new PropertyHooks(
+            'David',
+            'Badura',
+        ), $object);
     }
 }
