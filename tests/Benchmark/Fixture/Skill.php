@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Benchmark\Fixture;
 
-final class ProfileCreated
+use Patchlevel\Hydrator\Normalizer\ObjectNormalizer;
+
+#[ObjectNormalizer]
+final class Skill
 {
     public function __construct(
-        #[ProfileIdNormalizer]
-        public ProfileId $profileId,
         public string $name,
-        /** @var list<Skill> */
-        public array $skills = [],
     ) {
     }
 }
