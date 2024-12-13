@@ -59,7 +59,7 @@ final class ArrayNormalizer implements Normalizer, TypeAwareNormalizer, Hydrator
 
     public function handleType(Type|null $type): void
     {
-        if (!$type instanceof CollectionType && $this->normalizer instanceof TypeAwareNormalizer) {
+        if (!$type instanceof CollectionType || !$this->normalizer instanceof TypeAwareNormalizer) {
             return;
         }
 
