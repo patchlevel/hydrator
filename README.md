@@ -71,9 +71,19 @@ $oldEvent == $event // true
 
 ### Normalizer
 
-Sometimes you also need to extract or hydrate more complex objects.
-To do that you can use normalizer.
-For some the standard cases we already offer built-in normalizers.
+For more complex structures, i.e. non-scalar data types, we use normalizers. 
+We have some built-in normalizers for standard structures such as objects, enums, datetime etc. 
+You can find the full list below.
+
+The normalizers can be set on each property by using the specific attribute. 
+For example, `#[DateTimeImmutableNormalizer]`. This tells the Hydrator to normalize or denormalize this property.
+
+Fortunately, we don't have to do this everywhere. 
+The library tries to independently recognize which normalizers are needed based on the data type.
+For example, if you specify DateTimeImmutable Type, the DateTimeImmutableNormalizer is automatically added.
+You can of course override this if you want. 
+This makes sense, for example, if you want to adjust the format of the normalized string. 
+You can do this by passing parameters to the normalizer.
 
 #### Array
 
@@ -291,8 +301,8 @@ final class DTO
 
 ### Define normalizer on class level
 
-You can also set the attribute on the value object on class level. For that the normalizer needs to allow to be set on 
-class level.
+You can also set the attribute on the value object on class level. 
+For that the normalizer needs to allow to be set on class level.
 
 ```php
 use Patchlevel\Hydrator\Normalizer\Normalizer;
@@ -324,20 +334,6 @@ final class DTO
     public Name $name
 }
 ```
-
-### Infer Normalizer
-
-We also integrated a process where the normalizer gets inferred by type. This means you don't need to define the 
-normalizer in for the properties or on class level. Right now this is only possible for Normalizer defined by our 
-library. There are exceptions though, the `ObjectNormalizer` and the `ArrayNormalizer`.
-
-These Normalizer can be inferred:
-
-* `DateTimeImmutableNormalizer` 
-* `DateTimeNormalizer` 
-* `DateTimeZoneNormalizer` 
-* `EnumNormalizer` 
-
 
 ### Normalized Name
 
