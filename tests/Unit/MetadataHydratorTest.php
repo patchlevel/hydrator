@@ -30,6 +30,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWithNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWrapper;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\Skill;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\StatusWithNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer;
@@ -283,7 +284,18 @@ final class MetadataHydratorTest extends TestCase
                 ProfileId::fromString('1'),
                 Email::fromString('info@patchlevel.de'),
             ),
-            ['foo'],
+            [StatusWithNormalizer::Draft],
+            [StatusWithNormalizer::Draft],
+            [StatusWithNormalizer::Draft],
+            [
+                'foo' => new Skill('php'),
+                'bar' => new Skill('symfony'),
+            ],
+            [
+                'foo' => 'php',
+                'bar' => 15,
+                'baz' => ['test'],
+            ],
         );
 
         $event = $this->hydrator->hydrate(
@@ -291,7 +303,11 @@ final class MetadataHydratorTest extends TestCase
             [
                 'status' => 'draft',
                 'profileCreated' => ['profileId' => '1', 'email' => 'info@patchlevel.de'],
-                'array' => ['foo'],
+                'defaultArray' => ['draft'],
+                'listArray' => ['draft'],
+                'iterableArray' => ['draft'],
+                'skillsHashMap' => ['foo' => ['name' => 'php'], 'bar' => ['name' => 'symfony']],
+                'jsonArray' => ['foo' => 'php', 'bar' => 15, 'baz' => ['test']],
             ],
         );
 

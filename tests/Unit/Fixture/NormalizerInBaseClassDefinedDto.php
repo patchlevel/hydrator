@@ -6,11 +6,19 @@ namespace Patchlevel\Hydrator\Tests\Unit\Fixture;
 
 final class NormalizerInBaseClassDefinedDto
 {
-    /** @param array<string> $array */
     public function __construct(
         public StatusWithNormalizer $status,
         public ProfileCreatedWithNormalizer $profileCreated,
-        public array $array,
+        /** @var StatusWithNormalizer[] */
+        public array $defaultArray = [],
+        /** @var list<StatusWithNormalizer> */
+        public array $listArray = [],
+        /** @var iterable<StatusWithNormalizer> */
+        public iterable $iterableArray = [],
+        /** @var array<string, Skill> */
+        public array $skillsHashMap = [],
+        /** @var array{foo: string, bar: int, baz: list<string>}|null */
+        public array|null $jsonArray = null,
     ) {
     }
 }

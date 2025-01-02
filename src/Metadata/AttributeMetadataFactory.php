@@ -14,28 +14,41 @@ use Patchlevel\Hydrator\Attribute\NormalizedName;
 use Patchlevel\Hydrator\Attribute\PersonalData;
 use Patchlevel\Hydrator\Attribute\PostHydrate;
 use Patchlevel\Hydrator\Attribute\PreExtract;
+use Patchlevel\Hydrator\Normalizer\ArrayNormalizer;
 use Patchlevel\Hydrator\Normalizer\DateTimeImmutableNormalizer;
 use Patchlevel\Hydrator\Normalizer\DateTimeNormalizer;
 use Patchlevel\Hydrator\Normalizer\DateTimeZoneNormalizer;
 use Patchlevel\Hydrator\Normalizer\EnumNormalizer;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
 use Patchlevel\Hydrator\Normalizer\ReflectionTypeAwareNormalizer;
+use Patchlevel\Hydrator\Normalizer\TypeAwareNormalizer;
 use ReflectionAttribute;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionProperty;
+use Symfony\Component\TypeInfo\Type;
+use Symfony\Component\TypeInfo\Type\CollectionType;
+use Symfony\Component\TypeInfo\Type\ObjectType;
+use Symfony\Component\TypeInfo\TypeResolver\TypeResolver;
 
 use function array_key_exists;
 use function array_merge;
 use function array_values;
-use function class_exists;
 use function is_a;
 
 final class AttributeMetadataFactory implements MetadataFactory
 {
     /** @var array<class-string, ClassMetadata> */
     private array $classMetadata = [];
+
+    private readonly TypeResolver $typeResolver;
+
+    public function __construct(
+        TypeResolver|null $typeResolver = null,
+    ) {
+        $this->typeResolver = $typeResolver ?: TypeResolver::create();
+    }
 
     /**
      * @param class-string<T> $class
@@ -202,10 +215,16 @@ final class AttributeMetadataFactory implements MetadataFactory
 
     private function getNormalizer(ReflectionProperty $reflectionProperty): Normalizer|null
     {
-        $normalizer = $this->findNormalizer($reflectionProperty);
+        $type = $this->typeResolver->resolve($reflectionProperty);
+
+        $normalizer = $this->findNormalizer($reflectionProperty, $type);
 
         if (!$normalizer) {
             $normalizer = $this->inferNormalizer($reflectionProperty);
+        }
+
+        if ($normalizer instanceof TypeAwareNormalizer) {
+            $normalizer->handleType($type);
         }
 
         if ($normalizer instanceof ReflectionTypeAwareNormalizer) {
@@ -353,7 +372,7 @@ final class AttributeMetadataFactory implements MetadataFactory
         }
     }
 
-    private function findNormalizer(ReflectionProperty $reflectionProperty): Normalizer|null
+    private function findNormalizer(ReflectionProperty $reflectionProperty, Type $type): Normalizer|null
     {
         $attributeReflectionList = $reflectionProperty->getAttributes(
             Normalizer::class,
@@ -364,17 +383,36 @@ final class AttributeMetadataFactory implements MetadataFactory
             return $attributeReflectionList[0]->newInstance();
         }
 
-        $type = $reflectionProperty->getType();
-
-        if (!$type instanceof ReflectionNamedType) {
-            return null;
+        if ($type instanceof ObjectType) {
+            return $this->findNormalizerOnClass(new ReflectionClass($type->getClassName()));
         }
 
-        if (!class_exists($type->getName())) {
-            return null;
+        if ($type instanceof CollectionType && $type->getCollectionValueType() instanceof ObjectType) {
+            $valueType = $type->getCollectionValueType();
+
+            if (!$valueType instanceof ObjectType) {
+                return null;
+            }
+
+            $normalizer = $this->findNormalizerOnClass(new ReflectionClass($valueType->getClassName()));
+
+            if ($normalizer === null) {
+                return $normalizer;
+            }
+
+            if ($normalizer instanceof TypeAwareNormalizer) {
+                $normalizer->handleType($valueType);
+            }
+
+            if ($normalizer instanceof ReflectionTypeAwareNormalizer) {
+                $reflectionPropertyType = $reflectionProperty->getType();
+                $normalizer->handleReflectionType($reflectionPropertyType);
+            }
+
+            return new ArrayNormalizer($normalizer);
         }
 
-        return $this->findNormalizerOnClass(new ReflectionClass($type->getName()));
+        return null;
     }
 
     private function findNormalizerOnClass(ReflectionClass $reflectionClass): Normalizer|null

@@ -21,6 +21,11 @@ parameters:
 			path: src/Metadata/AttributeMetadataFactory.php
 
 		-
+			message: "#^Parameter \\#1 \\$objectOrClass of class ReflectionClass constructor expects class\\-string\\<T of object\\>\\|T of object, string given\\.$#"
+			count: 2
+			path: src/Metadata/AttributeMetadataFactory.php
+
+		-
 			message: "#^Property Patchlevel\\\\Hydrator\\\\Metadata\\\\ClassMetadata\\<T of object\\>\\:\\:\\$reflection \\(ReflectionClass\\<T of object\\>\\) does not accept ReflectionClass\\<object\\>\\.$#"
 			count: 1
 			path: src/Metadata/ClassMetadata.php
@@ -29,6 +34,16 @@ parameters:
 			message: "#^Dead catch \\- Patchlevel\\\\Hydrator\\\\CircularReference is never thrown in the try block\\.$#"
 			count: 1
 			path: src/MetadataHydrator.php
+
+		-
+			message: "#^Property Patchlevel\\\\Hydrator\\\\Normalizer\\\\EnumNormalizer\\:\\:\\$enum \\(class\\-string\\<BackedEnum\\>\\|null\\) does not accept string\\.$#"
+			count: 1
+			path: src/Normalizer/EnumNormalizer.php
+
+		-
+			message: "#^Property Patchlevel\\\\Hydrator\\\\Normalizer\\\\ObjectNormalizer\\:\\:\\$className \\(class\\-string\\|null\\) does not accept string\\.$#"
+			count: 1
+			path: src/Normalizer/ObjectNormalizer.php
 
 		-
 			message: "#^Method Patchlevel\\\\Hydrator\\\\Normalizer\\\\ReflectionTypeUtil\\:\\:classStringInstanceOf\\(\\) should return class\\-string\\<T\\> but returns class\\-string\\<T\\>\\|\\(string&T\\)\\.$#"
