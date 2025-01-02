@@ -30,6 +30,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWithNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWrapper;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\Skill;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\StatusWithNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer;
@@ -286,6 +287,15 @@ final class MetadataHydratorTest extends TestCase
             [StatusWithNormalizer::Draft],
             [StatusWithNormalizer::Draft],
             [StatusWithNormalizer::Draft],
+            [
+                'foo' => new Skill('php'),
+                'bar' => new Skill('symfony'),
+            ],
+            [
+                'foo' => 'php',
+                'bar' => 15,
+                'baz' => ['test'],
+            ],
         );
 
         $event = $this->hydrator->hydrate(
@@ -296,6 +306,8 @@ final class MetadataHydratorTest extends TestCase
                 'defaultArray' => ['draft'],
                 'listArray' => ['draft'],
                 'iterableArray' => ['draft'],
+                'skillsHashMap' => ['foo' => ['name' => 'php'], 'bar' => ['name' => 'symfony']],
+                'jsonArray' => ['foo' => 'php', 'bar' => 15, 'baz' => ['test']],
             ],
         );
 

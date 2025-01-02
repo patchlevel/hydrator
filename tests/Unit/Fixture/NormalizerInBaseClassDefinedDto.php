@@ -15,6 +15,10 @@ final class NormalizerInBaseClassDefinedDto
         public array $listArray = [],
         /** @var iterable<StatusWithNormalizer> */
         public iterable $iterableArray = [],
+        /** @var array<string, Skill> */
+        public array $skillsHashMap = [],
+        /** @var array{foo: string, bar: int, baz: list<string>}|null */
+        public array|null $jsonArray = null,
     ) {
     }
 }
