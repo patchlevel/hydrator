@@ -119,7 +119,11 @@ final class AttributeMetadataFactory implements MetadataFactory
         return $metadata;
     }
 
-    /** @return list<PropertyMetadata> */
+    /**
+     * @param ReflectionClass<object> $reflectionClass
+     *
+     * @return list<PropertyMetadata>
+     */
     private function getPropertyMetadataList(ReflectionClass $reflectionClass): array
     {
         $properties = [];
@@ -158,7 +162,11 @@ final class AttributeMetadataFactory implements MetadataFactory
         return array_values($properties);
     }
 
-    /** @return list<CallbackMetadata> */
+    /**
+     * @param ReflectionClass<object> $reflection
+     *
+     * @return list<CallbackMetadata>
+     */
     private function getPostHydrateCallbacks(ReflectionClass $reflection): array
     {
         $methods = [];
@@ -180,7 +188,11 @@ final class AttributeMetadataFactory implements MetadataFactory
         return $methods;
     }
 
-    /** @return list<CallbackMetadata> */
+    /**
+     * @param ReflectionClass<object> $reflection
+     *
+     * @return list<CallbackMetadata>
+     */
     private function getPreExtractCallbacks(ReflectionClass $reflection): array
     {
         $methods = [];
@@ -314,6 +326,7 @@ final class AttributeMetadataFactory implements MetadataFactory
         );
     }
 
+    /** @param ReflectionClass<object> $reflectionClass */
     private function getSubjectIdField(ReflectionClass $reflectionClass): string|null
     {
         $property = null;
@@ -415,6 +428,7 @@ final class AttributeMetadataFactory implements MetadataFactory
         return null;
     }
 
+    /** @param ReflectionClass<object> $reflectionClass */
     private function findNormalizerOnClass(ReflectionClass $reflectionClass): Normalizer|null
     {
         $attributes = $reflectionClass->getAttributes(
