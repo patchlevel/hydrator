@@ -14,7 +14,7 @@ use ReflectionClass;
  *     postHydrateCallbacks: list<CallbackMetadata>,
  *     preExtractCallbacks: list<CallbackMetadata>,
  * }
- * @template T of object
+ * @template T of object = object
  */
 final class ClassMetadata
 {
