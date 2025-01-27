@@ -35,7 +35,7 @@ phpunit: vendor                                                                 
 
 .PHONY: infection
 infection: vendor                                                               ## run infection
-	vendor/bin/infection
+	XDEBUG_MODE=coverage vendor/bin/infection
 
 .PHONY: static
 static: psalm phpstan phpcs-check                                               ## run static analyser

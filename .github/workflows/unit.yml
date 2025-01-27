@@ -28,10 +28,10 @@ jobs:
                     - "ubuntu-latest"
                 include:
                     - dependencies: "locked"
-                      php-version: "8.3"
+                      php-version: "8.4"
                       operating-system: "ubuntu-latest"
                     - dependencies: "locked"
-                      php-version: "8.3"
+                      php-version: "8.4"
                       operating-system: "windows-latest"
         steps:
             - name: "Checkout"
