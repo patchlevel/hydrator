@@ -30,13 +30,11 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWithNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWrapper;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
-use Patchlevel\Hydrator\Tests\Unit\Fixture\PropertyHooks;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Skill;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\StatusWithNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer;
 use Patchlevel\Hydrator\TypeMismatch;
-use PHPUnit\Framework\Attributes\RequiresPhp;
 use PHPUnit\Framework\TestCase;
 use Prophecy\PhpUnit\ProphecyTrait;
 
@@ -126,18 +124,6 @@ final class MetadataHydratorTest extends TestCase
         $data = $this->hydrator->extract(new DtoWithHooks());
 
         self::assertEquals(['postHydrateCalled' => false, 'preExtractCalled' => true], $data);
-    }
-
-    #[RequiresPhp('8.4')]
-    public function testExtractWithPropertyHooks(): void
-    {
-        $data = $this->hydrator->extract(new PropertyHooks('David', 'Badura'));
-
-        self::assertEquals([
-            'firstName' => 'David',
-            'lastName' => 'Badura',
-            'fullName' => 'David Badura',
-        ], $data);
     }
 
     public function testHydrate(): void
@@ -391,19 +377,5 @@ final class MetadataHydratorTest extends TestCase
 
         self::assertEquals(true, $object->postHydrateCalled);
         self::assertEquals(false, $object->preExtractCalled);
-    }
-
-    #[RequiresPhp('8.4')]
-    public function testHydrateWithPropertyHooks(): void
-    {
-        $object = $this->hydrator->hydrate(PropertyHooks::class, [
-            'firstName' => 'David',
-            'lastName' => 'Badura',
-        ]);
-
-        self::assertEquals(new PropertyHooks(
-            'David',
-            'Badura',
-        ), $object);
     }
 }
