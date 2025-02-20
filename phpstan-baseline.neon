@@ -25,12 +25,6 @@ parameters:
 			path: src/Metadata/AttributeMetadataFactory.php
 
 		-
-			message: '#^Instanceof between Symfony\\Component\\TypeInfo\\Type\\ObjectType and Symfony\\Component\\TypeInfo\\Type\\ObjectType will always evaluate to true\.$#'
-			identifier: instanceof.alwaysTrue
-			count: 1
-			path: src/Metadata/AttributeMetadataFactory.php
-
-		-
 			message: '#^Parameter \#1 \$objectOrClass of class ReflectionClass constructor expects class\-string\<T of object\>\|T of object, string given\.$#'
 			identifier: argument.type
 			count: 2
