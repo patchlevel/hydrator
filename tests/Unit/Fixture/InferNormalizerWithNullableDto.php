@@ -15,6 +15,7 @@ final class InferNormalizerWithNullableDto
         public DateTimeImmutable|null $dateTimeImmutable,
         public DateTime|null $dateTime = null,
         public DateTimeZone|null $dateTimeZone = null,
+        public ProfileId|null $profileId = null,
     ) {
     }
 }

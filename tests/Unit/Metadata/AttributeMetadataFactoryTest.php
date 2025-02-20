@@ -27,6 +27,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\IgnoreParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\MissingSubjectIdDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentWithPersonalDataDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
 use PHPUnit\Framework\TestCase;
 
@@ -197,6 +198,27 @@ final class AttributeMetadataFactoryTest extends TestCase
 
         self::assertInstanceOf(EnumNormalizer::class, $normalizer);
         self::assertSame(Status::class, $normalizer->getEnum());
+    }
+
+    public function testEventWithInferNormalizer(): void
+    {
+        $object = new class {
+            public function __construct(
+                public ProfileId|null $profileId = null,
+            ) {
+            }
+        };
+
+        $metadataFactory = new AttributeMetadataFactory();
+        $metadata = $metadataFactory->metadata($object::class);
+
+        $properties = $metadata->properties();
+
+        self::assertCount(1, $properties);
+
+        $propertyMetadata = $metadata->propertyForField('profileId');
+
+        self::assertEquals(new IdNormalizer(ProfileId::class), $propertyMetadata->normalizer());
     }
 
     public function testExtends(): void

@@ -106,6 +106,28 @@ final class MetadataHydratorTest extends TestCase
         $this->hydrator->extract($dto1);
     }
 
+    public function testExtractWithInferNormalizer2(): void
+    {
+        $result = $this->hydrator->extract(
+            new InferNormalizerWithNullableDto(
+                null,
+                null,
+                profileId: ProfileId::fromString('1'),
+            ),
+        );
+
+        self::assertEquals(
+            [
+                'status' => null,
+                'dateTimeImmutable' => null,
+                'dateTime' => null,
+                'dateTimeZone' => null,
+                'profileId' => '1',
+            ],
+            $result,
+        );
+    }
+
     public function testExtractWithInferNormalizerFailed(): void
     {
         $this->expectException(NormalizationMissing::class);

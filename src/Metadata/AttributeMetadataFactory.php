@@ -29,6 +29,7 @@ use ReflectionNamedType;
 use ReflectionProperty;
 use Symfony\Component\TypeInfo\Type;
 use Symfony\Component\TypeInfo\Type\CollectionType;
+use Symfony\Component\TypeInfo\Type\NullableType;
 use Symfony\Component\TypeInfo\Type\ObjectType;
 use Symfony\Component\TypeInfo\TypeResolver\TypeResolver;
 
@@ -396,12 +397,20 @@ final class AttributeMetadataFactory implements MetadataFactory
             return $attributeReflectionList[0]->newInstance();
         }
 
+        if ($type instanceof NullableType) {
+            $type = $type->getWrappedType();
+        }
+
         if ($type instanceof ObjectType) {
             return $this->findNormalizerOnClass(new ReflectionClass($type->getClassName()));
         }
 
-        if ($type instanceof CollectionType && $type->getCollectionValueType() instanceof ObjectType) {
+        if ($type instanceof CollectionType) {
             $valueType = $type->getCollectionValueType();
+
+            if ($valueType instanceof NullableType) {
+                $valueType = $type->getWrappedType();
+            }
 
             if (!$valueType instanceof ObjectType) {
                 return null;
