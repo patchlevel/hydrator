@@ -138,6 +138,10 @@ final class AttributeMetadataFactory implements MetadataFactory
                 continue;
             }
 
+            if ($reflectionProperty->getDeclaringClass()->getName() !== $reflectionClass->getName()) {
+                continue;
+            }
+
             $fieldName = $this->getFieldName($reflectionProperty);
 
             if (array_key_exists($fieldName, $properties)) {

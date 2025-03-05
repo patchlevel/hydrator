@@ -18,6 +18,7 @@ use Patchlevel\Hydrator\Metadata\PropertyMetadataNotFound;
 use Patchlevel\Hydrator\Metadata\SubjectIdAndPersonalDataConflict;
 use Patchlevel\Hydrator\Normalizer\EnumNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\BrokenParentDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\DistributionCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DuplicateFieldNameDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\EmailNormalizer;
@@ -247,6 +248,18 @@ final class AttributeMetadataFactoryTest extends TestCase
 
         $metadataFactory = new AttributeMetadataFactory();
         $metadataFactory->metadata(BrokenParentDto::class);
+    }
+
+    public function testBug70(): void
+    {
+        $metadataFactory = new AttributeMetadataFactory();
+        $metadata = $metadataFactory->metadata(DistributionCreated::class);
+
+        self::assertCount(1, $metadata->properties());
+
+        $property = $metadata->propertyForField('recordedDate');
+
+        self::assertSame('recordedDate', $property->propertyName());
     }
 
     public function testSameClassDuplicatedFieldName(): void
