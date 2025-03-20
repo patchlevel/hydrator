@@ -19,8 +19,6 @@ use function is_string;
 
 final class PersonalDataPayloadCryptographer implements PayloadCryptographer
 {
-    public const ENCRYPTED_PREFIX = '!';
-
     public function __construct(
         private readonly CipherKeyStore $cipherKeyStore,
         private readonly CipherKeyFactory $cipherKeyFactory,
@@ -54,7 +52,7 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
                 continue;
             }
 
-            $data[self::ENCRYPTED_PREFIX . $propertyMetadata->fieldName()] = $this->cipher->encrypt(
+            $data[$propertyMetadata->encryptedFieldName()] = $this->cipher->encrypt(
                 $cipherKey,
                 $data[$propertyMetadata->fieldName()],
             );
@@ -89,11 +87,9 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
                 continue;
             }
 
-            $fieldNameWithPrefix = self::ENCRYPTED_PREFIX . $propertyMetadata->fieldName();
-
-            if (array_key_exists($fieldNameWithPrefix, $data)) {
-                $rawData = $data[$fieldNameWithPrefix];
-                unset($data[$fieldNameWithPrefix]);
+            if (array_key_exists($propertyMetadata->encryptedFieldName(), $data)) {
+                $rawData = $data[$propertyMetadata->encryptedFieldName()];
+                unset($data[$propertyMetadata->encryptedFieldName()]);
             } elseif ($this->fallbackWithoutPrefix) {
                 $rawData = $data[$propertyMetadata->fieldName()];
             } else {
