@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Metadata;
 
+use InvalidArgumentException;
+use Patchlevel\Hydrator\Cryptography\PersonalDataPayloadCryptographer;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
 use ReflectionProperty;
+
+use function str_starts_with;
 
 /**
  * @psalm-type serialized = array{
@@ -26,6 +30,9 @@ final class PropertyMetadata
         private readonly bool $isPersonalData = false,
         private readonly mixed $personalDataFallback = null,
     ) {
+        if (str_starts_with($fieldName, PersonalDataPayloadCryptographer::ENCRYPTED_PREFIX)) {
+            throw new InvalidArgumentException('fieldName must not start with !');
+        }
     }
 
     public function reflection(): ReflectionProperty

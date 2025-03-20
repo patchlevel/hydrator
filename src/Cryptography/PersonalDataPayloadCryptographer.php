@@ -19,10 +19,13 @@ use function is_string;
 
 final class PersonalDataPayloadCryptographer implements PayloadCryptographer
 {
+    public const ENCRYPTED_PREFIX = '!';
+
     public function __construct(
         private readonly CipherKeyStore $cipherKeyStore,
         private readonly CipherKeyFactory $cipherKeyFactory,
         private readonly Cipher $cipher,
+        private readonly bool $fallbackWithoutPrefix = true,
     ) {
     }
 
@@ -51,10 +54,12 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
                 continue;
             }
 
-            $data[$propertyMetadata->fieldName()] = $this->cipher->encrypt(
+            $data[self::ENCRYPTED_PREFIX . $propertyMetadata->fieldName()] = $this->cipher->encrypt(
                 $cipherKey,
                 $data[$propertyMetadata->fieldName()],
             );
+
+            unset($data[$propertyMetadata->fieldName()]);
         }
 
         return $data;
@@ -84,6 +89,17 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
                 continue;
             }
 
+            $fieldNameWithPrefix = self::ENCRYPTED_PREFIX . $propertyMetadata->fieldName();
+
+            if (array_key_exists($fieldNameWithPrefix, $data)) {
+                $rawData = $data[$fieldNameWithPrefix];
+                unset($data[$fieldNameWithPrefix]);
+            } elseif ($this->fallbackWithoutPrefix) {
+                $rawData = $data[$propertyMetadata->fieldName()];
+            } else {
+                continue;
+            }
+
             if (!$cipherKey) {
                 $data[$propertyMetadata->fieldName()] = $propertyMetadata->personalDataFallback();
                 continue;
@@ -92,7 +108,7 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
             try {
                 $data[$propertyMetadata->fieldName()] = $this->cipher->decrypt(
                     $cipherKey,
-                    $data[$propertyMetadata->fieldName()],
+                    $rawData,
                 );
             } catch (DecryptionFailed) {
                 $data[$propertyMetadata->fieldName()] = $propertyMetadata->personalDataFallback();
