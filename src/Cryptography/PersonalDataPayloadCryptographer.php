@@ -23,6 +23,7 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
         private readonly CipherKeyStore $cipherKeyStore,
         private readonly CipherKeyFactory $cipherKeyFactory,
         private readonly Cipher $cipher,
+        private readonly string $encryptedDataPrefix = '',
     ) {
     }
 
@@ -51,7 +52,7 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
                 continue;
             }
 
-            $data[$propertyMetadata->fieldName()] = $this->cipher->encrypt(
+            $data[$propertyMetadata->fieldName()] = $this->encryptedDataPrefix . $this->cipher->encrypt(
                 $cipherKey,
                 $data[$propertyMetadata->fieldName()],
             );
@@ -84,6 +85,16 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
                 continue;
             }
 
+            $fieldData = $data[$propertyMetadata->fieldName()];
+
+            if ($this->encryptedDataPrefix !== '') {
+                if (str_starts_with($fieldData, $this->encryptedDataPrefix)) {
+                    $fieldData = mb_substr($fieldData, mb_strlen($this->encryptedDataPrefix));
+                } else {
+                    continue;
+                }
+            }
+
             if (!$cipherKey) {
                 $data[$propertyMetadata->fieldName()] = $propertyMetadata->personalDataFallback();
                 continue;
@@ -92,7 +103,7 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
             try {
                 $data[$propertyMetadata->fieldName()] = $this->cipher->decrypt(
                     $cipherKey,
-                    $data[$propertyMetadata->fieldName()],
+                    $fieldData,
                 );
             } catch (DecryptionFailed) {
                 $data[$propertyMetadata->fieldName()] = $propertyMetadata->personalDataFallback();

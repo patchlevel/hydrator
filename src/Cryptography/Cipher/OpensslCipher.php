@@ -17,17 +17,8 @@ use const JSON_THROW_ON_ERROR;
 
 final class OpensslCipher implements Cipher
 {
-    public function __construct(
-        private readonly string $prefix = '',
-    ) {
-    }
-
     public function encrypt(CipherKey $key, mixed $data): string
     {
-        if ($this->prefix && is_string($data) && str_starts_with($data, $this->prefix)) {
-            throw new EncryptionFailed();
-        }
-
         $encryptedData = @openssl_encrypt(
             $this->dataEncode($data),
             $key->method,
@@ -40,19 +31,11 @@ final class OpensslCipher implements Cipher
             throw new EncryptionFailed();
         }
 
-        return $this->prefix . base64_encode($encryptedData);
+        return base64_encode($encryptedData);
     }
 
     public function decrypt(CipherKey $key, string $data): mixed
     {
-        if ($this->prefix) {
-            if (str_starts_with($data, $this->prefix)) {
-                $data = substr($data, strlen($this->prefix));
-            } else {
-                return $data;
-            }
-        }
-
         $data = @openssl_decrypt(
             base64_decode($data),
             $key->method,
