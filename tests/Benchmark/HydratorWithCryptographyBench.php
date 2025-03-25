@@ -28,7 +28,7 @@ final class HydratorWithCryptographyBench
         $eventDispatcher = new EventDispatcher();
         $eventDispatcher->addSubscriber(
             new CryptographySubscriber(
-                PersonalDataPayloadCryptographer::createWithOpenssl($this->store)
+                PersonalDataPayloadCryptographer::createWithOpenssl($this->store),
             ),
         );
 
