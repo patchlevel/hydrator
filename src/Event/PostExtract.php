@@ -10,8 +10,8 @@ final class PostExtract
 {
     /** @param array<string, mixed> $data */
     public function __construct(
-        public readonly ClassMetadata $metadata,
         public array $data,
+        public readonly ClassMetadata $metadata,
     ) {
     }
 }
