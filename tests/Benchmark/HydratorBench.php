@@ -23,14 +23,17 @@ final class HydratorBench
 
     public function setUp(): void
     {
-        $object = $this->hydrator->hydrate(ProfileCreated::class, [
-            'profileId' => '1',
-            'name' => 'foo',
-            'skills' => [
-                ['name' => 'php'],
-                ['name' => 'symfony'],
+        $object = $this->hydrator->hydrate(
+            ProfileCreated::class,
+            [
+                'profileId' => '1',
+                'name' => 'foo',
+                'skills' => [
+                    ['name' => 'php'],
+                    ['name' => 'symfony'],
+                ],
             ],
-        ]);
+        );
 
         $this->hydrator->extract($object);
     }
