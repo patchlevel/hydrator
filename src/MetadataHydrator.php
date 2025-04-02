@@ -13,9 +13,9 @@ use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Metadata\ClassNotFound;
 use Patchlevel\Hydrator\Metadata\MetadataFactory;
 use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
-use Psr\EventDispatcher\EventDispatcherInterface;
 use ReflectionParameter;
 use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Throwable;
 use TypeError;
 
@@ -29,22 +29,22 @@ final class MetadataHydrator implements Hydrator
     /** @var array<int, class-string> */
     private array $stack = [];
 
-    private readonly EventDispatcherInterface|null $eventDispatcher;
-
     public function __construct(
         private readonly MetadataFactory $metadataFactory = new AttributeMetadataFactory(),
-        PayloadCryptographer|EventDispatcherInterface|null $cryptographer = null,
+        PayloadCryptographer|null $cryptographer = null,
+        private EventDispatcherInterface|null $eventDispatcher = null,
     ) {
-        if ($cryptographer === null) {
-            $this->eventDispatcher = null;
-        } elseif ($cryptographer instanceof EventDispatcherInterface) {
-            $this->eventDispatcher = $cryptographer;
-        } else {
-            $this->eventDispatcher = new EventDispatcher();
-            $this->eventDispatcher->addSubscriber(
-                new CryptographySubscriber($cryptographer),
-            );
+        if (!$cryptographer) {
+            return;
         }
+
+        if (!$this->eventDispatcher) {
+            $this->eventDispatcher = new EventDispatcher();
+        }
+
+        $this->eventDispatcher->addSubscriber(
+            new CryptographySubscriber($cryptographer),
+        );
     }
 
     /**
