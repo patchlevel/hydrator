@@ -33,16 +33,16 @@ final class MetadataHydrator implements Hydrator
 
     public function __construct(
         private readonly MetadataFactory $metadataFactory = new AttributeMetadataFactory(),
-        PayloadCryptographer|EventDispatcherInterface|null $eventDispatcherOrCryptographer = null,
+        PayloadCryptographer|EventDispatcherInterface|null $cryptographer = null,
     ) {
-        if ($eventDispatcherOrCryptographer === null) {
+        if ($cryptographer === null) {
             $this->eventDispatcher = null;
-        } elseif ($eventDispatcherOrCryptographer instanceof EventDispatcherInterface) {
-            $this->eventDispatcher = $eventDispatcherOrCryptographer;
+        } elseif ($cryptographer instanceof EventDispatcherInterface) {
+            $this->eventDispatcher = $cryptographer;
         } else {
             $this->eventDispatcher = new EventDispatcher();
             $this->eventDispatcher->addSubscriber(
-                new CryptographySubscriber($eventDispatcherOrCryptographer)
+                new CryptographySubscriber($cryptographer),
             );
         }
     }
