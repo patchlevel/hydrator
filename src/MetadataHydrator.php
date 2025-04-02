@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator;
 
+use Patchlevel\Hydrator\Cryptography\CryptographySubscriber;
 use Patchlevel\Hydrator\Cryptography\PayloadCryptographer;
+use Patchlevel\Hydrator\Event\PostExtract;
+use Patchlevel\Hydrator\Event\PreHydrate;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Metadata\ClassNotFound;
 use Patchlevel\Hydrator\Metadata\MetadataFactory;
 use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use ReflectionParameter;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 use Throwable;
 use TypeError;
 
@@ -24,10 +29,22 @@ final class MetadataHydrator implements Hydrator
     /** @var array<int, class-string> */
     private array $stack = [];
 
+    private readonly EventDispatcherInterface|null $eventDispatcher;
+
     public function __construct(
         private readonly MetadataFactory $metadataFactory = new AttributeMetadataFactory(),
-        private readonly PayloadCryptographer|null $cryptographer = null,
+        PayloadCryptographer|EventDispatcherInterface|null $eventDispatcherOrCryptographer = null,
     ) {
+        if ($eventDispatcherOrCryptographer === null) {
+            $this->eventDispatcher = null;
+        } elseif ($eventDispatcherOrCryptographer instanceof EventDispatcherInterface) {
+            $this->eventDispatcher = $eventDispatcherOrCryptographer;
+        } else {
+            $this->eventDispatcher = new EventDispatcher();
+            $this->eventDispatcher->addSubscriber(
+                new CryptographySubscriber($eventDispatcherOrCryptographer)
+            );
+        }
     }
 
     /**
@@ -46,9 +63,9 @@ final class MetadataHydrator implements Hydrator
             throw new ClassNotSupported($class, $e);
         }
 
-        if ($this->cryptographer) {
-            $data = $this->cryptographer->decrypt($metadata, $data);
-        }
+        $event = new PreHydrate($metadata, $data);
+        $this->eventDispatcher?->dispatch($event);
+        $data = $event->data;
 
         $object = $metadata->newInstance();
 
@@ -173,11 +190,10 @@ final class MetadataHydrator implements Hydrator
                 $data[$propertyMetadata->fieldName()] = $value;
             }
 
-            if ($this->cryptographer) {
-                return $this->cryptographer->encrypt($metadata, $data);
-            }
+            $event = new PostExtract($metadata, $data);
+            $this->eventDispatcher?->dispatch($event);
 
-            return $data;
+            return $event->data;
         } finally {
             unset($this->stack[$objectId]);
         }
