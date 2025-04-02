@@ -63,9 +63,11 @@ final class MetadataHydrator implements Hydrator
             throw new ClassNotSupported($class, $e);
         }
 
-        $event = new PreHydrate($metadata, $data);
-        $this->eventDispatcher?->dispatch($event);
-        $data = $event->data;
+        if ($this->eventDispatcher) {
+            $event = new PreHydrate($metadata, $data);
+            $this->eventDispatcher->dispatch($event);
+            $data = $event->data;
+        }
 
         $object = $metadata->newInstance();
 
@@ -190,10 +192,13 @@ final class MetadataHydrator implements Hydrator
                 $data[$propertyMetadata->fieldName()] = $value;
             }
 
-            $event = new PostExtract($metadata, $data);
-            $this->eventDispatcher?->dispatch($event);
+            if ($this->eventDispatcher) {
+                $event = new PostExtract($metadata, $data);
+                $this->eventDispatcher->dispatch($event);
+                $data = $event->data;
+            }
 
-            return $event->data;
+            return $data;
         } finally {
             unset($this->stack[$objectId]);
         }
