@@ -38,7 +38,7 @@ final class HydratorBench
         $this->hydrator->extract($object);
     }
 
-    #[Bench\Revs(10)]
+    #[Bench\Revs(5)]
     public function benchHydrate1Object(): void
     {
         $this->hydrator->hydrate(ProfileCreated::class, [
@@ -51,7 +51,7 @@ final class HydratorBench
         ]);
     }
 
-    #[Bench\Revs(10)]
+    #[Bench\Revs(5)]
     public function benchExtract1Object(): void
     {
         $object = new ProfileCreated(
