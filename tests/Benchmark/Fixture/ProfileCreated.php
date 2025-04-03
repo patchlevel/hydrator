@@ -9,13 +9,13 @@ use Patchlevel\Hydrator\Attribute\PersonalData;
 
 final class ProfileCreated
 {
+    /** @param list<Skill> $skills */
     public function __construct(
         #[ProfileIdNormalizer]
         #[DataSubjectId]
         public ProfileId $profileId,
         #[PersonalData(fallback: 'unknown')]
         public string $name,
-        /** @var list<Skill> */
         public array $skills = [],
     ) {
     }
