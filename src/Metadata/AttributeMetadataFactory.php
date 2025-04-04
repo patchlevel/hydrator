@@ -423,7 +423,7 @@ final class AttributeMetadataFactory implements MetadataFactory
             $normalizer = $this->findNormalizerOnClass(new ReflectionClass($valueType->getClassName()));
 
             if ($normalizer === null) {
-                return $normalizer;
+                return null;
             }
 
             if ($normalizer instanceof TypeAwareNormalizer) {

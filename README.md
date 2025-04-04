@@ -406,6 +406,40 @@ readonly class Dto
 }
 ```
 
+### Events
+
+Another way to intervene in the extract and hydrate process is through events. 
+There are two events: `PostExtract` and `PreHydrate`.
+For this functionality we use the [symfony/event-dispatcher](https://symfony.com/doc/current/components/event_dispatcher.html).
+
+```php
+use Patchlevel\Hydrator\Cryptography\PersonalDataPayloadCryptographer;
+use Patchlevel\Hydrator\Cryptography\Store\CipherKeyStore;
+use Patchlevel\Hydrator\Metadata\Event\EventMetadataFactory;
+use Patchlevel\Hydrator\MetadataHydrator;
+use Symfony\Component\EventDispatcher\EventDispatcher;
+use Patchlevel\Hydrator\Event\PostExtract;
+use Patchlevel\Hydrator\Event\PreHydrate;
+
+$eventDispatcher = new EventDispatcher();
+
+$eventDispatcher->addListener(
+    PostExtract::class,
+    static function (PostExtract $event): void {
+        // do something
+    }
+);
+
+$eventDispatcher->addListener(
+    PreHydrate::class,
+    static function (PreHydrate $event): void {
+        // do something
+    }
+);
+
+$hydrator = new MetadataHydrator(eventDispatcher: $eventDispatcher);
+```
+
 ### Cryptography
 
 The library also offers the possibility to encrypt and decrypt personal data.
