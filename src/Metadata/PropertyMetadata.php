@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Metadata;
 
+use InvalidArgumentException;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
 use ReflectionProperty;
+
+use function str_starts_with;
 
 /**
  * @psalm-type serialized = array{
@@ -19,6 +22,8 @@ use ReflectionProperty;
  */
 final class PropertyMetadata
 {
+    private const ENCRYPTED_PREFIX = '!';
+
     public function __construct(
         private readonly ReflectionProperty $reflection,
         private readonly string $fieldName,
@@ -26,6 +31,9 @@ final class PropertyMetadata
         private readonly bool $isPersonalData = false,
         private readonly mixed $personalDataFallback = null,
     ) {
+        if (str_starts_with($fieldName, self::ENCRYPTED_PREFIX)) {
+            throw new InvalidArgumentException('fieldName must not start with !');
+        }
     }
 
     public function reflection(): ReflectionProperty
@@ -41,6 +49,11 @@ final class PropertyMetadata
     public function fieldName(): string
     {
         return $this->fieldName;
+    }
+
+    public function encryptedFieldName(): string
+    {
+        return self::ENCRYPTED_PREFIX . $this->fieldName;
     }
 
     public function normalizer(): Normalizer|null

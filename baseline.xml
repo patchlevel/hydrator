@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<files psalm-version="5.26.1@d747f6500b38ac4f7dfc5edbcae6e4b637d7add0">
+<files psalm-version="6.9.1@81c8a77c0793d450fee40265cfe68891df11d505">
   <file src="src/Cryptography/Cipher/OpensslCipherKeyFactory.php">
     <ArgumentTypeCoercion>
       <code><![CDATA[openssl_random_pseudo_bytes($this->ivLength)]]></code>
@@ -14,12 +14,14 @@
   </file>
   <file src="src/Cryptography/PersonalDataPayloadCryptographer.php">
     <MixedArgument>
-      <code><![CDATA[$data[$propertyMetadata->fieldName()]]]></code>
+      <code><![CDATA[$rawData]]></code>
     </MixedArgument>
     <MixedAssignment>
       <code><![CDATA[$data[$propertyMetadata->fieldName()]]]></code>
       <code><![CDATA[$data[$propertyMetadata->fieldName()]]]></code>
       <code><![CDATA[$data[$propertyMetadata->fieldName()]]]></code>
+      <code><![CDATA[$rawData]]></code>
+      <code><![CDATA[$rawData]]></code>
     </MixedAssignment>
   </file>
   <file src="src/Metadata/AttributeMetadataFactory.php">
