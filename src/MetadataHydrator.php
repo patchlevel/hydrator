@@ -64,9 +64,7 @@ final class MetadataHydrator implements Hydrator
         }
 
         if ($this->eventDispatcher) {
-            $event = new PreHydrate($data, $metadata);
-            $this->eventDispatcher->dispatch($event);
-            $data = $event->data;
+            $data = $this->eventDispatcher->dispatch(new PreHydrate($data, $metadata))->data;
         }
 
         $object = $metadata->newInstance();
@@ -193,9 +191,7 @@ final class MetadataHydrator implements Hydrator
             }
 
             if ($this->eventDispatcher) {
-                $event = new PostExtract($data, $metadata);
-                $this->eventDispatcher->dispatch($event);
-                $data = $event->data;
+                return $this->eventDispatcher->dispatch(new PostExtract($data, $metadata))->data;
             }
 
             return $data;
