@@ -518,9 +518,13 @@ use Patchlevel\Hydrator\Metadata\Event\EventMetadataFactory;
 use Patchlevel\Hydrator\MetadataHydrator;
 
 $cipherKeyStore = new InMemoryCipherKeyStore();
-$cryptographer = PersonalDataPayloadCryptographer::createWithOpenssl($cipherKeyStore);
+$cryptographer = PersonalDataPayloadCryptographer::createWithOpenssl($cipherKeyStore, true);
 $hydrator = new MetadataHydrator(cryptographer: $cryptographer);
 ```
+
+> [!WARNING]
+> We recommend to use the `useEncryptedFieldName` option to recognize encrypted fields.
+> This allows data to be encrypted later without big troubles.
 
 #### Cipher Key Store
 

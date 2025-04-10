@@ -77,7 +77,7 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
 
         $result = $cryptographer->encrypt($this->metadata(PersonalDataProfileCreated::class), ['id' => 'foo', 'email' => 'info@patchlevel.de']);
 
-        self::assertEquals(['id' => 'foo', '!email' => 'encrypted'], $result);
+        self::assertEquals(['id' => 'foo', 'email' => 'encrypted'], $result);
     }
 
     public function testEncryptWithExistingKey(): void
@@ -105,6 +105,39 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
             $cipherKeyStore->reveal(),
             $cipherKeyFactory->reveal(),
             $cipher->reveal(),
+        );
+
+        $result = $cryptographer->encrypt($this->metadata(PersonalDataProfileCreated::class), ['id' => 'foo', 'email' => 'info@patchlevel.de']);
+
+        self::assertEquals(['id' => 'foo', 'email' => 'encrypted'], $result);
+    }
+
+    public function testEncryptWithExistingKeyEncryptedFieldName(): void
+    {
+        $cipherKey = new CipherKey(
+            'foo',
+            'bar',
+            'baz',
+        );
+
+        $cipherKeyStore = $this->prophesize(CipherKeyStore::class);
+        $cipherKeyStore->get('foo')->willReturn($cipherKey);
+        $cipherKeyStore->store('foo', Argument::type(CipherKey::class))->shouldNotBeCalled();
+
+        $cipherKeyFactory = $this->prophesize(CipherKeyFactory::class);
+        $cipherKeyFactory->__invoke()->shouldNotBeCalled();
+
+        $cipher = $this->prophesize(Cipher::class);
+        $cipher
+            ->encrypt($cipherKey, 'info@patchlevel.de')
+            ->willReturn('encrypted')
+            ->shouldBeCalledOnce();
+
+        $cryptographer = new PersonalDataPayloadCryptographer(
+            $cipherKeyStore->reveal(),
+            $cipherKeyFactory->reveal(),
+            $cipher->reveal(),
+            true,
         );
 
         $result = $cryptographer->encrypt($this->metadata(PersonalDataProfileCreated::class), ['id' => 'foo', 'email' => 'info@patchlevel.de']);
@@ -148,10 +181,9 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
             $cipherKeyStore->reveal(),
             $cipherKeyFactory->reveal(),
             $cipher->reveal(),
-            false,
         );
 
-        $result = $cryptographer->decrypt($this->metadata(PersonalDataProfileCreated::class), ['id' => 'foo', '!email' => 'encrypted']);
+        $result = $cryptographer->decrypt($this->metadata(PersonalDataProfileCreated::class), ['id' => 'foo', 'email' => 'encrypted']);
 
         self::assertEquals(['id' => 'foo', 'email' => new Email('unknown')], $result);
     }
@@ -181,15 +213,14 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
             $cipherKeyStore->reveal(),
             $cipherKeyFactory->reveal(),
             $cipher->reveal(),
-            false,
         );
 
-        $result = $cryptographer->decrypt($this->metadata(PersonalDataProfileCreated::class), ['id' => 'foo', '!email' => 'encrypted']);
+        $result = $cryptographer->decrypt($this->metadata(PersonalDataProfileCreated::class), ['id' => 'foo', 'email' => 'encrypted']);
 
         self::assertEquals(['id' => 'foo', 'email' => new Email('unknown')], $result);
     }
 
-    public function testDecryptWithExistingKey(): void
+    public function testDecryptWithValidKey(): void
     {
         $cipherKey = new CipherKey(
             'foo',
@@ -217,12 +248,45 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
             false,
         );
 
+        $result = $cryptographer->decrypt($this->metadata(PersonalDataProfileCreated::class), ['id' => 'foo', 'email' => 'encrypted']);
+
+        self::assertEquals(['id' => 'foo', 'email' => 'info@patchlevel.de'], $result);
+    }
+
+    public function testDecryptWithValidKeyAndEncryptedFieldName(): void
+    {
+        $cipherKey = new CipherKey(
+            'foo',
+            'bar',
+            'baz',
+        );
+
+        $cipherKeyStore = $this->prophesize(CipherKeyStore::class);
+        $cipherKeyStore->get('foo')->willReturn($cipherKey);
+        $cipherKeyStore->store('foo', Argument::type(CipherKey::class))->shouldNotBeCalled();
+
+        $cipherKeyFactory = $this->prophesize(CipherKeyFactory::class);
+        $cipherKeyFactory->__invoke()->shouldNotBeCalled();
+
+        $cipher = $this->prophesize(Cipher::class);
+        $cipher
+            ->decrypt($cipherKey, 'encrypted')
+            ->willReturn('info@patchlevel.de')
+            ->shouldBeCalledOnce();
+
+        $cryptographer = new PersonalDataPayloadCryptographer(
+            $cipherKeyStore->reveal(),
+            $cipherKeyFactory->reveal(),
+            $cipher->reveal(),
+            true,
+        );
+
         $result = $cryptographer->decrypt($this->metadata(PersonalDataProfileCreated::class), ['id' => 'foo', '!email' => 'encrypted']);
 
         self::assertEquals(['id' => 'foo', 'email' => 'info@patchlevel.de'], $result);
     }
 
-    public function testDecryptWithoutPrefixField(): void
+    public function testDecryptWithValidKeyAndEncryptedFieldNameWithoutEncryptedData(): void
     {
         $cipherKey = new CipherKey(
             'foo',
@@ -243,7 +307,7 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
             $cipherKeyStore->reveal(),
             $cipherKeyFactory->reveal(),
             $cipher->reveal(),
-            false,
+            true,
         );
 
         $result = $cryptographer->decrypt($this->metadata(PersonalDataProfileCreated::class), ['id' => 'foo', 'email' => 'info@patchlevel.de']);
@@ -251,7 +315,7 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
         self::assertEquals(['id' => 'foo', 'email' => 'info@patchlevel.de'], $result);
     }
 
-    public function testDecryptWithFallbackWithoutPrefix(): void
+    public function testDecryptWithValidKeyAndEncryptedFieldNameAndFallbackFieldName(): void
     {
         $cipherKey = new CipherKey(
             'foo',
@@ -276,6 +340,8 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
             $cipherKeyStore->reveal(),
             $cipherKeyFactory->reveal(),
             $cipher->reveal(),
+            true,
+            true,
         );
 
         $result = $cryptographer->decrypt($this->metadata(PersonalDataProfileCreated::class), ['id' => 'foo', 'email' => 'encrypted']);
