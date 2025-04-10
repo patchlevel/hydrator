@@ -153,14 +153,11 @@ final class AttributeMetadataFactory implements MetadataFactory
                 );
             }
 
-            [$isPersonalData, $personalDataFallback] = $this->getPersonalData($reflectionProperty);
-
             $properties[$fieldName] = new PropertyMetadata(
                 $reflectionProperty,
                 $fieldName,
                 $this->getNormalizer($reflectionProperty),
-                $isPersonalData,
-                $personalDataFallback,
+                ...$this->getPersonalData($reflectionProperty),
             );
         }
 
@@ -357,7 +354,7 @@ final class AttributeMetadataFactory implements MetadataFactory
         return $this->getFieldName($property);
     }
 
-    /** @return array{bool, mixed} */
+    /** @return array{bool, mixed, string|null} */
     private function getPersonalData(ReflectionProperty $reflectionProperty): array
     {
         $attributeReflectionList = $reflectionProperty->getAttributes(PersonalData::class);
@@ -368,7 +365,7 @@ final class AttributeMetadataFactory implements MetadataFactory
 
         $attribute = $attributeReflectionList[0]->newInstance();
 
-        return [true, $attribute->fallback];
+        return [true, $attribute->fallback, $attribute->fallbackCallable];
     }
 
     private function validate(ClassMetadata $metadata): void

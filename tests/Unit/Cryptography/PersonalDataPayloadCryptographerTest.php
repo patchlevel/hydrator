@@ -18,6 +18,7 @@ use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\PersonalDataProfileCreated;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\PersonalDataProfileCreatedFallbackCallback;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
 use Prophecy\PhpUnit\ProphecyTrait;
@@ -218,6 +219,38 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
         $result = $cryptographer->decrypt($this->metadata(PersonalDataProfileCreated::class), ['id' => 'foo', 'email' => 'encrypted']);
 
         self::assertEquals(['id' => 'foo', 'email' => new Email('unknown')], $result);
+    }
+
+    public function testDecryptWithInvalidKeyWithFallbackCallback(): void
+    {
+        $cipherKey = new CipherKey(
+            'foo',
+            'bar',
+            'baz',
+        );
+
+        $cipherKeyStore = $this->prophesize(CipherKeyStore::class);
+        $cipherKeyStore->get('foo')->willReturn($cipherKey);
+        $cipherKeyStore->store('foo', Argument::type(CipherKey::class))->shouldNotBeCalled();
+
+        $cipherKeyFactory = $this->prophesize(CipherKeyFactory::class);
+        $cipherKeyFactory->__invoke()->shouldNotBeCalled();
+
+        $cipher = $this->prophesize(Cipher::class);
+        $cipher
+            ->decrypt($cipherKey, 'encrypted')
+            ->willThrow(new DecryptionFailed())
+            ->shouldBeCalledOnce();
+
+        $cryptographer = new PersonalDataPayloadCryptographer(
+            $cipherKeyStore->reveal(),
+            $cipherKeyFactory->reveal(),
+            $cipher->reveal(),
+        );
+
+        $result = $cryptographer->decrypt($this->metadata(PersonalDataProfileCreatedFallbackCallback::class), ['id' => 'foo', 'email' => 'encrypted']);
+
+        self::assertEquals(['id' => 'foo', 'email' => new Email('foo@example.com')], $result);
     }
 
     public function testDecryptWithValidKey(): void

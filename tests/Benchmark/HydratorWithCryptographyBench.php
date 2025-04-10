@@ -25,7 +25,7 @@ final class HydratorWithCryptographyBench
         $this->store = new InMemoryCipherKeyStore();
 
         $this->hydrator = new MetadataHydrator(
-            cryptographer: PersonalDataPayloadCryptographer::createWithOpenssl($this->store),
+            cryptographer: PersonalDataPayloadCryptographer::createWithDefaultSettings($this->store),
         );
     }
 
