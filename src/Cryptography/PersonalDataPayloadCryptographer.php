@@ -23,7 +23,8 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
         private readonly CipherKeyStore $cipherKeyStore,
         private readonly CipherKeyFactory $cipherKeyFactory,
         private readonly Cipher $cipher,
-        private readonly bool $fallbackWithoutPrefix = true,
+        private readonly bool $useEncryptedFieldName = false,
+        private readonly bool $fallbackToFieldName = false,
     ) {
     }
 
@@ -52,10 +53,18 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
                 continue;
             }
 
-            $data[$propertyMetadata->encryptedFieldName()] = $this->cipher->encrypt(
+            $targetFieldName = $this->useEncryptedFieldName
+                ? $propertyMetadata->encryptedFieldName()
+                : $propertyMetadata->fieldName();
+
+            $data[$targetFieldName] = $this->cipher->encrypt(
                 $cipherKey,
                 $data[$propertyMetadata->fieldName()],
             );
+
+            if (!$this->useEncryptedFieldName) {
+                continue;
+            }
 
             unset($data[$propertyMetadata->fieldName()]);
         }
@@ -87,10 +96,10 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
                 continue;
             }
 
-            if (array_key_exists($propertyMetadata->encryptedFieldName(), $data)) {
+            if ($this->useEncryptedFieldName && array_key_exists($propertyMetadata->encryptedFieldName(), $data)) {
                 $rawData = $data[$propertyMetadata->encryptedFieldName()];
                 unset($data[$propertyMetadata->encryptedFieldName()]);
-            } elseif ($this->fallbackWithoutPrefix) {
+            } elseif (!$this->useEncryptedFieldName || $this->fallbackToFieldName) {
                 $rawData = $data[$propertyMetadata->fieldName()];
             } else {
                 continue;
@@ -144,11 +153,15 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
     public static function createWithOpenssl(
         CipherKeyStore $cryptoStore,
         string $method = OpensslCipherKeyFactory::DEFAULT_METHOD,
+        bool $useEncryptedFieldName = false,
+        bool $fallbackToFieldName = false,
     ): static {
         return new self(
             $cryptoStore,
             new OpensslCipherKeyFactory($method),
             new OpensslCipher(),
+            $useEncryptedFieldName,
+            $fallbackToFieldName,
         );
     }
 }
