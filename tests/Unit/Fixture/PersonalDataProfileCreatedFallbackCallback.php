@@ -21,7 +21,7 @@ final class PersonalDataProfileCreatedFallbackCallback
     ) {
     }
 
-    public static function emailFallback(mixed $value, string $subjectId): Email
+    public static function emailFallback(string $subjectId): Email
     {
         return new Email($subjectId . '@example.com');
     }

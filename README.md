@@ -524,7 +524,7 @@ final class ProfileCreated
     ) {
     }
     
-    public static function anonymizedEmail(mixed $value, string $subjectId): string
+    public static function anonymizedEmail(string $subjectId): string
     {
         return sprintf('%s@anno.com', $subjectId);
     }

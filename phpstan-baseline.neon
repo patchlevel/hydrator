@@ -25,7 +25,7 @@ parameters:
 			path: src/Metadata/AttributeMetadataFactory.php
 
 		-
-			message: '#^Method Patchlevel\\Hydrator\\Metadata\\AttributeMetadataFactory\:\:getPersonalData\(\) should return array\{bool, mixed, \(callable\(mixed, string\)\: mixed\)\|null\} but returns array\{false, null\}\.$#'
+			message: '#^Method Patchlevel\\Hydrator\\Metadata\\AttributeMetadataFactory\:\:getPersonalData\(\) should return array\{bool, mixed, \(callable\(string, mixed\)\: mixed\)\|null\} but returns array\{false, null\}\.$#'
 			identifier: return.type
 			count: 1
 			path: src/Metadata/AttributeMetadataFactory.php

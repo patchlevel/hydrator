@@ -10,7 +10,7 @@ use InvalidArgumentException;
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final class PersonalData
 {
-    /** @var (callable(mixed, string):mixed)|null */
+    /** @var (callable(string, mixed):mixed)|null */
     public readonly mixed $fallbackCallable;
 
     public function __construct(

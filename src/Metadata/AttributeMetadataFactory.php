@@ -354,7 +354,7 @@ final class AttributeMetadataFactory implements MetadataFactory
         return $this->getFieldName($property);
     }
 
-    /** @return array{bool, mixed, (callable(mixed, string):mixed)|null} */
+    /** @return array{bool, mixed, (callable(string, mixed):mixed)|null} */
     private function getPersonalData(ReflectionProperty $reflectionProperty): array
     {
         $attributeReflectionList = $reflectionProperty->getAttributes(PersonalData::class);

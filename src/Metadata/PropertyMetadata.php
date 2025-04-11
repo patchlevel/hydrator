@@ -25,7 +25,7 @@ final class PropertyMetadata
 {
     private const ENCRYPTED_PREFIX = '!';
 
-    /** @param (callable(mixed, string):mixed)|null $personalDataFallbackCallable */
+    /** @param (callable(string, mixed):mixed)|null $personalDataFallbackCallable */
     public function __construct(
         private readonly ReflectionProperty $reflection,
         private readonly string $fieldName,
@@ -84,7 +84,7 @@ final class PropertyMetadata
         return $this->personalDataFallback;
     }
 
-    /** @return Closure(mixed, string):mixed|null */
+    /** @return (Closure(string, mixed):mixed)|null */
     public function personalDataFallbackCallback(): Closure|null
     {
         if ($this->personalDataFallbackCallable) {

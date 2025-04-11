@@ -107,7 +107,7 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
             }
 
             if (!$cipherKey) {
-                $data[$propertyMetadata->fieldName()] = $this->fallback($propertyMetadata, $rawData, $subjectId);
+                $data[$propertyMetadata->fieldName()] = $this->fallback($propertyMetadata, $subjectId, $rawData);
                 continue;
             }
 
@@ -117,7 +117,7 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
                     $rawData,
                 );
             } catch (DecryptionFailed) {
-                $data[$propertyMetadata->fieldName()] = $this->fallback($propertyMetadata, $rawData, $subjectId);
+                $data[$propertyMetadata->fieldName()] = $this->fallback($propertyMetadata, $subjectId, $rawData);
             }
         }
 
@@ -150,7 +150,7 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
         return $subjectId;
     }
 
-    private function fallback(PropertyMetadata $propertyMetadata, mixed $value, string $subjectId): mixed
+    private function fallback(PropertyMetadata $propertyMetadata, string $subjectId, mixed $rawData): mixed
     {
         $callback = $propertyMetadata->personalDataFallbackCallback();
 
@@ -158,7 +158,7 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
             return $propertyMetadata->personalDataFallback();
         }
 
-        return $callback($value, $subjectId);
+        return $callback($subjectId, $rawData);
     }
 
     /** @param non-empty-string $method */
