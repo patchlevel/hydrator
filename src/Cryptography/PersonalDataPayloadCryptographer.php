@@ -12,6 +12,7 @@ use Patchlevel\Hydrator\Cryptography\Cipher\OpensslCipherKeyFactory;
 use Patchlevel\Hydrator\Cryptography\Store\CipherKeyNotExists;
 use Patchlevel\Hydrator\Cryptography\Store\CipherKeyStore;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
+use Patchlevel\Hydrator\Metadata\PropertyMetadata;
 
 use function array_key_exists;
 use function is_int;
@@ -106,7 +107,7 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
             }
 
             if (!$cipherKey) {
-                $data[$propertyMetadata->fieldName()] = $propertyMetadata->personalDataFallback();
+                $data[$propertyMetadata->fieldName()] = $this->fallback($propertyMetadata, $subjectId, $rawData);
                 continue;
             }
 
@@ -116,7 +117,7 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
                     $rawData,
                 );
             } catch (DecryptionFailed) {
-                $data[$propertyMetadata->fieldName()] = $propertyMetadata->personalDataFallback();
+                $data[$propertyMetadata->fieldName()] = $this->fallback($propertyMetadata, $subjectId, $rawData);
             }
         }
 
@@ -149,6 +150,17 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
         return $subjectId;
     }
 
+    private function fallback(PropertyMetadata $propertyMetadata, string $subjectId, mixed $rawData): mixed
+    {
+        $callback = $propertyMetadata->personalDataFallbackCallback();
+
+        if (!$callback) {
+            return $propertyMetadata->personalDataFallback();
+        }
+
+        return $callback($subjectId, $rawData);
+    }
+
     /** @param non-empty-string $method */
     public static function createWithOpenssl(
         CipherKeyStore $cryptoStore,
@@ -162,6 +174,19 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
             new OpensslCipher(),
             $useEncryptedFieldName,
             $fallbackToFieldName,
+        );
+    }
+
+    /** @param non-empty-string $method */
+    public static function createWithDefaultSettings(
+        CipherKeyStore $cryptoStore,
+        string $method = OpensslCipherKeyFactory::DEFAULT_METHOD,
+    ): static {
+        return new self(
+            $cryptoStore,
+            new OpensslCipherKeyFactory($method),
+            new OpensslCipher(),
+            true,
         );
     }
 }

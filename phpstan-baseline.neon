@@ -25,6 +25,12 @@ parameters:
 			path: src/Metadata/AttributeMetadataFactory.php
 
 		-
+			message: '#^Method Patchlevel\\Hydrator\\Metadata\\AttributeMetadataFactory\:\:getPersonalData\(\) should return array\{bool, mixed, \(callable\(string, mixed\)\: mixed\)\|null\} but returns array\{false, null\}\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Metadata/AttributeMetadataFactory.php
+
+		-
 			message: '#^Parameter \#1 \$objectOrClass of class ReflectionClass constructor expects class\-string\<T of object\>\|T of object, string given\.$#'
 			identifier: argument.type
 			count: 2
