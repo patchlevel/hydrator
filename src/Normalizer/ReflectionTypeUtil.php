@@ -10,6 +10,7 @@ use ReflectionType;
 use function class_exists;
 use function is_a;
 
+/** @deprecated use symfony/type-info api instead */
 final class ReflectionTypeUtil
 {
     public static function type(ReflectionType $reflectionType): string
