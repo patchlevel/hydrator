@@ -337,31 +337,20 @@ final class AttributeMetadataFactory implements MetadataFactory
 
     private function getNormalizer(ReflectionProperty $reflectionProperty): Normalizer|null
     {
-        $type = $this->typeResolver->resolve($reflectionProperty);
-
         $normalizer = $this->findNormalizerOnProperty($reflectionProperty);
+        $type = null;
 
         if (!$normalizer) {
-            if ($type instanceof NullableType) {
-                $type = $type->getWrappedType();
-            }
-
-            if ($type instanceof ObjectType) {
-                $normalizer = $this->findNormalizerOnClass(new ReflectionClass($type->getClassName()));
-            }
-        }
-
-        if (!$normalizer) {
+            $type = $this->typeResolver->resolve($reflectionProperty);
             $normalizer = $this->inferNormalizerByType($type);
         }
 
         if ($normalizer instanceof TypeAwareNormalizer) {
-            $normalizer->handleType($type);
+            $normalizer->handleType($type ?? $this->typeResolver->resolve($reflectionProperty));
         }
 
         if ($normalizer instanceof ReflectionTypeAwareNormalizer) {
-            $reflectionPropertyType = $reflectionProperty->getType();
-            $normalizer->handleReflectionType($reflectionPropertyType);
+            $normalizer->handleReflectionType($reflectionProperty->getType());
         }
 
         return $normalizer;
@@ -381,39 +370,6 @@ final class AttributeMetadataFactory implements MetadataFactory
         return null;
     }
 
-    /** @param ReflectionClass<object> $reflectionClass */
-    private function findNormalizerOnClass(ReflectionClass $reflectionClass): Normalizer|null
-    {
-        $attributes = $reflectionClass->getAttributes(
-            Normalizer::class,
-            ReflectionAttribute::IS_INSTANCEOF,
-        );
-
-        if ($attributes !== []) {
-            return $attributes[0]->newInstance();
-        }
-
-        $parent = $reflectionClass->getParentClass();
-
-        if ($parent) {
-            $normalizer = $this->findNormalizerOnClass($parent);
-
-            if ($normalizer !== null) {
-                return $normalizer;
-            }
-        }
-
-        foreach ($reflectionClass->getInterfaces() as $interface) {
-            $normalizer = $this->findNormalizerOnClass($interface);
-
-            if ($normalizer !== null) {
-                return $normalizer;
-            }
-        }
-
-        return null;
-    }
-
     private function inferNormalizerByType(Type $type): Normalizer|null
     {
         if ($type instanceof NullableType) {
@@ -422,6 +378,16 @@ final class AttributeMetadataFactory implements MetadataFactory
 
         if ($type instanceof BackedEnumType) {
             return new EnumNormalizer($type->getClassName());
+        }
+
+        if ($type instanceof ObjectType) {
+            $normalizer = $this->findNormalizerOnClass($type->getClassName());
+
+            if ($normalizer) {
+                return $normalizer;
+            }
+
+            return $this->guessNormalizerByObjectType($type);
         }
 
         if ($type instanceof CollectionType) {
@@ -434,7 +400,7 @@ final class AttributeMetadataFactory implements MetadataFactory
             $normalizer = null;
 
             if ($valueType instanceof ObjectType) {
-                $normalizer = $this->findNormalizerOnClass(new ReflectionClass($valueType->getClassName()));
+                $normalizer = $this->findNormalizerOnClass($valueType->getClassName());
             }
 
             if ($normalizer === null) {
@@ -448,15 +414,51 @@ final class AttributeMetadataFactory implements MetadataFactory
             return null;
         }
 
-        if ($type instanceof ObjectType) {
-            return match ($type->getClassName()) {
-                DateTimeImmutable::class => new DateTimeImmutableNormalizer(),
-                DateTime::class => new DateTimeNormalizer(),
-                DateTimeZone::class => new DateTimeZoneNormalizer(),
-                default => null,
-            };
+        return null;
+    }
+
+    /** @param class-string $class */
+    private function findNormalizerOnClass(string $class): Normalizer|null
+    {
+        $reflectionClass = new ReflectionClass($class);
+
+        $attributes = $reflectionClass->getAttributes(
+            Normalizer::class,
+            ReflectionAttribute::IS_INSTANCEOF,
+        );
+
+        if ($attributes !== []) {
+            return $attributes[0]->newInstance();
+        }
+
+        $parent = $reflectionClass->getParentClass();
+
+        if ($parent) {
+            $normalizer = $this->findNormalizerOnClass($parent->getName());
+
+            if ($normalizer !== null) {
+                return $normalizer;
+            }
+        }
+
+        foreach ($reflectionClass->getInterfaces() as $interface) {
+            $normalizer = $this->findNormalizerOnClass($interface->getName());
+
+            if ($normalizer !== null) {
+                return $normalizer;
+            }
         }
 
         return null;
+    }
+
+    private function guessNormalizerByObjectType(ObjectType $type): Normalizer|null
+    {
+        return match ($type->getClassName()) {
+            DateTimeImmutable::class => new DateTimeImmutableNormalizer(),
+            DateTime::class => new DateTimeNormalizer(),
+            DateTimeZone::class => new DateTimeZoneNormalizer(),
+            default => null,
+        };
     }
 }
