@@ -9,6 +9,7 @@ use BackedEnum;
 use ReflectionType;
 use Symfony\Component\TypeInfo\Type;
 use Symfony\Component\TypeInfo\Type\BackedEnumType;
+use Symfony\Component\TypeInfo\Type\NullableType;
 use Throwable;
 
 use function is_int;
@@ -68,7 +69,15 @@ final class EnumNormalizer implements Normalizer, ReflectionTypeAwareNormalizer,
 
     public function handleType(Type|null $type): void
     {
-        if ($this->enum !== null || !$type instanceof BackedEnumType) {
+        if ($this->enum !== null || $type === null) {
+            return;
+        }
+
+        if ($type instanceof NullableType) {
+            $type = $type->getWrappedType();
+        }
+
+        if (!$type instanceof BackedEnumType) {
             return;
         }
 
