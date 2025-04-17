@@ -429,21 +429,21 @@ final class AttributeMetadataFactory implements MetadataFactory
                 $valueType = $type->getWrappedType();
             }
 
-            if (!$valueType instanceof ObjectType) {
-                return null;
-            }
+            $normalizer = null;
 
-            $normalizer = $this->findNormalizerOnClass(new ReflectionClass($valueType->getClassName()));
+            if ($valueType instanceof ObjectType) {
+                $normalizer = $this->findNormalizerOnClass(new ReflectionClass($valueType->getClassName()));
+            }
 
             if ($normalizer === null) {
                 $normalizer = $this->inferNormalizer($valueType);
-
-                if ($normalizer === null) {
-                    return null;
-                }
             }
 
-            return new ArrayNormalizer($normalizer);
+            if ($normalizer) {
+                return new ArrayNormalizer($normalizer);
+            }
+
+            return null;
         }
 
         if ($type instanceof ObjectType) {
