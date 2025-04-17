@@ -31,12 +31,6 @@ parameters:
 			path: src/Metadata/AttributeMetadataFactory.php
 
 		-
-			message: '#^Method Patchlevel\\Hydrator\\Metadata\\AttributeMetadataFactory\:\:inferNormalizer\(\) has parameter \$type with generic class Symfony\\Component\\TypeInfo\\Type\\ObjectType but does not specify its types\: T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Metadata/AttributeMetadataFactory.php
-
-		-
 			message: '#^Parameter \#1 \$enum of class Patchlevel\\Hydrator\\Normalizer\\EnumNormalizer constructor expects class\-string\<BackedEnum\>\|null, string given\.$#'
 			identifier: argument.type
 			count: 1

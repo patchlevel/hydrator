@@ -225,38 +225,6 @@ final class AttributeMetadataFactory implements MetadataFactory
         return $attributeReflectionList[0]->newInstance()->name();
     }
 
-    private function getNormalizer(ReflectionProperty $reflectionProperty): Normalizer|null
-    {
-        $type = $this->typeResolver->resolve($reflectionProperty);
-
-        $normalizer = $this->findNormalizer($reflectionProperty, $type);
-
-        if ($normalizer instanceof TypeAwareNormalizer) {
-            $normalizer->handleType($type);
-        }
-
-        if ($normalizer instanceof ReflectionTypeAwareNormalizer) {
-            $reflectionPropertyType = $reflectionProperty->getType();
-            $normalizer->handleReflectionType($reflectionPropertyType);
-        }
-
-        return $normalizer;
-    }
-
-    private function inferNormalizer(ObjectType $type): Normalizer|null
-    {
-        if ($type instanceof BackedEnumType) {
-            return new EnumNormalizer($type->getClassName());
-        }
-
-        return match ($type->getClassName()) {
-            DateTimeImmutable::class => new DateTimeImmutableNormalizer(),
-            DateTime::class => new DateTimeNormalizer(),
-            DateTimeZone::class => new DateTimeZoneNormalizer(),
-            default => null,
-        };
-    }
-
     private function hasIgnore(ReflectionProperty $reflectionProperty): bool
     {
         return $reflectionProperty->getAttributes(Ignore::class) !== [];
@@ -367,6 +335,28 @@ final class AttributeMetadataFactory implements MetadataFactory
         }
     }
 
+    private function getNormalizer(ReflectionProperty $reflectionProperty): Normalizer|null
+    {
+        $type = $this->typeResolver->resolve($reflectionProperty);
+
+        $normalizer = $this->findNormalizer($reflectionProperty, $type);
+
+        if (!$normalizer) {
+            $normalizer = $this->inferNormalizer($type);
+        }
+
+        if ($normalizer instanceof TypeAwareNormalizer) {
+            $normalizer->handleType($type);
+        }
+
+        if ($normalizer instanceof ReflectionTypeAwareNormalizer) {
+            $reflectionPropertyType = $reflectionProperty->getType();
+            $normalizer->handleReflectionType($reflectionPropertyType);
+        }
+
+        return $normalizer;
+    }
+
     private function findNormalizer(ReflectionProperty $reflectionProperty, Type $type): Normalizer|null
     {
         $attributeReflectionList = $reflectionProperty->getAttributes(
@@ -383,37 +373,7 @@ final class AttributeMetadataFactory implements MetadataFactory
         }
 
         if ($type instanceof ObjectType) {
-            $normalizer = $this->findNormalizerOnClass(new ReflectionClass($type->getClassName()));
-
-            if ($normalizer) {
-                return $normalizer;
-            }
-
-            return $this->inferNormalizer($type);
-        }
-
-        if ($type instanceof CollectionType) {
-            $valueType = $type->getCollectionValueType();
-
-            if ($valueType instanceof NullableType) {
-                $valueType = $type->getWrappedType();
-            }
-
-            if (!$valueType instanceof ObjectType) {
-                return null;
-            }
-
-            $normalizer = $this->findNormalizerOnClass(new ReflectionClass($valueType->getClassName()));
-
-            if ($normalizer === null) {
-                $normalizer = $this->inferNormalizer($valueType);
-
-                if ($normalizer === null) {
-                    return null;
-                }
-            }
-
-            return new ArrayNormalizer($normalizer);
+            return $this->findNormalizerOnClass(new ReflectionClass($type->getClassName()));
         }
 
         return null;
@@ -447,6 +407,52 @@ final class AttributeMetadataFactory implements MetadataFactory
             if ($normalizer !== null) {
                 return $normalizer;
             }
+        }
+
+        return null;
+    }
+
+    private function inferNormalizer(Type $type): Normalizer|null
+    {
+        if ($type instanceof NullableType) {
+            $type = $type->getWrappedType();
+        }
+
+        if ($type instanceof BackedEnumType) {
+            return new EnumNormalizer($type->getClassName());
+        }
+
+        if ($type instanceof CollectionType) {
+            $valueType = $type->getCollectionValueType();
+
+            if ($valueType instanceof NullableType) {
+                $valueType = $type->getWrappedType();
+            }
+
+            if (!$valueType instanceof ObjectType) {
+                return null;
+            }
+
+            $normalizer = $this->findNormalizerOnClass(new ReflectionClass($valueType->getClassName()));
+
+            if ($normalizer === null) {
+                $normalizer = $this->inferNormalizer($valueType);
+
+                if ($normalizer === null) {
+                    return null;
+                }
+            }
+
+            return new ArrayNormalizer($normalizer);
+        }
+
+        if ($type instanceof ObjectType) {
+            return match ($type->getClassName()) {
+                DateTimeImmutable::class => new DateTimeImmutableNormalizer(),
+                DateTime::class => new DateTimeNormalizer(),
+                DateTimeZone::class => new DateTimeZoneNormalizer(),
+                default => null,
+            };
         }
 
         return null;
