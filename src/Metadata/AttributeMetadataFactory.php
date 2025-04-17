@@ -339,10 +339,20 @@ final class AttributeMetadataFactory implements MetadataFactory
     {
         $type = $this->typeResolver->resolve($reflectionProperty);
 
-        $normalizer = $this->findNormalizer($reflectionProperty, $type);
+        $normalizer = $this->findNormalizerOnProperty($reflectionProperty);
 
         if (!$normalizer) {
-            $normalizer = $this->inferNormalizer($type);
+            if ($type instanceof NullableType) {
+                $type = $type->getWrappedType();
+            }
+
+            if ($type instanceof ObjectType) {
+                $normalizer = $this->findNormalizerOnClass(new ReflectionClass($type->getClassName()));
+            }
+        }
+
+        if (!$normalizer) {
+            $normalizer = $this->inferNormalizerByType($type);
         }
 
         if ($normalizer instanceof TypeAwareNormalizer) {
@@ -357,7 +367,7 @@ final class AttributeMetadataFactory implements MetadataFactory
         return $normalizer;
     }
 
-    private function findNormalizer(ReflectionProperty $reflectionProperty, Type $type): Normalizer|null
+    private function findNormalizerOnProperty(ReflectionProperty $reflectionProperty): Normalizer|null
     {
         $attributeReflectionList = $reflectionProperty->getAttributes(
             Normalizer::class,
@@ -366,14 +376,6 @@ final class AttributeMetadataFactory implements MetadataFactory
 
         if ($attributeReflectionList !== []) {
             return $attributeReflectionList[0]->newInstance();
-        }
-
-        if ($type instanceof NullableType) {
-            $type = $type->getWrappedType();
-        }
-
-        if ($type instanceof ObjectType) {
-            return $this->findNormalizerOnClass(new ReflectionClass($type->getClassName()));
         }
 
         return null;
@@ -412,7 +414,7 @@ final class AttributeMetadataFactory implements MetadataFactory
         return null;
     }
 
-    private function inferNormalizer(Type $type): Normalizer|null
+    private function inferNormalizerByType(Type $type): Normalizer|null
     {
         if ($type instanceof NullableType) {
             $type = $type->getWrappedType();
@@ -436,7 +438,7 @@ final class AttributeMetadataFactory implements MetadataFactory
             }
 
             if ($normalizer === null) {
-                $normalizer = $this->inferNormalizer($valueType);
+                $normalizer = $this->inferNormalizerByType($valueType);
             }
 
             if ($normalizer) {
