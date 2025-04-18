@@ -11,6 +11,8 @@ use Patchlevel\Hydrator\CircularReference;
 use Patchlevel\Hydrator\ClassNotSupported;
 use Patchlevel\Hydrator\Cryptography\PayloadCryptographer;
 use Patchlevel\Hydrator\DenormalizationFailure;
+use Patchlevel\Hydrator\Event\PostExtract;
+use Patchlevel\Hydrator\Event\PreHydrate;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\MetadataHydrator;
 use Patchlevel\Hydrator\NormalizationFailure;
@@ -37,6 +39,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer;
 use Patchlevel\Hydrator\TypeMismatch;
 use PHPUnit\Framework\TestCase;
 use Prophecy\PhpUnit\ProphecyTrait;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 final class MetadataHydratorTest extends TestCase
 {
@@ -292,6 +295,76 @@ final class MetadataHydratorTest extends TestCase
             ->shouldBeCalledOnce();
 
         $hydrator = new MetadataHydrator($metadataFactory, $cryptographer->reveal());
+
+        $return = $hydrator->extract($object);
+
+        self::assertSame($encryptedPayload, $return);
+    }
+
+    public function testPreHydrate(): void
+    {
+        $object = new ProfileCreated(
+            ProfileId::fromString('1'),
+            Email::fromString('info@patchlevel.de'),
+        );
+
+        $payload = ['profileId' => '1', 'email' => 'info@patchlevel.de'];
+        $encryptedPayload = ['profileId' => '1', 'email' => 'encrypted'];
+
+        $metadataFactory = new AttributeMetadataFactory();
+
+        $event = new PreHydrate(
+            $encryptedPayload,
+            $metadataFactory->metadata(ProfileCreated::class),
+        );
+
+        $eventReturn = new PreHydrate(
+            $payload,
+            $metadataFactory->metadata(ProfileCreated::class),
+        );
+
+        $eventDispatcher = $this->prophesize(EventDispatcherInterface::class);
+        $eventDispatcher
+            ->dispatch($event)
+            ->willReturn($eventReturn)
+            ->shouldBeCalledOnce();
+
+        $hydrator = new MetadataHydrator($metadataFactory, eventDispatcher: $eventDispatcher->reveal());
+
+        $return = $hydrator->hydrate(ProfileCreated::class, $encryptedPayload);
+
+        self::assertEquals($object, $return);
+    }
+
+    public function testPostExtract(): void
+    {
+        $object = new ProfileCreated(
+            ProfileId::fromString('1'),
+            Email::fromString('info@patchlevel.de'),
+        );
+
+        $payload = ['profileId' => '1', 'email' => 'info@patchlevel.de'];
+        $encryptedPayload = ['profileId' => '1', 'email' => 'encrypted'];
+
+        $metadataFactory = new AttributeMetadataFactory();
+
+        $event = new PostExtract(
+            $payload,
+            $metadataFactory->metadata(ProfileCreated::class),
+        );
+
+        $eventReturn = new PostExtract(
+            $encryptedPayload,
+            $metadataFactory->metadata(ProfileCreated::class),
+        );
+
+        $eventDispatcher = $this->prophesize(EventDispatcherInterface::class);
+        $eventDispatcher
+            ->dispatch($event)
+            ->willReturn($eventReturn)
+            ->shouldBeCalledOnce();
+
+        $hydrator = new MetadataHydrator($metadataFactory, eventDispatcher: $eventDispatcher->reveal());
 
         $return = $hydrator->extract($object);
 

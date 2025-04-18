@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator;
 
+use Patchlevel\Hydrator\Cryptography\CryptographySubscriber;
 use Patchlevel\Hydrator\Cryptography\PayloadCryptographer;
+use Patchlevel\Hydrator\Event\PostExtract;
+use Patchlevel\Hydrator\Event\PreHydrate;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Metadata\ClassNotFound;
 use Patchlevel\Hydrator\Metadata\MetadataFactory;
 use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
 use ReflectionParameter;
+use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Throwable;
 use TypeError;
 
@@ -26,8 +31,20 @@ final class MetadataHydrator implements Hydrator
 
     public function __construct(
         private readonly MetadataFactory $metadataFactory = new AttributeMetadataFactory(),
-        private readonly PayloadCryptographer|null $cryptographer = null,
+        PayloadCryptographer|null $cryptographer = null,
+        private EventDispatcherInterface|null $eventDispatcher = null,
     ) {
+        if (!$cryptographer) {
+            return;
+        }
+
+        if (!$this->eventDispatcher) {
+            $this->eventDispatcher = new EventDispatcher();
+        }
+
+        $this->eventDispatcher->addSubscriber(
+            new CryptographySubscriber($cryptographer),
+        );
     }
 
     /**
@@ -46,8 +63,8 @@ final class MetadataHydrator implements Hydrator
             throw new ClassNotSupported($class, $e);
         }
 
-        if ($this->cryptographer) {
-            $data = $this->cryptographer->decrypt($metadata, $data);
+        if ($this->eventDispatcher) {
+            $data = $this->eventDispatcher->dispatch(new PreHydrate($data, $metadata))->data;
         }
 
         $object = $metadata->newInstance();
@@ -173,8 +190,8 @@ final class MetadataHydrator implements Hydrator
                 $data[$propertyMetadata->fieldName()] = $value;
             }
 
-            if ($this->cryptographer) {
-                return $this->cryptographer->encrypt($metadata, $data);
+            if ($this->eventDispatcher) {
+                return $this->eventDispatcher->dispatch(new PostExtract($data, $metadata))->data;
             }
 
             return $data;

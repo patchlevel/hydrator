@@ -406,22 +406,83 @@ readonly class Dto
 }
 ```
 
+### Events
+
+Another way to intervene in the extract and hydrate process is through events. 
+There are two events: `PostExtract` and `PreHydrate`.
+For this functionality we use the [symfony/event-dispatcher](https://symfony.com/doc/current/components/event_dispatcher.html).
+
+```php
+use Patchlevel\Hydrator\Cryptography\PersonalDataPayloadCryptographer;
+use Patchlevel\Hydrator\Cryptography\Store\CipherKeyStore;
+use Patchlevel\Hydrator\Metadata\Event\EventMetadataFactory;
+use Patchlevel\Hydrator\MetadataHydrator;
+use Symfony\Component\EventDispatcher\EventDispatcher;
+use Patchlevel\Hydrator\Event\PostExtract;
+use Patchlevel\Hydrator\Event\PreHydrate;
+
+$eventDispatcher = new EventDispatcher();
+
+$eventDispatcher->addListener(
+    PostExtract::class,
+    static function (PostExtract $event): void {
+        // do something
+    }
+);
+
+$eventDispatcher->addListener(
+    PreHydrate::class,
+    static function (PreHydrate $event): void {
+        // do something
+    }
+);
+
+$hydrator = new MetadataHydrator(eventDispatcher: $eventDispatcher);
+```
+
 ### Cryptography
 
 The library also offers the possibility to encrypt and decrypt personal data.
+For this purpose, a key is created for each subject ID, which is used to encrypt the personal data.
+
+#### DataSubjectId
+
+First we need to define what the subject id is.
+
+```php
+use Patchlevel\Hydrator\Attribute\DataSubjectId;
+
+final class EmailChanged
+{
+    public function __construct(
+        #[DataSubjectId]
+        public readonly string $profileId,
+    ) {
+    }
+}
+```
+
+> [!WARNING]
+> The `DataSubjectId` must be a string. You can use a normalizer to convert it to a string.
+> The Subject ID cannot be personal data.
 
 #### PersonalData
 
-First of all, we have to mark the fields that contain personal data.
-For our example, we use events, but you can do the same with aggregates.
+Next, we need to specify which fields we want to encrypt.
 
 ```php
+use Patchlevel\Hydrator\Attribute\DataSubjectId;
 use Patchlevel\Hydrator\Attribute\PersonalData;
 
 final class DTO 
 {
-    #[PersonalData]
-    public readonly string|null $email;
+    public function __construct(
+        #[DataSubjectId]
+        public readonly string $profileId,
+        #[PersonalData]
+        public readonly string|null $email,
+    ) {
+    }
 }
 ```
 
@@ -436,42 +497,39 @@ use Patchlevel\Hydrator\Attribute\PersonalData;
 final class DTO
 {
     public function __construct(
+        #[DataSubjectId]
+        public readonly string $profileId,
         #[PersonalData(fallback: 'unknown')]
-        public readonly string $email,
+        public readonly string $name,
     ) {
     }
 }
 ```
 
-> [!DANGER]
-> You have to deal with this case in your business logic such as aggregates and subscriptions.
-
-> [!WARNING]
-> You need to define a subject ID to use the personal data attribute.
-
-#### DataSubjectId
-
-In order for the correct key to be used, a subject ID must be defined.
-Without Subject Id, no personal data can be encrypted or decrypted.
+You can also use a callable as a fallback.
 
 ```php
 use Patchlevel\Hydrator\Attribute\DataSubjectId;
 use Patchlevel\Hydrator\Attribute\PersonalData;
 
-final class EmailChanged
+final class ProfileCreated
 {
     public function __construct(
         #[DataSubjectId]
-        public readonly string $personId,
-        #[PersonalData(fallback: 'unknown')]
-        public readonly string|null $email,
+        public readonly string $profileId,
+        #[PersonalData(fallback: 'deleted profile')]
+        public readonly string $name,
+        #[PersonalData(fallbackCallable: [self::class, 'anonymizedEmail'])]
+        public readonly string $email,
     ) {
+    }
+    
+    public static function anonymizedEmail(string $subjectId): string
+    {
+        return sprintf('%s@anno.com', $subjectId);
     }
 }
 ```
-
-> [!WARNING]
-> A subject ID can not be a personal data.
 
 #### Configure Cryptography
 
@@ -484,9 +542,13 @@ use Patchlevel\Hydrator\Metadata\Event\EventMetadataFactory;
 use Patchlevel\Hydrator\MetadataHydrator;
 
 $cipherKeyStore = new InMemoryCipherKeyStore();
-$cryptographer = PersonalDataPayloadCryptographer::createWithOpenssl($cipherKeyStore);
+$cryptographer = PersonalDataPayloadCryptographer::createWithDefaultSettings($cipherKeyStore);
 $hydrator = new MetadataHydrator(cryptographer: $cryptographer);
 ```
+
+> [!WARNING]
+> We recommend to use the `useEncryptedFieldName` option to recognize encrypted fields.
+> This allows data to be encrypted later without big troubles.
 
 #### Cipher Key Store
 

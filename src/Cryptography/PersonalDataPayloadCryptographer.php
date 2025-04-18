@@ -12,6 +12,7 @@ use Patchlevel\Hydrator\Cryptography\Cipher\OpensslCipherKeyFactory;
 use Patchlevel\Hydrator\Cryptography\Store\CipherKeyNotExists;
 use Patchlevel\Hydrator\Cryptography\Store\CipherKeyStore;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
+use Patchlevel\Hydrator\Metadata\PropertyMetadata;
 
 use function array_key_exists;
 use function is_int;
@@ -23,6 +24,8 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
         private readonly CipherKeyStore $cipherKeyStore,
         private readonly CipherKeyFactory $cipherKeyFactory,
         private readonly Cipher $cipher,
+        private readonly bool $useEncryptedFieldName = false,
+        private readonly bool $fallbackToFieldName = false,
     ) {
     }
 
@@ -51,10 +54,20 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
                 continue;
             }
 
-            $data[$propertyMetadata->fieldName()] = $this->cipher->encrypt(
+            $targetFieldName = $this->useEncryptedFieldName
+                ? $propertyMetadata->encryptedFieldName()
+                : $propertyMetadata->fieldName();
+
+            $data[$targetFieldName] = $this->cipher->encrypt(
                 $cipherKey,
                 $data[$propertyMetadata->fieldName()],
             );
+
+            if (!$this->useEncryptedFieldName) {
+                continue;
+            }
+
+            unset($data[$propertyMetadata->fieldName()]);
         }
 
         return $data;
@@ -84,18 +97,27 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
                 continue;
             }
 
+            if ($this->useEncryptedFieldName && array_key_exists($propertyMetadata->encryptedFieldName(), $data)) {
+                $rawData = $data[$propertyMetadata->encryptedFieldName()];
+                unset($data[$propertyMetadata->encryptedFieldName()]);
+            } elseif (!$this->useEncryptedFieldName || $this->fallbackToFieldName) {
+                $rawData = $data[$propertyMetadata->fieldName()];
+            } else {
+                continue;
+            }
+
             if (!$cipherKey) {
-                $data[$propertyMetadata->fieldName()] = $propertyMetadata->personalDataFallback();
+                $data[$propertyMetadata->fieldName()] = $this->fallback($propertyMetadata, $subjectId, $rawData);
                 continue;
             }
 
             try {
                 $data[$propertyMetadata->fieldName()] = $this->cipher->decrypt(
                     $cipherKey,
-                    $data[$propertyMetadata->fieldName()],
+                    $rawData,
                 );
             } catch (DecryptionFailed) {
-                $data[$propertyMetadata->fieldName()] = $propertyMetadata->personalDataFallback();
+                $data[$propertyMetadata->fieldName()] = $this->fallback($propertyMetadata, $subjectId, $rawData);
             }
         }
 
@@ -128,8 +150,35 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
         return $subjectId;
     }
 
+    private function fallback(PropertyMetadata $propertyMetadata, string $subjectId, mixed $rawData): mixed
+    {
+        $callback = $propertyMetadata->personalDataFallbackCallback();
+
+        if (!$callback) {
+            return $propertyMetadata->personalDataFallback();
+        }
+
+        return $callback($subjectId, $rawData);
+    }
+
     /** @param non-empty-string $method */
     public static function createWithOpenssl(
+        CipherKeyStore $cryptoStore,
+        string $method = OpensslCipherKeyFactory::DEFAULT_METHOD,
+        bool $useEncryptedFieldName = false,
+        bool $fallbackToFieldName = false,
+    ): static {
+        return new self(
+            $cryptoStore,
+            new OpensslCipherKeyFactory($method),
+            new OpensslCipher(),
+            $useEncryptedFieldName,
+            $fallbackToFieldName,
+        );
+    }
+
+    /** @param non-empty-string $method */
+    public static function createWithDefaultSettings(
         CipherKeyStore $cryptoStore,
         string $method = OpensslCipherKeyFactory::DEFAULT_METHOD,
     ): static {
@@ -137,6 +186,7 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
             $cryptoStore,
             new OpensslCipherKeyFactory($method),
             new OpensslCipher(),
+            true,
         );
     }
 }
