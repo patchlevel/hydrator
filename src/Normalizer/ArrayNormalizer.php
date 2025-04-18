@@ -8,6 +8,7 @@ use Attribute;
 use Patchlevel\Hydrator\Hydrator;
 use Symfony\Component\TypeInfo\Type;
 use Symfony\Component\TypeInfo\Type\CollectionType;
+use Symfony\Component\TypeInfo\Type\NullableType;
 
 use function array_map;
 use function is_array;
@@ -59,6 +60,14 @@ final class ArrayNormalizer implements Normalizer, TypeAwareNormalizer, Hydrator
 
     public function handleType(Type|null $type): void
     {
+        if ($type === null) {
+            return;
+        }
+
+        if ($type instanceof NullableType) {
+            $type = $type->getWrappedType();
+        }
+
         if (!$type instanceof CollectionType || !$this->normalizer instanceof TypeAwareNormalizer) {
             return;
         }

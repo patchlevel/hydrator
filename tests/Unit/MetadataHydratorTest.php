@@ -25,6 +25,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\DtoWithHooks;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerBrokenDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithIterablesDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithNullableDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\NormalizerInBaseClassDefinedDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDto;
@@ -449,6 +450,37 @@ final class MetadataHydratorTest extends TestCase
                 'dateTimeImmutable' => null,
                 'dateTime' => null,
                 'dateTimeZone' => null,
+            ],
+        );
+
+        self::assertEquals($expected, $event);
+    }
+
+    public function testHydrateWithInferNormalizerWitIterables(): void
+    {
+        $expected = new InferNormalizerWithIterablesDto(
+            [Status::Draft],
+            [Status::Draft],
+            [Status::Draft],
+            [
+                'foo' => Status::Draft,
+                'bar' => Status::Draft,
+            ],
+            [
+                'foo' => 'php',
+                'bar' => 15,
+                'baz' => ['test'],
+            ],
+        );
+
+        $event = $this->hydrator->hydrate(
+            InferNormalizerWithIterablesDto::class,
+            [
+                'defaultArray' => ['draft'],
+                'listArray' => ['draft'],
+                'iterableArray' => ['draft'],
+                'hashMap' => ['foo' => 'draft', 'bar' => 'draft'],
+                'jsonArray' => ['foo' => 'php', 'bar' => 15, 'baz' => ['test']],
             ],
         );
 

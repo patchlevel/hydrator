@@ -6,6 +6,7 @@ namespace Patchlevel\Hydrator\Normalizer;
 
 use ReflectionType;
 
+/** @deprecated use TypeAwareNormalizer instead */
 interface ReflectionTypeAwareNormalizer
 {
     /**

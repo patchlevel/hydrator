@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Metadata;
 
-use BackedEnum;
 use DateTime;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -25,9 +24,9 @@ use Patchlevel\Hydrator\Normalizer\TypeAwareNormalizer;
 use ReflectionAttribute;
 use ReflectionClass;
 use ReflectionException;
-use ReflectionNamedType;
 use ReflectionProperty;
 use Symfony\Component\TypeInfo\Type;
+use Symfony\Component\TypeInfo\Type\BackedEnumType;
 use Symfony\Component\TypeInfo\Type\CollectionType;
 use Symfony\Component\TypeInfo\Type\NullableType;
 use Symfony\Component\TypeInfo\Type\ObjectType;
@@ -36,7 +35,6 @@ use Symfony\Component\TypeInfo\TypeResolver\TypeResolver;
 use function array_key_exists;
 use function array_merge;
 use function array_values;
-use function is_a;
 
 final class AttributeMetadataFactory implements MetadataFactory
 {
@@ -233,10 +231,6 @@ final class AttributeMetadataFactory implements MetadataFactory
 
         $normalizer = $this->findNormalizer($reflectionProperty, $type);
 
-        if (!$normalizer) {
-            $normalizer = $this->inferNormalizer($reflectionProperty);
-        }
-
         if ($normalizer instanceof TypeAwareNormalizer) {
             $normalizer->handleType($type);
         }
@@ -249,32 +243,18 @@ final class AttributeMetadataFactory implements MetadataFactory
         return $normalizer;
     }
 
-    private function inferNormalizer(ReflectionProperty $property): Normalizer|null
+    private function inferNormalizer(ObjectType $type): Normalizer|null
     {
-        $type = $property->getType();
-
-        if (!$type instanceof ReflectionNamedType) {
-            return null;
+        if ($type instanceof BackedEnumType) {
+            return new EnumNormalizer($type->getClassName());
         }
 
-        $className = $type->getName();
-
-        $normalizer = match ($className) {
+        return match ($type->getClassName()) {
             DateTimeImmutable::class => new DateTimeImmutableNormalizer(),
             DateTime::class => new DateTimeNormalizer(),
             DateTimeZone::class => new DateTimeZoneNormalizer(),
             default => null,
         };
-
-        if ($normalizer) {
-            return $normalizer;
-        }
-
-        if (is_a($className, BackedEnum::class, true)) {
-            return new EnumNormalizer($className);
-        }
-
-        return null;
     }
 
     private function hasIgnore(ReflectionProperty $reflectionProperty): bool
@@ -403,7 +383,13 @@ final class AttributeMetadataFactory implements MetadataFactory
         }
 
         if ($type instanceof ObjectType) {
-            return $this->findNormalizerOnClass(new ReflectionClass($type->getClassName()));
+            $normalizer = $this->findNormalizerOnClass(new ReflectionClass($type->getClassName()));
+
+            if ($normalizer) {
+                return $normalizer;
+            }
+
+            return $this->inferNormalizer($type);
         }
 
         if ($type instanceof CollectionType) {
@@ -420,16 +406,11 @@ final class AttributeMetadataFactory implements MetadataFactory
             $normalizer = $this->findNormalizerOnClass(new ReflectionClass($valueType->getClassName()));
 
             if ($normalizer === null) {
-                return null;
-            }
+                $normalizer = $this->inferNormalizer($valueType);
 
-            if ($normalizer instanceof TypeAwareNormalizer) {
-                $normalizer->handleType($valueType);
-            }
-
-            if ($normalizer instanceof ReflectionTypeAwareNormalizer) {
-                $reflectionPropertyType = $reflectionProperty->getType();
-                $normalizer->handleReflectionType($reflectionPropertyType);
+                if ($normalizer === null) {
+                    return null;
+                }
             }
 
             return new ArrayNormalizer($normalizer);

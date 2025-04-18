@@ -8,6 +8,7 @@ use Attribute;
 use Patchlevel\Hydrator\Hydrator;
 use ReflectionType;
 use Symfony\Component\TypeInfo\Type;
+use Symfony\Component\TypeInfo\Type\NullableType;
 use Symfony\Component\TypeInfo\Type\ObjectType;
 
 use function is_array;
@@ -78,7 +79,15 @@ final class ObjectNormalizer implements Normalizer, ReflectionTypeAwareNormalize
 
     public function handleType(Type|null $type): void
     {
-        if ($this->className !== null || !$type instanceof ObjectType) {
+        if ($type === null || $this->className !== null) {
+            return;
+        }
+
+        if ($type instanceof NullableType) {
+            $type = $type->getWrappedType();
+        }
+
+        if (!$type instanceof ObjectType) {
             return;
         }
 
