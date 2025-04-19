@@ -8,13 +8,13 @@
     "text": "infection.log",
     "html": "infection.html",
     "stryker": {
-      "report": "1.0.x"
+      "report": "/[0-9]+.[0-9]+.x/"
     }
   },
   "mutators": {
     "@default": true
   },
-  "minMsi": 75,
-  "minCoveredMsi": 80,
+  "minMsi": 84,
+  "minCoveredMsi": 92,
   "testFrameworkOptions": "--testsuite=unit"
 }
