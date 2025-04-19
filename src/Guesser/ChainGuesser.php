@@ -28,6 +28,3 @@ final class ChainGuesser implements Guesser
         return null;
     }
 }
-{
-
-}
