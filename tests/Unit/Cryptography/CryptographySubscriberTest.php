@@ -11,15 +11,12 @@ use Patchlevel\Hydrator\Event\PreHydrate;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Prophecy\PhpUnit\ProphecyTrait;
 use ReflectionClass;
 use stdClass;
 
 #[CoversClass(CryptographySubscriber::class)]
 final class CryptographySubscriberTest extends TestCase
 {
-    use ProphecyTrait;
-
     public function testSubscriptions(): void
     {
         self::assertEquals([
@@ -39,13 +36,10 @@ final class CryptographySubscriberTest extends TestCase
             $metadata,
         );
 
-        $cryptographer = $this->prophesize(PayloadCryptographer::class);
-        $cryptographer->decrypt(
-            $metadata,
-            ['foo' => 'bar'],
-        )->willReturn(['foo' => 'baz'])->shouldBeCalledOnce();
+        $cryptographer = $this->createMock(PayloadCryptographer::class);
+        $cryptographer->expects($this->once())->method('decrypt')->with($metadata, ['foo' => 'bar'])->willReturn(['foo' => 'baz']);
 
-        $subscriber = new CryptographySubscriber($cryptographer->reveal());
+        $subscriber = new CryptographySubscriber($cryptographer);
         $subscriber->preHydrate($event);
 
         self::assertEquals(['foo' => 'baz'], $event->data);
@@ -62,13 +56,10 @@ final class CryptographySubscriberTest extends TestCase
             $metadata,
         );
 
-        $cryptographer = $this->prophesize(PayloadCryptographer::class);
-        $cryptographer->encrypt(
-            $metadata,
-            ['foo' => 'bar'],
-        )->willReturn(['foo' => 'baz'])->shouldBeCalledOnce();
+        $cryptographer = $this->createMock(PayloadCryptographer::class);
+        $cryptographer->expects($this->once())->method('encrypt')->with($metadata, ['foo' => 'bar'])->willReturn(['foo' => 'baz']);
 
-        $subscriber = new CryptographySubscriber($cryptographer->reveal());
+        $subscriber = new CryptographySubscriber($cryptographer);
         $subscriber->postExtract($event);
 
         self::assertEquals(['foo' => 'baz'], $event->data);

@@ -12,7 +12,6 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\AnotherEnum;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\AutoTypeDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
 use PHPUnit\Framework\TestCase;
-use Prophecy\PhpUnit\ProphecyTrait;
 use ReflectionClass;
 use ReflectionType;
 use RuntimeException;
@@ -20,8 +19,6 @@ use RuntimeException;
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final class EnumNormalizerTest extends TestCase
 {
-    use ProphecyTrait;
-
     public function testNormalizeWithNull(): void
     {
         $normalizer = new EnumNormalizer(Status::class);

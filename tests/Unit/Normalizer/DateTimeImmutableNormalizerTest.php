@@ -10,13 +10,10 @@ use DateTimeImmutable;
 use Patchlevel\Hydrator\Normalizer\DateTimeImmutableNormalizer;
 use Patchlevel\Hydrator\Normalizer\InvalidArgument;
 use PHPUnit\Framework\TestCase;
-use Prophecy\PhpUnit\ProphecyTrait;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final class DateTimeImmutableNormalizerTest extends TestCase
 {
-    use ProphecyTrait;
-
     public function testNormalizeWithNull(): void
     {
         $normalizer = new DateTimeImmutableNormalizer();

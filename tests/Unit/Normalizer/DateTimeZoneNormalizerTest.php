@@ -9,13 +9,10 @@ use DateTimeZone;
 use Patchlevel\Hydrator\Normalizer\DateTimeZoneNormalizer;
 use Patchlevel\Hydrator\Normalizer\InvalidArgument;
 use PHPUnit\Framework\TestCase;
-use Prophecy\PhpUnit\ProphecyTrait;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final class DateTimeZoneNormalizerTest extends TestCase
 {
-    use ProphecyTrait;
-
     public function testNormalizeWithNull(): void
     {
         $normalizer = new DateTimeZoneNormalizer();
