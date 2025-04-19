@@ -27,7 +27,7 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
     public function testSkipEncrypt(): void
     {
         $cipherKeyStore = $this->createMock(CipherKeyStore::class);
-        $cipherKeyStore->method('get');
+        $cipherKeyStore->expects($this->never())->method('get');
 
         $cipherKeyFactory = $this->createMock(CipherKeyFactory::class);
         $cipher = $this->createMock(Cipher::class);
@@ -85,10 +85,13 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
 
         $cipherKeyStore = $this->createMock(CipherKeyStore::class);
         $cipherKeyStore->method('get')->with('foo')->willReturn($cipherKey);
-        $cipherKeyStore->method('store')->with('foo', $this->isInstanceOf(CipherKey::class));
+        $cipherKeyStore
+            ->expects($this->never())
+            ->method('store')
+            ->with('foo', $this->isInstanceOf(CipherKey::class));
 
         $cipherKeyFactory = $this->createMock(CipherKeyFactory::class);
-        $cipherKeyFactory->method('__invoke');
+        $cipherKeyFactory->expects($this->never())->method('__invoke');
 
         $cipher = $this->createMock(Cipher::class);
         $cipher->expects($this->once())->method('encrypt')->with($cipherKey, 'info@patchlevel.de')
@@ -115,10 +118,13 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
 
         $cipherKeyStore = $this->createMock(CipherKeyStore::class);
         $cipherKeyStore->method('get')->with('foo')->willReturn($cipherKey);
-        $cipherKeyStore->method('store')->with('foo', $this->isInstanceOf(CipherKey::class));
+        $cipherKeyStore
+            ->expects($this->never())
+            ->method('store')
+            ->with('foo', $this->isInstanceOf(CipherKey::class));
 
         $cipherKeyFactory = $this->createMock(CipherKeyFactory::class);
-        $cipherKeyFactory->method('__invoke');
+        $cipherKeyFactory->expects($this->never())->method('__invoke');
 
         $cipher = $this->createMock(Cipher::class);
         $cipher->expects($this->once())->method('encrypt')->with($cipherKey, 'info@patchlevel.de')
@@ -139,7 +145,7 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
     public function testSkipDecrypt(): void
     {
         $cipherKeyStore = $this->createMock(CipherKeyStore::class);
-        $cipherKeyStore->method('get');
+        $cipherKeyStore->expects($this->never())->method('get');
 
         $cipherKeyFactory = $this->createMock(CipherKeyFactory::class);
         $cipher = $this->createMock(Cipher::class);
@@ -163,10 +169,10 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
         $cipherKeyStore->method('get')->with('foo')->willThrowException(new CipherKeyNotExists('foo'));
 
         $cipherKeyFactory = $this->createMock(CipherKeyFactory::class);
-        $cipherKeyFactory->method('__invoke');
+        $cipherKeyFactory->expects($this->never())->method('__invoke');
 
         $cipher = $this->createMock(Cipher::class);
-        $cipher->method('decrypt');
+        $cipher->expects($this->never())->method('decrypt');
 
         $cryptographer = new PersonalDataPayloadCryptographer(
             $cipherKeyStore,
@@ -189,10 +195,13 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
 
         $cipherKeyStore = $this->createMock(CipherKeyStore::class);
         $cipherKeyStore->method('get')->with('foo')->willReturn($cipherKey);
-        $cipherKeyStore->method('store')->with('foo', $this->isInstanceOf(CipherKey::class));
+        $cipherKeyStore
+            ->expects($this->never())
+            ->method('store')
+            ->with('foo', $this->isInstanceOf(CipherKey::class));
 
         $cipherKeyFactory = $this->createMock(CipherKeyFactory::class);
-        $cipherKeyFactory->method('__invoke');
+        $cipherKeyFactory->expects($this->never())->method('__invoke');
 
         $cipher = $this->createMock(Cipher::class);
         $cipher->expects($this->once())->method('decrypt')->with($cipherKey, 'encrypted')
@@ -219,10 +228,10 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
 
         $cipherKeyStore = $this->createMock(CipherKeyStore::class);
         $cipherKeyStore->method('get')->with('foo')->willReturn($cipherKey);
-        $cipherKeyStore->method('store')->with('foo', $this->isInstanceOf(CipherKey::class));
+        $cipherKeyStore->expects($this->never())->method('store')->with('foo', $this->isInstanceOf(CipherKey::class));
 
         $cipherKeyFactory = $this->createMock(CipherKeyFactory::class);
-        $cipherKeyFactory->method('__invoke');
+        $cipherKeyFactory->expects($this->never())->method('__invoke');
 
         $cipher = $this->createMock(Cipher::class);
         $cipher->expects($this->once())->method('decrypt')->with($cipherKey, 'encrypted')
@@ -249,10 +258,10 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
 
         $cipherKeyStore = $this->createMock(CipherKeyStore::class);
         $cipherKeyStore->method('get')->with('foo')->willReturn($cipherKey);
-        $cipherKeyStore->method('store')->with('foo', $this->isInstanceOf(CipherKey::class));
+        $cipherKeyStore->expects($this->never())->method('store')->with('foo', $this->isInstanceOf(CipherKey::class));
 
         $cipherKeyFactory = $this->createMock(CipherKeyFactory::class);
-        $cipherKeyFactory->method('__invoke');
+        $cipherKeyFactory->expects($this->never())->method('__invoke');
 
         $cipher = $this->createMock(Cipher::class);
         $cipher->expects($this->once())->method('decrypt')->with($cipherKey, 'encrypted')
@@ -280,10 +289,10 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
 
         $cipherKeyStore = $this->createMock(CipherKeyStore::class);
         $cipherKeyStore->method('get')->with('foo')->willReturn($cipherKey);
-        $cipherKeyStore->method('store')->with('foo', $this->isInstanceOf(CipherKey::class));
+        $cipherKeyStore->expects($this->never())->method('store')->with('foo', $this->isInstanceOf(CipherKey::class));
 
         $cipherKeyFactory = $this->createMock(CipherKeyFactory::class);
-        $cipherKeyFactory->method('__invoke');
+        $cipherKeyFactory->expects($this->never())->method('__invoke');
 
         $cipher = $this->createMock(Cipher::class);
         $cipher->expects($this->once())->method('decrypt')->with($cipherKey, 'encrypted')
@@ -311,10 +320,10 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
 
         $cipherKeyStore = $this->createMock(CipherKeyStore::class);
         $cipherKeyStore->method('get')->with('foo')->willReturn($cipherKey);
-        $cipherKeyStore->method('store')->with('foo', $this->isInstanceOf(CipherKey::class));
+        $cipherKeyStore->expects($this->never())->method('store')->with('foo', $this->isInstanceOf(CipherKey::class));
 
         $cipherKeyFactory = $this->createMock(CipherKeyFactory::class);
-        $cipherKeyFactory->method('__invoke');
+        $cipherKeyFactory->expects($this->never())->method('__invoke');
 
         $cipher = $this->createMock(Cipher::class);
 
@@ -340,10 +349,10 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
 
         $cipherKeyStore = $this->createMock(CipherKeyStore::class);
         $cipherKeyStore->method('get')->with('foo')->willReturn($cipherKey);
-        $cipherKeyStore->method('store')->with('foo', $this->isInstanceOf(CipherKey::class));
+        $cipherKeyStore->expects($this->never())->method('store')->with('foo', $this->isInstanceOf(CipherKey::class));
 
         $cipherKeyFactory = $this->createMock(CipherKeyFactory::class);
-        $cipherKeyFactory->method('__invoke');
+        $cipherKeyFactory->expects($this->never())->method('__invoke');
 
         $cipher = $this->createMock(Cipher::class);
         $cipher->expects($this->once())->method('decrypt')->with($cipherKey, 'encrypted')
