@@ -11,7 +11,7 @@ on:
 
 jobs:
     mutation-tests:
-        name: "Mutation tests"
+        name: "Mutation tests on diff"
 
         runs-on: ${{ matrix.operating-system }}
 
@@ -41,6 +41,4 @@ jobs:
                 dependency-versions: ${{ matrix.dependencies }}
 
             - name: "Infection"
-              run: "vendor/bin/roave-infection-static-analysis-plugin --threads=max"
-              env:
-                  STRYKER_DASHBOARD_API_KEY: ${{ secrets.STRYKER_DASHBOARD_API_KEY }}
+              run: "vendor/bin/roave-infection-static-analysis-plugin --threads=max --git-diff-lines --git-diff-base=origin/$GITHUB_BASE_REF --ignore-msi-with-no-mutations --only-covered --min-msi=90 --min-covered-msi=95"
