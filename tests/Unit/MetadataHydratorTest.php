@@ -467,6 +467,10 @@ final class MetadataHydratorTest extends TestCase
                 'bar' => Status::Draft,
             ],
             [
+                'foo' => [Status::Draft],
+                'bar' => [Status::Draft],
+            ],
+            [
                 'foo' => 'php',
                 'bar' => 15,
                 'baz' => ['test'],
@@ -480,6 +484,7 @@ final class MetadataHydratorTest extends TestCase
                 'listArray' => ['draft'],
                 'iterableArray' => ['draft'],
                 'hashMap' => ['foo' => 'draft', 'bar' => 'draft'],
+                'nested' => ['foo' => ['draft'], 'bar' => ['draft']],
                 'jsonArray' => ['foo' => 'php', 'bar' => 15, 'baz' => ['test']],
             ],
         );
