@@ -4,20 +4,15 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Metadata;
 
-use DateTime;
-use DateTimeImmutable;
-use DateTimeZone;
 use Patchlevel\Hydrator\Attribute\DataSubjectId;
 use Patchlevel\Hydrator\Attribute\Ignore;
 use Patchlevel\Hydrator\Attribute\NormalizedName;
 use Patchlevel\Hydrator\Attribute\PersonalData;
 use Patchlevel\Hydrator\Attribute\PostHydrate;
 use Patchlevel\Hydrator\Attribute\PreExtract;
+use Patchlevel\Hydrator\Guesser\BuiltInGuesser;
+use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\Normalizer\ArrayNormalizer;
-use Patchlevel\Hydrator\Normalizer\DateTimeImmutableNormalizer;
-use Patchlevel\Hydrator\Normalizer\DateTimeNormalizer;
-use Patchlevel\Hydrator\Normalizer\DateTimeZoneNormalizer;
-use Patchlevel\Hydrator\Normalizer\EnumNormalizer;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
 use Patchlevel\Hydrator\Normalizer\ReflectionTypeAwareNormalizer;
 use Patchlevel\Hydrator\Normalizer\TypeAwareNormalizer;
@@ -26,7 +21,6 @@ use ReflectionClass;
 use ReflectionException;
 use ReflectionProperty;
 use Symfony\Component\TypeInfo\Type;
-use Symfony\Component\TypeInfo\Type\BackedEnumType;
 use Symfony\Component\TypeInfo\Type\CollectionType;
 use Symfony\Component\TypeInfo\Type\NullableType;
 use Symfony\Component\TypeInfo\Type\ObjectType;
@@ -43,10 +37,14 @@ final class AttributeMetadataFactory implements MetadataFactory
 
     private readonly TypeResolver $typeResolver;
 
+    private readonly Guesser|null $guesser;
+
     public function __construct(
         TypeResolver|null $typeResolver = null,
+        Guesser|null $guesser = null,
     ) {
         $this->typeResolver = $typeResolver ?: TypeResolver::create();
+        $this->guesser = $guesser ?: new BuiltInGuesser();
     }
 
     /**
@@ -376,10 +374,6 @@ final class AttributeMetadataFactory implements MetadataFactory
             $type = $type->getWrappedType();
         }
 
-        if ($type instanceof BackedEnumType) {
-            return new EnumNormalizer($type->getClassName());
-        }
-
         if ($type instanceof ObjectType) {
             $normalizer = $this->findNormalizerOnClass($type->getClassName());
 
@@ -387,7 +381,7 @@ final class AttributeMetadataFactory implements MetadataFactory
                 return $normalizer;
             }
 
-            return $this->guessNormalizerByObjectType($type);
+            return $this->guesser->guess($type);
         }
 
         if ($type instanceof CollectionType) {
@@ -450,15 +444,5 @@ final class AttributeMetadataFactory implements MetadataFactory
         }
 
         return null;
-    }
-
-    private function guessNormalizerByObjectType(ObjectType $type): Normalizer|null
-    {
-        return match ($type->getClassName()) {
-            DateTimeImmutable::class => new DateTimeImmutableNormalizer(),
-            DateTime::class => new DateTimeNormalizer(),
-            DateTimeZone::class => new DateTimeZoneNormalizer(),
-            default => null,
-        };
     }
 }
