@@ -101,9 +101,3 @@ parameters:
 			identifier: assign.propertyType
 			count: 1
 			path: src/Normalizer/ObjectNormalizer.php
-
-		-
-			message: '#^Method Patchlevel\\Hydrator\\Normalizer\\ReflectionTypeUtil\:\:classStringInstanceOf\(\) should return class\-string\<T\> but returns class\-string\<T\>\|\(string&T\)\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Normalizer/ReflectionTypeUtil.php
