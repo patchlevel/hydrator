@@ -11,26 +11,23 @@ use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
 use Patchlevel\Hydrator\Normalizer\InvalidArgument;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
 use PHPUnit\Framework\TestCase;
-use Prophecy\PhpUnit\ProphecyTrait;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final class ArrayNormalizerTest extends TestCase
 {
-    use ProphecyTrait;
-
     public function testNormalizeWithNull(): void
     {
-        $innerNormalizer = $this->prophesize(Normalizer::class);
+        $innerNormalizer = $this->createMock(Normalizer::class);
 
-        $normalizer = new ArrayNormalizer($innerNormalizer->reveal());
+        $normalizer = new ArrayNormalizer($innerNormalizer);
         $this->assertEquals(null, $normalizer->normalize(null));
     }
 
     public function testDenormalizeWithNull(): void
     {
-        $innerNormalizer = $this->prophesize(Normalizer::class);
+        $innerNormalizer = $this->createMock(Normalizer::class);
 
-        $normalizer = new ArrayNormalizer($innerNormalizer->reveal());
+        $normalizer = new ArrayNormalizer($innerNormalizer);
         $this->assertEquals(null, $normalizer->denormalize(null));
     }
 
@@ -38,9 +35,9 @@ final class ArrayNormalizerTest extends TestCase
     {
         $this->expectException(InvalidArgument::class);
 
-        $innerNormalizer = $this->prophesize(Normalizer::class);
+        $innerNormalizer = $this->createMock(Normalizer::class);
 
-        $normalizer = new ArrayNormalizer($innerNormalizer->reveal());
+        $normalizer = new ArrayNormalizer($innerNormalizer);
         $normalizer->normalize('foo');
     }
 
@@ -48,9 +45,9 @@ final class ArrayNormalizerTest extends TestCase
     {
         $this->expectException(InvalidArgument::class);
 
-        $innerNormalizer = $this->prophesize(Normalizer::class);
+        $innerNormalizer = $this->createMock(Normalizer::class);
 
-        $normalizer = new ArrayNormalizer($innerNormalizer->reveal());
+        $normalizer = new ArrayNormalizer($innerNormalizer);
         $normalizer->denormalize('foo');
     }
 
@@ -92,12 +89,11 @@ final class ArrayNormalizerTest extends TestCase
 
     public function testPassHydrator(): void
     {
-        $hydrator = $this->prophesize(Hydrator::class)->reveal();
-        $normalizer = $this->prophesize(Normalizer::class);
-        $normalizer->willImplement(HydratorAwareNormalizer::class);
-        $normalizer->setHydrator($hydrator)->shouldBeCalled();
+        $hydrator = $this->createMock(Hydrator::class);
+        $normalizer = $this->createMockForIntersectionOfInterfaces([Normalizer::class, HydratorAwareNormalizer::class]);
+        $normalizer->expects($this->once())->method('setHydrator')->with($hydrator);
 
-        $normalizer = new ArrayNormalizer($normalizer->reveal());
+        $normalizer = new ArrayNormalizer($normalizer);
         $normalizer->setHydrator($hydrator);
     }
 }

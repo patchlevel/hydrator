@@ -13,10 +13,12 @@ use Patchlevel\Hydrator\Cryptography\PayloadCryptographer;
 use Patchlevel\Hydrator\DenormalizationFailure;
 use Patchlevel\Hydrator\Event\PostExtract;
 use Patchlevel\Hydrator\Event\PreHydrate;
+use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\MetadataHydrator;
 use Patchlevel\Hydrator\NormalizationFailure;
 use Patchlevel\Hydrator\NormalizationMissing;
+use Patchlevel\Hydrator\Normalizer\Normalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle1Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle2Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle3Dto;
@@ -39,13 +41,11 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\StatusWithNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer;
 use Patchlevel\Hydrator\TypeMismatch;
 use PHPUnit\Framework\TestCase;
-use Prophecy\PhpUnit\ProphecyTrait;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\TypeInfo\Type\ObjectType;
 
 final class MetadataHydratorTest extends TestCase
 {
-    use ProphecyTrait;
-
     private MetadataHydrator $hydrator;
 
     public function setUp(): void
@@ -264,13 +264,14 @@ final class MetadataHydratorTest extends TestCase
 
         $metadataFactory = new AttributeMetadataFactory();
 
-        $cryptographer = $this->prophesize(PayloadCryptographer::class);
+        $cryptographer = $this->createMock(PayloadCryptographer::class);
         $cryptographer
-            ->decrypt($metadataFactory->metadata(ProfileCreated::class), $encryptedPayload)
-            ->willReturn($payload)
-            ->shouldBeCalledOnce();
+            ->expects($this->once())
+            ->method('decrypt')
+            ->with($metadataFactory->metadata(ProfileCreated::class), $encryptedPayload)
+            ->willReturn($payload);
 
-        $hydrator = new MetadataHydrator($metadataFactory, $cryptographer->reveal());
+        $hydrator = new MetadataHydrator($metadataFactory, $cryptographer);
 
         $return = $hydrator->hydrate(ProfileCreated::class, $encryptedPayload);
 
@@ -289,13 +290,14 @@ final class MetadataHydratorTest extends TestCase
 
         $metadataFactory = new AttributeMetadataFactory();
 
-        $cryptographer = $this->prophesize(PayloadCryptographer::class);
+        $cryptographer = $this->createMock(PayloadCryptographer::class);
         $cryptographer
-            ->encrypt($metadataFactory->metadata(ProfileCreated::class), $payload)
-            ->willReturn($encryptedPayload)
-            ->shouldBeCalledOnce();
+            ->expects($this->once())
+            ->method('encrypt')
+            ->with($metadataFactory->metadata(ProfileCreated::class), $payload)
+            ->willReturn($encryptedPayload);
 
-        $hydrator = new MetadataHydrator($metadataFactory, $cryptographer->reveal());
+        $hydrator = new MetadataHydrator($metadataFactory, $cryptographer);
 
         $return = $hydrator->extract($object);
 
@@ -324,13 +326,14 @@ final class MetadataHydratorTest extends TestCase
             $metadataFactory->metadata(ProfileCreated::class),
         );
 
-        $eventDispatcher = $this->prophesize(EventDispatcherInterface::class);
+        $eventDispatcher = $this->createMock(EventDispatcherInterface::class);
         $eventDispatcher
-            ->dispatch($event)
-            ->willReturn($eventReturn)
-            ->shouldBeCalledOnce();
+            ->expects($this->once())
+            ->method('dispatch')
+            ->with($event)
+            ->willReturn($eventReturn);
 
-        $hydrator = new MetadataHydrator($metadataFactory, eventDispatcher: $eventDispatcher->reveal());
+        $hydrator = new MetadataHydrator($metadataFactory, eventDispatcher: $eventDispatcher);
 
         $return = $hydrator->hydrate(ProfileCreated::class, $encryptedPayload);
 
@@ -359,13 +362,11 @@ final class MetadataHydratorTest extends TestCase
             $metadataFactory->metadata(ProfileCreated::class),
         );
 
-        $eventDispatcher = $this->prophesize(EventDispatcherInterface::class);
-        $eventDispatcher
-            ->dispatch($event)
-            ->willReturn($eventReturn)
-            ->shouldBeCalledOnce();
+        $eventDispatcher = $this->createMock(EventDispatcherInterface::class);
+        $eventDispatcher->expects($this->once())->method('dispatch')->with($event)
+            ->willReturn($eventReturn);
 
-        $hydrator = new MetadataHydrator($metadataFactory, eventDispatcher: $eventDispatcher->reveal());
+        $hydrator = new MetadataHydrator($metadataFactory, eventDispatcher: $eventDispatcher);
 
         $return = $hydrator->extract($object);
 
@@ -509,5 +510,25 @@ final class MetadataHydratorTest extends TestCase
 
         self::assertEquals(true, $object->postHydrateCalled);
         self::assertEquals(false, $object->preExtractCalled);
+    }
+
+    public function testCreate(): void
+    {
+        $eventDispatcher = $this->createMock(EventDispatcherInterface::class);
+
+        $hydrator = MetadataHydrator::create(
+            [
+                new class implements Guesser
+                {
+                    public function guess(ObjectType $type): Normalizer|null
+                    {
+                        return null;
+                    }
+                },
+            ],
+            $eventDispatcher,
+        );
+
+        self::assertInstanceOf(MetadataHydrator::class, $hydrator);
     }
 }
