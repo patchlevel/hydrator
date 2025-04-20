@@ -18,7 +18,7 @@ final class HydratorBench
 
     public function __construct()
     {
-        $this->hydrator = new MetadataHydrator();
+        $this->hydrator = MetadataHydrator::create();
     }
 
     public function setUp(): void

@@ -22,7 +22,7 @@ final class BuiltInGuesserTest extends TestCase
 {
     public function testNoMatch(): void
     {
-        $guesser = new BuiltInGuesser();
+        $guesser = new BuiltInGuesser(false);
         self::assertNull($guesser->guess(Type::object(Email::class)));
     }
 

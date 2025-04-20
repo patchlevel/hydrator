@@ -19,7 +19,7 @@ use Symfony\Component\TypeInfo\Type\ObjectType;
 final class BuiltInGuesser implements Guesser
 {
     public function __construct(
-        private readonly bool $fallbackObjectNormalizer = false,
+        private readonly bool $fallbackObjectNormalizer = true,
     ) {
     }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Benchmark;
 
+use Patchlevel\Hydrator\Cryptography\CryptographySubscriber;
 use Patchlevel\Hydrator\Cryptography\PersonalDataPayloadCryptographer;
 use Patchlevel\Hydrator\Cryptography\Store\InMemoryCipherKeyStore;
 use Patchlevel\Hydrator\Hydrator;
@@ -12,6 +13,7 @@ use Patchlevel\Hydrator\Tests\Benchmark\Fixture\ProfileCreated;
 use Patchlevel\Hydrator\Tests\Benchmark\Fixture\ProfileId;
 use Patchlevel\Hydrator\Tests\Benchmark\Fixture\Skill;
 use PhpBench\Attributes as Bench;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 
 #[Bench\BeforeMethods('setUp')]
 final class HydratorWithCryptographyBench
@@ -24,9 +26,12 @@ final class HydratorWithCryptographyBench
     {
         $this->store = new InMemoryCipherKeyStore();
 
-        $this->hydrator = new MetadataHydrator(
-            cryptographer: PersonalDataPayloadCryptographer::createWithDefaultSettings($this->store),
-        );
+        $eventDispatcher = new EventDispatcher();
+        $eventDispatcher->addSubscriber(new CryptographySubscriber(
+            PersonalDataPayloadCryptographer::createWithDefaultSettings($this->store),
+        ));
+
+        $this->hydrator = MetadataHydrator::create(eventDispatcher: $eventDispatcher);
     }
 
     public function setUp(): void

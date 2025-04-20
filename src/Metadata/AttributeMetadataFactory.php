@@ -44,7 +44,7 @@ final class AttributeMetadataFactory implements MetadataFactory
         Guesser|null $guesser = null,
     ) {
         $this->typeResolver = $typeResolver ?: TypeResolver::create();
-        $this->guesser = $guesser ?: new BuiltInGuesser();
+        $this->guesser = $guesser ?: new BuiltInGuesser(false);
     }
 
     /**
