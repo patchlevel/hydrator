@@ -13,10 +13,12 @@ use Patchlevel\Hydrator\Cryptography\PayloadCryptographer;
 use Patchlevel\Hydrator\DenormalizationFailure;
 use Patchlevel\Hydrator\Event\PostExtract;
 use Patchlevel\Hydrator\Event\PreHydrate;
+use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\MetadataHydrator;
 use Patchlevel\Hydrator\NormalizationFailure;
 use Patchlevel\Hydrator\NormalizationMissing;
+use Patchlevel\Hydrator\Normalizer\Normalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle1Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle2Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle3Dto;
@@ -41,6 +43,7 @@ use Patchlevel\Hydrator\TypeMismatch;
 use PHPUnit\Framework\TestCase;
 use Prophecy\PhpUnit\ProphecyTrait;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\TypeInfo\Type\ObjectType;
 
 final class MetadataHydratorTest extends TestCase
 {
@@ -509,5 +512,25 @@ final class MetadataHydratorTest extends TestCase
 
         self::assertEquals(true, $object->postHydrateCalled);
         self::assertEquals(false, $object->preExtractCalled);
+    }
+
+    public function testCreate(): void
+    {
+        $eventDispatcher = $this->createMock(EventDispatcherInterface::class);
+
+        $hydrator = MetadataHydrator::create(
+            [
+                new class implements Guesser
+                {
+                    public function guess(ObjectType $type): Normalizer|null
+                    {
+                        return null;
+                    }
+                },
+            ],
+            $eventDispatcher,
+        );
+
+        self::assertInstanceOf(MetadataHydrator::class, $hydrator);
     }
 }
