@@ -8,6 +8,9 @@ use Patchlevel\Hydrator\Cryptography\CryptographySubscriber;
 use Patchlevel\Hydrator\Cryptography\PayloadCryptographer;
 use Patchlevel\Hydrator\Event\PostExtract;
 use Patchlevel\Hydrator\Event\PreHydrate;
+use Patchlevel\Hydrator\Guesser\BuiltInGuesser;
+use Patchlevel\Hydrator\Guesser\ChainGuesser;
+use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Metadata\ClassNotFound;
@@ -225,5 +228,28 @@ final class MetadataHydrator implements Hydrator
         }
 
         return $result;
+    }
+
+    /** @param iterable<Guesser> $guessers */
+    public static function create(
+        iterable $guessers = [],
+        EventDispatcherInterface|null $eventDispatcher = null,
+    ): self {
+        $guesser = new BuiltInGuesser();
+
+        if ($guessers !== []) {
+            $guesser = new ChainGuesser([
+                ...$guessers,
+                $guesser,
+            ]);
+        }
+
+        return new self(
+            new AttributeMetadataFactory(
+                guesser: $guesser,
+            ),
+            null,
+            $eventDispatcher,
+        );
     }
 }
