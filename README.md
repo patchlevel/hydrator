@@ -12,7 +12,7 @@ The library is a core component of [patchlevel/event-sourcing](ttps://github.com
 where it powers the storage and retrieval of thousands of objects.
 
 Hydration is handled through normalizers, especially for complex data types.
-The system can automatically determine the appropriate normalizer based on the data type and PHPStan/Psalm annotations.
+The system can automatically determine the appropriate normalizer based on the data type and annotations.
 
 In most cases, no manual configuration is needed.
 And if customization is required, it can be done easily using attributes.
