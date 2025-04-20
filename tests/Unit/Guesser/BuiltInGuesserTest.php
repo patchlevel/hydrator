@@ -64,7 +64,7 @@ final class BuiltInGuesserTest extends TestCase
 
     public function testFallbackObjectNormalizer(): void
     {
-        $guesser = new BuiltInGuesser(true);
+        $guesser = new BuiltInGuesser();
         self::assertInstanceOf(
             ObjectNormalizer::class,
             $guesser->guess(Type::object(Email::class)),
