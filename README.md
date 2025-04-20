@@ -5,9 +5,17 @@
 
 # Hydrator
 
-With this library you can hydrate objects from array into objects and back again 
-with a focus on data processing from and into a database.
-It has now been outsourced by the [event-sourcing](https://github.com/patchlevel/event-sourcing) library as a separate library.
+This library enables seamless hydration of objects to arrays—and back again.
+It’s optimized for both developer experience (DX) and performance.
+
+The library is a core component of [patchlevel/event-sourcing](ttps://github.com/patchlevel/event-sourcing),
+where it powers the storage and retrieval of thousands of objects.
+
+Hydration is handled through normalizers, especially for complex data types.
+The system can automatically determine the appropriate normalizer based on the data type and PHPStan/Psalm annotations.
+
+In most cases, no manual configuration is needed.
+And if customization is required, it can be done easily using attributes.
 
 ## Installation
 
@@ -22,17 +30,25 @@ To use the hydrator you just have to create an instance of it.
 ```php
 use Patchlevel\Hydrator\MetadataHydrator;
 
-$hydrator = new MetadataHydrator();
+$hydrator = MetadataHydrator::create();
 ```
 
 After that you can hydrate any classes or objects. Also `final`, `readonly` classes with `property promotion`.
+These objects or classes can have complex structures in the form of value objects, DTOs or collections.
+Or all nested together. Here's an example:
 
 ```php
 final readonly class ProfileCreated 
 {
+    /**
+     * @param list<Skill> $skills
+     */
     public function __construct(
-        public string $id,
-        public string $name
+        public int $id,
+        public string $name,
+        public Role $role, // enum,
+        public array $skills, // array of objects
+        public DateTimeImmutable $createdAt,
     ) {
     }
 }
@@ -40,57 +56,98 @@ final readonly class ProfileCreated
 
 ### Extract Data
 
-To convert objects into serializable arrays, you can use the `extract` method:
+To convert objects into serializable arrays, you can use the `extract` method of the hydrator.
 
 ```php
-$event = new ProfileCreated('1', 'patchlevel');
+$event = new ProfileCreated(
+    1, 
+    'patchlevel',
+    Role::Admin,
+    [new Skill('php', 10), new Skill('event-sourcing', 10)],
+    new DateTimeImmutable('2023-10-01 12:00:00'),
+);
 
 $data = $hydrator->extract($event);
 ```
 
+The result looks like this:
+
 ```php
 [
-  'id' => '1',
-  'name' => 'patchlevel'
+  'id' => 1,
+  'name' => 'patchlevel',
+  'role' => 'admin',
+  'skills' => [
+    [
+      'name' => 'php',
+      'level' => 10,
+    ],
+    [
+      'name' => 'event-sourcing',
+      'level' => 10,
+    ],
+  ],
+  'createdAt' => '2023-10-01T12:00:00+00:00',
 ]
 ```
 
+We could now convert the whole thing into JSON using `json_encode`.
+
 ### Hydrate Object
+
+The process can also be reversed. Hydrate an array back into an object. 
+To do this, we need to specify the class that should be created 
+and the data that should then be written into it.
 
 ```php
 $event = $hydrator->hydrate(
     ProfileCreated::class,
     [
-        'id' => '1',
-        'name' => 'patchlevel'
+      'id' => 1,
+      'name' => 'patchlevel',
+      'role' => 'admin',
+      'skills' => [
+        [
+          'name' => 'php',
+          'level' => 10,
+        ],
+        [
+          'name' => 'event-sourcing',
+          'level' => 10,
+        ],
+      ],
+      'createdAt' => '2023-10-01T12:00:00+00:00',
     ]
 );
 
 $oldEvent == $event // true
 ```
 
+> [!WARNING]
+> It is important to know that the constructor is not called!
+
 ### Normalizer
 
-For more complex structures, i.e. non-scalar data types, we use normalizers. 
-We have some built-in normalizers for standard structures such as objects, enums, datetime etc. 
+For more complex structures, i.e. non-scalar data types, we use normalizers.
+We have some built-in normalizers for standard structures such as objects, arrays, enums, datetime etc. 
 You can find the full list below.
 
-The normalizers can be set on each property by using the specific attribute. 
-For example, `#[DateTimeImmutableNormalizer]`. This tells the Hydrator to normalize or denormalize this property.
+The library attempts to independently determine which normalizers should be used.
+For this purpose, normalizers of this order are determined:
 
-Fortunately, we don't have to do this everywhere. 
-The library tries to independently recognize which normalizers are needed based on the data type.
-For example, if you specify DateTimeImmutable Type, the DateTimeImmutableNormalizer is automatically added.
-You can of course override this if you want. 
-This makes sense, for example, if you want to adjust the format of the normalized string. 
-You can do this by passing parameters to the normalizer.
+1) Does the class property have a normalizer as an attribute? Use this.
+2) The data type of the property is determined.
+   1) If it is a collection, use the ArrayNormalizer (recursive).
+   2) If it is an object, then look for a normalizer as attribute on the class or interfaces and use this.
+   3) If it is an object, then guess the normalizer based on the object. Fallback to the object normalizer.
+
+The normalizer is only determined once because it is cached in the metadata.
+Below you will find the list of all normalizers and how to set them manually or explicitly.
 
 #### Array
 
-If you have a list of objects that you want to normalize, then you must normalize each object individually.
-That's what the `ArrayNormalizer` does for you.
-In order to use the `ArrayNormaliser`, you still have to specify which normaliser should be applied to the individual
-objects. Internally, it basically does an `array_map` and then runs the specified normalizer on each element.
+If you have a collection (array, iterable, list) with a data type that needs to be normalized, 
+you can use the ArrayNormalizer and pass it the required normalizer.
 
 ```php
 use Patchlevel\Hydrator\Normalizer\ArrayNormalizer;
@@ -183,7 +240,6 @@ final class DTO
 #### Enum
 
 Backed enums can also be normalized.
-For this, the enum FQCN must also be pass so that the `EnumNormalizer` knows which enum it is.
 
 ```php
 use Patchlevel\Hydrator\Normalizer\EnumNormalizer;
@@ -252,14 +308,14 @@ final class Name
 
 For this we now need a custom normalizer.
 This normalizer must implement the `Normalizer` interface.
-You also need to implement a `normalize` and `denormalize` method.
-Finally, you have to allow the normalizer to be used as an attribute.
+Finally, you have to allow the normalizer to be used as an attribute,
+best to allow it for properties as well as classes.
 
 ```php
 use Patchlevel\Hydrator\Normalizer\Normalizer;
 use Patchlevel\Hydrator\Normalizer\InvalidArgument;
 
-#[Attribute(Attribute::TARGET_PROPERTY)]
+#[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_CLASS)]
 class NameNormalizer implements Normalizer
 {
     public function normalize(mixed $value): string
@@ -286,9 +342,6 @@ class NameNormalizer implements Normalizer
 }
 ```
 
-> [!WARNING]
-> The important thing is that the result of Normalize is serializable!
-
 Now we can also use the normalizer directly.
 
 ```php
@@ -301,22 +354,7 @@ final class DTO
 
 ### Define normalizer on class level
 
-You can also set the attribute on the value object on class level. 
-For that the normalizer needs to allow to be set on class level.
-
-```php
-use Patchlevel\Hydrator\Normalizer\Normalizer;
-use Patchlevel\Hydrator\Normalizer\InvalidArgument;
-
-#[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_CLASS)]
-class NameNormalizer implements Normalizer
-{
-    // ... same as before
-}
-```
-
-Then set the attribute on the value object.
-
+Instead of specifying the normalizer on each property, you can also set the normalizer on the class or on an interface.
 
 ```php
 #[NameNormalizer]
@@ -326,14 +364,37 @@ final class Name
 }
 ```
 
-After that the DTO can then look like this.
+### Guess normalizer
+
+It's also possible to write your own guesser that finds the correct normalizer based on the object. 
+This is useful if, for example, setting the normalizer on the class or interface isn't possible.
 
 ```php
-final class DTO
+use Patchlevel\Hydrator\Guesser\Guesser;
+use Symfony\Component\TypeInfo\Type\ObjectType;
+
+class NameGuesser implements Guesser
 {
-    public Name $name
+    public function guess(ObjectType $object): Normalizer|null
+    {
+        return match($object->getClassName()) {
+            case Name::class => new NameNormalizer(),
+            default => null,
+        };
+    }
 }
 ```
+
+To use this Guesser, you must specify it when creating the Hydrator:
+
+```php
+use Patchlevel\Hydrator\MetadataHydrator;
+
+$hydrator = MetadataHydrator::create([new NameGuesser()]);
+```
+
+> [!NOTE]
+> The guessers are queried in order, and the first match is returned. Finally, our built-in guesser is executed.
 
 ### Normalized Name
 
