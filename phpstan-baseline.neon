@@ -19,6 +19,36 @@ parameters:
 			path: src/Cryptography/PersonalDataPayloadCryptographer.php
 
 		-
+			message: '#^Method Patchlevel\\Hydrator\\Guesser\\BuiltInGuesser\:\:guess\(\) has parameter \$type with generic class Symfony\\Component\\TypeInfo\\Type\\ObjectType but does not specify its types\: T$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Guesser/BuiltInGuesser.php
+
+		-
+			message: '#^Parameter \#1 \$className of class Patchlevel\\Hydrator\\Normalizer\\ObjectNormalizer constructor expects class\-string\|null, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Guesser/BuiltInGuesser.php
+
+		-
+			message: '#^Parameter \#1 \$enum of class Patchlevel\\Hydrator\\Normalizer\\EnumNormalizer constructor expects class\-string\<BackedEnum\>\|null, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Guesser/BuiltInGuesser.php
+
+		-
+			message: '#^Method Patchlevel\\Hydrator\\Guesser\\ChainGuesser\:\:guess\(\) has parameter \$type with generic class Symfony\\Component\\TypeInfo\\Type\\ObjectType but does not specify its types\: T$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Guesser/ChainGuesser.php
+
+		-
+			message: '#^Method Patchlevel\\Hydrator\\Guesser\\Guesser\:\:guess\(\) has parameter \$type with generic class Symfony\\Component\\TypeInfo\\Type\\ObjectType but does not specify its types\: T$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Guesser/Guesser.php
+
+		-
 			message: '#^Dead catch \- ReflectionException is never thrown in the try block\.$#'
 			identifier: catch.neverThrown
 			count: 1
@@ -31,20 +61,14 @@ parameters:
 			path: src/Metadata/AttributeMetadataFactory.php
 
 		-
-			message: '#^Method Patchlevel\\Hydrator\\Metadata\\AttributeMetadataFactory\:\:guessNormalizerByObjectType\(\) has parameter \$type with generic class Symfony\\Component\\TypeInfo\\Type\\ObjectType but does not specify its types\: T$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Metadata/AttributeMetadataFactory.php
-
-		-
 			message: '#^Parameter \#1 \$class of method Patchlevel\\Hydrator\\Metadata\\AttributeMetadataFactory\:\:findNormalizerOnClass\(\) expects class\-string, string given\.$#'
 			identifier: argument.type
 			count: 2
 			path: src/Metadata/AttributeMetadataFactory.php
 
 		-
-			message: '#^Parameter \#1 \$enum of class Patchlevel\\Hydrator\\Normalizer\\EnumNormalizer constructor expects class\-string\<BackedEnum\>\|null, string given\.$#'
-			identifier: argument.type
+			message: '#^Property Patchlevel\\Hydrator\\Metadata\\AttributeMetadataFactory\:\:\$guesser \(Patchlevel\\Hydrator\\Guesser\\Guesser\|null\) is never assigned null so it can be removed from the property type\.$#'
+			identifier: property.unusedType
 			count: 1
 			path: src/Metadata/AttributeMetadataFactory.php
 
