@@ -137,9 +137,10 @@ For this purpose, normalizers of this order are determined:
 
 1) Does the class property have a normalizer as an attribute? Use this.
 2) The data type of the property is determined.
-   1) If it is a collection, use the ArrayNormalizer (recursive).
-   2) If it is an object, then look for a normalizer as attribute on the class or interfaces and use this.
-   3) If it is an object, then guess the normalizer based on the object. Fallback to the object normalizer.
+   1) If it is an array shape, use the ArrayShapeNormalizer (recursive).
+   2) If it is a collection, use the ArrayNormalizer (recursive).
+   3) If it is an object, then look for a normalizer as attribute on the class or interfaces and use this.
+   4) If it is an object, then guess the normalizer based on the object. Fallback to the object normalizer.
 
 The normalizer is only determined once because it is cached in the metadata.
 Below you will find the list of all normalizers and how to set them manually or explicitly.
@@ -155,13 +156,43 @@ use Patchlevel\Hydrator\Normalizer\DateTimeImmutableNormalizer;
 
 final class DTO 
 {
-    #[ArrayNormalizer(new DateTimeImmutableNormalizer())]
+    /**
+     * @var list<DateTimeImmutable>
+     */
+    #[ArrayNormalizer]
     public array $dates;
+    
+    #[ArrayNormalizer(new DateTimeImmutableNormalizer())]
+    public array $explicitDates;
 }
 ```
 
 > [!NOTE]
 > The keys from the arrays are taken over here.
+
+#### ArrayShape
+
+If you have an array with a specific shape, you can use the `ArrayShapeNormalizer`.
+
+```php
+use Patchlevel\Hydrator\Normalizer\ArrayShapeNormalizer;
+use Patchlevel\Hydrator\Normalizer\DateTimeImmutableNormalizer;
+
+final class DTO 
+{
+    /**
+     * @var array{
+     *     date: DateTimeImmutable,
+     *     otherField: string
+     * }
+     */
+    #[ArrayShapeNormalizer]
+    public array $meta;
+    
+    #[ArrayShapeNormalizer(['date' => new DateTimeImmutableNormalizer()])]
+    public array $explicitMeta;
+}
+```
 
 #### DateTimeImmutable
 

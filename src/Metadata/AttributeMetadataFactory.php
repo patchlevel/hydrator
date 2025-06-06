@@ -13,6 +13,7 @@ use Patchlevel\Hydrator\Attribute\PreExtract;
 use Patchlevel\Hydrator\Guesser\BuiltInGuesser;
 use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\Normalizer\ArrayNormalizer;
+use Patchlevel\Hydrator\Normalizer\ArrayShapeNormalizer;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
 use Patchlevel\Hydrator\Normalizer\ReflectionTypeAwareNormalizer;
 use Patchlevel\Hydrator\Normalizer\TypeAwareNormalizer;
@@ -21,6 +22,7 @@ use ReflectionClass;
 use ReflectionException;
 use ReflectionProperty;
 use Symfony\Component\TypeInfo\Type;
+use Symfony\Component\TypeInfo\Type\ArrayShapeType;
 use Symfony\Component\TypeInfo\Type\CollectionType;
 use Symfony\Component\TypeInfo\Type\NullableType;
 use Symfony\Component\TypeInfo\Type\ObjectType;
@@ -382,6 +384,42 @@ final class AttributeMetadataFactory implements MetadataFactory
             }
 
             return $this->guesser->guess($type);
+        }
+
+        if ($type instanceof ArrayShapeType) {
+            $shape = $type->getShape();
+
+            $normalizers = [];
+
+            foreach ($shape as $field => $fieldInfo) {
+                $valueType = $fieldInfo['type'];
+
+                if ($valueType instanceof NullableType) {
+                    $valueType = $valueType->getWrappedType();
+                }
+
+                $normalizer = null;
+
+                if ($valueType instanceof ObjectType) {
+                    $normalizer = $this->findNormalizerOnClass($valueType->getClassName());
+                }
+
+                if ($normalizer === null) {
+                    $normalizer = $this->inferNormalizerByType($valueType);
+                }
+
+                if ($normalizer === null) {
+                    continue;
+                }
+
+                $normalizers[$field] = $normalizer;
+            }
+
+            if ($normalizers === []) {
+                return null;
+            }
+
+            return new ArrayShapeNormalizer($normalizers);
         }
 
         if ($type instanceof CollectionType) {

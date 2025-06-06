@@ -24,7 +24,7 @@
     "psr/cache": "^2.0.0 || ^3.0.0",
     "psr/simple-cache": "^2.0.0 || ^3.0.0",
     "symfony/event-dispatcher": "^5.4.29 || ^6.4.0 || ^7.0.0",
-    "symfony/type-info": "^7.2.4"
+    "symfony/type-info": "^7.3.0"
   },
   "require-dev": {
     "infection/infection": "^0.29.10",

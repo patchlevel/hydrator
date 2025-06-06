@@ -476,6 +476,10 @@ final class MetadataHydratorTest extends TestCase
                 'bar' => 15,
                 'baz' => ['test'],
             ],
+            [
+                'status' => Status::Draft,
+                'other' => [Status::Draft],
+            ],
         );
 
         $event = $this->hydrator->hydrate(
@@ -487,6 +491,7 @@ final class MetadataHydratorTest extends TestCase
                 'hashMap' => ['foo' => 'draft', 'bar' => 'draft'],
                 'nested' => ['foo' => ['draft'], 'bar' => ['draft']],
                 'jsonArray' => ['foo' => 'php', 'bar' => 15, 'baz' => ['test']],
+                'shapeArray' => ['status' => 'draft', 'other' => ['draft']],
             ],
         );
 
