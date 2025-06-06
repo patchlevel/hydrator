@@ -6,6 +6,7 @@ namespace Patchlevel\Hydrator\Metadata;
 
 use Patchlevel\Hydrator\Attribute\DataSubjectId;
 use Patchlevel\Hydrator\Attribute\Ignore;
+use Patchlevel\Hydrator\Attribute\Lazy;
 use Patchlevel\Hydrator\Attribute\NormalizedName;
 use Patchlevel\Hydrator\Attribute\PersonalData;
 use Patchlevel\Hydrator\Attribute\PostHydrate;
@@ -100,6 +101,7 @@ final class AttributeMetadataFactory implements MetadataFactory
             $this->getSubjectIdField($reflectionClass),
             $this->getPostHydrateCallbacks($reflectionClass),
             $this->getPreExtractCallbacks($reflectionClass),
+            $this->getLazy($reflectionClass),
         );
 
         $parentMetadataClass = $reflectionClass->getParentClass();
@@ -212,6 +214,18 @@ final class AttributeMetadataFactory implements MetadataFactory
         return $methods;
     }
 
+    /** @param ReflectionClass<object> $reflection */
+    private function getLazy(ReflectionClass $reflection): bool|null
+    {
+        $attributeReflectionList = $reflection->getAttributes(Lazy::class);
+
+        if ($attributeReflectionList === []) {
+            return null;
+        }
+
+        return $attributeReflectionList[0]->newInstance()->enabled;
+    }
+
     private function getFieldName(ReflectionProperty $reflectionProperty): string
     {
         $attributeReflectionList = $reflectionProperty->getAttributes(NormalizedName::class);
@@ -271,6 +285,7 @@ final class AttributeMetadataFactory implements MetadataFactory
             $parentDataSubjectIdField ?? $childDataSubjectIdField,
             array_merge($parent->postHydrateCallbacks(), $child->postHydrateCallbacks()),
             array_merge($parent->preExtractCallbacks(), $child->preExtractCallbacks()),
+            $child->lazy() ?? $parent->lazy(),
         );
     }
 

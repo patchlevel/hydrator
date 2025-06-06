@@ -84,7 +84,7 @@ final class HydratorWithCryptographyBench
         $this->hydrator->extract($object);
     }
 
-    #[Bench\Revs(5)]
+    #[Bench\Revs(3)]
     public function benchHydrate1000Objects(): void
     {
         for ($i = 0; $i < 1_000; $i++) {
@@ -102,7 +102,7 @@ final class HydratorWithCryptographyBench
         }
     }
 
-    #[Bench\Revs(5)]
+    #[Bench\Revs(3)]
     public function benchExtract1000Objects(): void
     {
         $object = new ProfileCreated(
@@ -119,7 +119,7 @@ final class HydratorWithCryptographyBench
         }
     }
 
-    #[Bench\Revs(5)]
+    #[Bench\Revs(3)]
     public function benchHydrate1000000Objects(): void
     {
         for ($i = 0; $i < 1_000_000; $i++) {
@@ -137,7 +137,7 @@ final class HydratorWithCryptographyBench
         }
     }
 
-    #[Bench\Revs(5)]
+    #[Bench\Revs(3)]
     public function benchExtract1000000Objects(): void
     {
         $object = new ProfileCreated(

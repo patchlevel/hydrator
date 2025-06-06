@@ -13,6 +13,7 @@ use ReflectionClass;
  *     dataSubjectIdField: string|null,
  *     postHydrateCallbacks: list<CallbackMetadata>,
  *     preExtractCallbacks: list<CallbackMetadata>,
+ *     lazy: bool|null,
  * }
  * @template T of object = object
  */
@@ -30,6 +31,7 @@ final class ClassMetadata
         private readonly string|null $dataSubjectIdField = null,
         private readonly array $postHydrateCallbacks = [],
         private readonly array $preExtractCallbacks = [],
+        private readonly bool|null $lazy = null,
     ) {
     }
 
@@ -63,6 +65,11 @@ final class ClassMetadata
         return $this->preExtractCallbacks;
     }
 
+    public function lazy(): bool|null
+    {
+        return $this->lazy;
+    }
+
     public function dataSubjectIdField(): string|null
     {
         return $this->dataSubjectIdField;
@@ -94,6 +101,7 @@ final class ClassMetadata
             'dataSubjectIdField' => $this->dataSubjectIdField,
             'postHydrateCallbacks' => $this->postHydrateCallbacks,
             'preExtractCallbacks' => $this->preExtractCallbacks,
+            'lazy' => $this->lazy,
         ];
     }
 
@@ -105,5 +113,6 @@ final class ClassMetadata
         $this->dataSubjectIdField = $data['dataSubjectIdField'];
         $this->postHydrateCallbacks = $data['postHydrateCallbacks'];
         $this->preExtractCallbacks = $data['preExtractCallbacks'];
+        $this->lazy = $data['lazy'];
     }
 }

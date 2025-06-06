@@ -29,6 +29,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerBrokenDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithIterablesDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithNullableDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\LazyProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\NormalizerInBaseClassDefinedDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated;
@@ -40,7 +41,9 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\StatusWithNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer;
 use Patchlevel\Hydrator\TypeMismatch;
+use PHPUnit\Framework\Attributes\RequiresPhp;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\TypeInfo\Type\ObjectType;
 
@@ -510,6 +513,59 @@ final class MetadataHydratorTest extends TestCase
 
         self::assertEquals(true, $object->postHydrateCalled);
         self::assertEquals(false, $object->preExtractCalled);
+    }
+
+    #[RequiresPhp('>=8.4')]
+    public function testLazyHydrate(): void
+    {
+        $event = $this->hydrator->hydrate(
+            LazyProfileCreated::class,
+            ['profileId' => '1', 'email' => 'info@patchlevel.de'],
+        );
+
+        $expected = new LazyProfileCreated(
+            ProfileId::fromString('1'),
+            Email::fromString('info@patchlevel.de'),
+        );
+
+        self::assertInstanceOf(LazyProfileCreated::class, $event);
+
+        $reflection = new ReflectionClass(LazyProfileCreated::class);
+
+        self::assertTrue($reflection->isUninitializedLazyObject($event));
+
+        $reflection->initializeLazyObject($event);
+
+        self::assertEquals($expected, $event);
+    }
+
+    #[RequiresPhp('<8.4')]
+    public function testLazyNotSupported(): void
+    {
+        $event = $this->hydrator->hydrate(
+            LazyProfileCreated::class,
+            ['profileId' => '1', 'email' => 'info@patchlevel.de'],
+        );
+
+        $expected = new LazyProfileCreated(
+            ProfileId::fromString('1'),
+            Email::fromString('info@patchlevel.de'),
+        );
+
+        self::assertEquals($expected, $event);
+    }
+
+    #[RequiresPhp('>=8.4')]
+    public function testLazyExtract(): void
+    {
+        $event = $this->hydrator->hydrate(
+            LazyProfileCreated::class,
+            ['profileId' => '1', 'email' => 'info@patchlevel.de'],
+        );
+
+        $data = $this->hydrator->extract($event);
+
+        self::assertEquals(['profileId' => '1', 'email' => 'info@patchlevel.de'], $data);
     }
 
     public function testCreate(): void
