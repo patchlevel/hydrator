@@ -473,6 +473,29 @@ readonly class ProfileCreated
 }
 ```
 
+### Lazy
+
+Since PHP 8.4, it's been possible to lazy-hydrate objects. 
+That is, the actual hydration process occurs when the object is accessed.
+You can define for each class whether you want it to be lazy by using the `Lazy` attribute.
+
+```php
+use Patchlevel\Hydrator\Attribute\Lazy;
+
+#[Lazy]
+readonly class ProfileCreated 
+{
+    public function __construct(
+        public string $id,
+        public string $name,
+    ) {
+    }
+}
+```
+
+> [!NOTE]
+> If you are using a PHP version older than 8.4, the attribute will be ignored.
+
 ### Hooks
 
 Sometimes you need to do something before extract or after hydrate process.
@@ -622,6 +645,10 @@ final class ProfileCreated
     }
 }
 ```
+
+> [!TIP]
+> Cryptography is very expensive in terms of performance, 
+> you can combine it with lazy to improve performance and only decrypt when you actually access the object.
 
 #### Configure Cryptography
 
