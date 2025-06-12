@@ -13,6 +13,7 @@ final class InferNormalizerWithIterablesDto
      * @param array<string, Status>                                $hashMap
      * @param array<string, iterable<Status>>                      $nested
      * @param array{foo: string, bar: int, baz: list<string>}|null $jsonArray
+     * @param array{status: Status, other: iterable<Status>}|null  $shapeArray
      */
     public function __construct(
         public array $defaultArray = [],
@@ -21,6 +22,7 @@ final class InferNormalizerWithIterablesDto
         public array $hashMap = [],
         public iterable $nested = [],
         public array|null $jsonArray = null,
+        public array|null $shapeArray = null,
     ) {
     }
 }

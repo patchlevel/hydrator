@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Tests\Unit\Metadata;
 
 use Patchlevel\Hydrator\Attribute\DataSubjectId;
+use Patchlevel\Hydrator\Attribute\Lazy;
 use Patchlevel\Hydrator\Attribute\NormalizedName;
 use Patchlevel\Hydrator\Attribute\PersonalData;
 use Patchlevel\Hydrator\Attribute\PostHydrate;
@@ -464,5 +465,28 @@ final class AttributeMetadataFactoryTest extends TestCase
 
         self::assertCount(0, $metadata->preExtractCallbacks());
         self::assertCount(0, $metadata->postHydrateCallbacks());
+    }
+
+    public function testNoLazy(): void
+    {
+        $object = new class {
+        };
+
+        $metadataFactory = new AttributeMetadataFactory();
+        $metadata = $metadataFactory->metadata($object::class);
+
+        self::assertNull($metadata->lazy());
+    }
+
+    public function testLazy(): void
+    {
+        $object = new #[Lazy]
+        class {
+        };
+
+        $metadataFactory = new AttributeMetadataFactory();
+        $metadata = $metadataFactory->metadata($object::class);
+
+        self::assertTrue($metadata->lazy());
     }
 }

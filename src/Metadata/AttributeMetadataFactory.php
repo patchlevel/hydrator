@@ -6,6 +6,7 @@ namespace Patchlevel\Hydrator\Metadata;
 
 use Patchlevel\Hydrator\Attribute\DataSubjectId;
 use Patchlevel\Hydrator\Attribute\Ignore;
+use Patchlevel\Hydrator\Attribute\Lazy;
 use Patchlevel\Hydrator\Attribute\NormalizedName;
 use Patchlevel\Hydrator\Attribute\PersonalData;
 use Patchlevel\Hydrator\Attribute\PostHydrate;
@@ -13,6 +14,7 @@ use Patchlevel\Hydrator\Attribute\PreExtract;
 use Patchlevel\Hydrator\Guesser\BuiltInGuesser;
 use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\Normalizer\ArrayNormalizer;
+use Patchlevel\Hydrator\Normalizer\ArrayShapeNormalizer;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
 use Patchlevel\Hydrator\Normalizer\ReflectionTypeAwareNormalizer;
 use Patchlevel\Hydrator\Normalizer\TypeAwareNormalizer;
@@ -21,6 +23,7 @@ use ReflectionClass;
 use ReflectionException;
 use ReflectionProperty;
 use Symfony\Component\TypeInfo\Type;
+use Symfony\Component\TypeInfo\Type\ArrayShapeType;
 use Symfony\Component\TypeInfo\Type\CollectionType;
 use Symfony\Component\TypeInfo\Type\NullableType;
 use Symfony\Component\TypeInfo\Type\ObjectType;
@@ -100,6 +103,7 @@ final class AttributeMetadataFactory implements MetadataFactory
             $this->getSubjectIdField($reflectionClass),
             $this->getPostHydrateCallbacks($reflectionClass),
             $this->getPreExtractCallbacks($reflectionClass),
+            $this->getLazy($reflectionClass),
         );
 
         $parentMetadataClass = $reflectionClass->getParentClass();
@@ -212,6 +216,18 @@ final class AttributeMetadataFactory implements MetadataFactory
         return $methods;
     }
 
+    /** @param ReflectionClass<object> $reflection */
+    private function getLazy(ReflectionClass $reflection): bool|null
+    {
+        $attributeReflectionList = $reflection->getAttributes(Lazy::class);
+
+        if ($attributeReflectionList === []) {
+            return null;
+        }
+
+        return $attributeReflectionList[0]->newInstance()->enabled;
+    }
+
     private function getFieldName(ReflectionProperty $reflectionProperty): string
     {
         $attributeReflectionList = $reflectionProperty->getAttributes(NormalizedName::class);
@@ -271,6 +287,7 @@ final class AttributeMetadataFactory implements MetadataFactory
             $parentDataSubjectIdField ?? $childDataSubjectIdField,
             array_merge($parent->postHydrateCallbacks(), $child->postHydrateCallbacks()),
             array_merge($parent->preExtractCallbacks(), $child->preExtractCallbacks()),
+            $child->lazy() ?? $parent->lazy(),
         );
     }
 
@@ -382,6 +399,42 @@ final class AttributeMetadataFactory implements MetadataFactory
             }
 
             return $this->guesser->guess($type);
+        }
+
+        if ($type instanceof ArrayShapeType) {
+            $shape = $type->getShape();
+
+            $normalizers = [];
+
+            foreach ($shape as $field => $fieldInfo) {
+                $valueType = $fieldInfo['type'];
+
+                if ($valueType instanceof NullableType) {
+                    $valueType = $valueType->getWrappedType();
+                }
+
+                $normalizer = null;
+
+                if ($valueType instanceof ObjectType) {
+                    $normalizer = $this->findNormalizerOnClass($valueType->getClassName());
+                }
+
+                if ($normalizer === null) {
+                    $normalizer = $this->inferNormalizerByType($valueType);
+                }
+
+                if ($normalizer === null) {
+                    continue;
+                }
+
+                $normalizers[$field] = $normalizer;
+            }
+
+            if ($normalizers === []) {
+                return null;
+            }
+
+            return new ArrayShapeNormalizer($normalizers);
         }
 
         if ($type instanceof CollectionType) {

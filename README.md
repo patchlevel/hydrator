@@ -12,7 +12,7 @@ The library is a core component of [patchlevel/event-sourcing](ttps://github.com
 where it powers the storage and retrieval of thousands of objects.
 
 Hydration is handled through normalizers, especially for complex data types.
-The system can automatically determine the appropriate normalizer based on the data type and PHPStan/Psalm annotations.
+The system can automatically determine the appropriate normalizer based on the data type and annotations.
 
 In most cases, no manual configuration is needed.
 And if customization is required, it can be done easily using attributes.
@@ -137,9 +137,10 @@ For this purpose, normalizers of this order are determined:
 
 1) Does the class property have a normalizer as an attribute? Use this.
 2) The data type of the property is determined.
-   1) If it is a collection, use the ArrayNormalizer (recursive).
-   2) If it is an object, then look for a normalizer as attribute on the class or interfaces and use this.
-   3) If it is an object, then guess the normalizer based on the object. Fallback to the object normalizer.
+   1) If it is an array shape, use the ArrayShapeNormalizer (recursive).
+   2) If it is a collection, use the ArrayNormalizer (recursive).
+   3) If it is an object, then look for a normalizer as attribute on the class or interfaces and use this.
+   4) If it is an object, then guess the normalizer based on the object. Fallback to the object normalizer.
 
 The normalizer is only determined once because it is cached in the metadata.
 Below you will find the list of all normalizers and how to set them manually or explicitly.
@@ -155,13 +156,43 @@ use Patchlevel\Hydrator\Normalizer\DateTimeImmutableNormalizer;
 
 final class DTO 
 {
-    #[ArrayNormalizer(new DateTimeImmutableNormalizer())]
+    /**
+     * @var list<DateTimeImmutable>
+     */
+    #[ArrayNormalizer]
     public array $dates;
+    
+    #[ArrayNormalizer(new DateTimeImmutableNormalizer())]
+    public array $explicitDates;
 }
 ```
 
 > [!NOTE]
 > The keys from the arrays are taken over here.
+
+#### ArrayShape
+
+If you have an array with a specific shape, you can use the `ArrayShapeNormalizer`.
+
+```php
+use Patchlevel\Hydrator\Normalizer\ArrayShapeNormalizer;
+use Patchlevel\Hydrator\Normalizer\DateTimeImmutableNormalizer;
+
+final class DTO 
+{
+    /**
+     * @var array{
+     *     date: DateTimeImmutable,
+     *     otherField: string
+     * }
+     */
+    #[ArrayShapeNormalizer]
+    public array $meta;
+    
+    #[ArrayShapeNormalizer(['date' => new DateTimeImmutableNormalizer()])]
+    public array $explicitMeta;
+}
+```
 
 #### DateTimeImmutable
 
@@ -442,6 +473,29 @@ readonly class ProfileCreated
 }
 ```
 
+### Lazy
+
+Since PHP 8.4, it's been possible to lazy-hydrate objects. 
+That is, the actual hydration process occurs when the object is accessed.
+You can define for each class whether you want it to be lazy by using the `Lazy` attribute.
+
+```php
+use Patchlevel\Hydrator\Attribute\Lazy;
+
+#[Lazy]
+readonly class ProfileCreated 
+{
+    public function __construct(
+        public string $id,
+        public string $name,
+    ) {
+    }
+}
+```
+
+> [!NOTE]
+> If you are using a PHP version older than 8.4, the attribute will be ignored.
+
 ### Hooks
 
 Sometimes you need to do something before extract or after hydrate process.
@@ -591,6 +645,10 @@ final class ProfileCreated
     }
 }
 ```
+
+> [!TIP]
+> Cryptography is very expensive in terms of performance, 
+> you can combine it with lazy to improve performance and only decrypt when you actually access the object.
 
 #### Configure Cryptography
 

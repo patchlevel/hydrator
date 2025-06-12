@@ -16,6 +16,7 @@ use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Metadata\ClassNotFound;
 use Patchlevel\Hydrator\Metadata\MetadataFactory;
 use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
+use ReflectionClass;
 use ReflectionParameter;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
@@ -27,6 +28,8 @@ use function array_values;
 use function is_object;
 use function spl_object_id;
 
+use const PHP_VERSION_ID;
+
 final class MetadataHydrator implements Hydrator
 {
     /** @var array<int, class-string> */
@@ -36,6 +39,7 @@ final class MetadataHydrator implements Hydrator
         private readonly MetadataFactory $metadataFactory = new AttributeMetadataFactory(),
         PayloadCryptographer|null $cryptographer = null,
         private EventDispatcherInterface|null $eventDispatcher = null,
+        private readonly bool $defaultLazy = false,
     ) {
         if (!$cryptographer) {
             return;
@@ -66,6 +70,33 @@ final class MetadataHydrator implements Hydrator
             throw new ClassNotSupported($class, $e);
         }
 
+        if (PHP_VERSION_ID < 80400) {
+            return $this->doHydrate($metadata, $data);
+        }
+
+        $lazy = $metadata->lazy() ?? $this->defaultLazy;
+
+        if (!$lazy) {
+            return $this->doHydrate($metadata, $data);
+        }
+
+        return (new ReflectionClass($class))->newLazyProxy(
+            function () use ($metadata, $data): object {
+                return $this->doHydrate($metadata, $data);
+            },
+        );
+    }
+
+    /**
+     * @param ClassMetadata<T>     $metadata
+     * @param array<string, mixed> $data
+     *
+     * @return T
+     *
+     * @template T of object
+     */
+    private function doHydrate(ClassMetadata $metadata, array $data): object
+    {
         if ($this->eventDispatcher) {
             $data = $this->eventDispatcher->dispatch(new PreHydrate($data, $metadata))->data;
         }
@@ -110,7 +141,7 @@ final class MetadataHydrator implements Hydrator
                     $value = $normalizer->denormalize($value);
                 } catch (Throwable $e) {
                     throw new DenormalizationFailure(
-                        $class,
+                        $metadata->className(),
                         $propertyMetadata->propertyName(),
                         $normalizer::class,
                         $e,
@@ -122,7 +153,7 @@ final class MetadataHydrator implements Hydrator
                 $propertyMetadata->setValue($object, $value);
             } catch (TypeError $e) {
                 throw new TypeMismatch(
-                    $class,
+                    $metadata->className(),
                     $propertyMetadata->propertyName(),
                     $e,
                 );
@@ -234,6 +265,7 @@ final class MetadataHydrator implements Hydrator
     public static function create(
         iterable $guessers = [],
         EventDispatcherInterface|null $eventDispatcher = null,
+        bool $defaultLazy = false,
     ): self {
         $guesser = new BuiltInGuesser();
 
@@ -250,6 +282,7 @@ final class MetadataHydrator implements Hydrator
             ),
             null,
             $eventDispatcher,
+            $defaultLazy,
         );
     }
 }
