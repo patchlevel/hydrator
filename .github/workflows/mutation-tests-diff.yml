@@ -27,14 +27,14 @@ jobs:
                   fetch-depth: 0
 
             - name: "Install PHP"
-              uses: "shivammathur/setup-php@2.34.0"
+              uses: "shivammathur/setup-php@2.34.1"
               with:
                   coverage: "pcov"
                   php-version: "${{ matrix.php-version }}"
                   ini-values: memory_limit=-1
                   extensions: pdo_sqlite
 
-            - uses: ramsey/composer-install@3.1.0
+            - uses: ramsey/composer-install@3.1.1
               with:
                 dependency-versions: ${{ matrix.dependencies }}
 
