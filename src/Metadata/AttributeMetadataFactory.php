@@ -16,7 +16,6 @@ use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\Normalizer\ArrayNormalizer;
 use Patchlevel\Hydrator\Normalizer\ArrayShapeNormalizer;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
-use Patchlevel\Hydrator\Normalizer\ReflectionTypeAwareNormalizer;
 use Patchlevel\Hydrator\Normalizer\TypeAwareNormalizer;
 use ReflectionAttribute;
 use ReflectionClass;
@@ -362,10 +361,6 @@ final class AttributeMetadataFactory implements MetadataFactory
 
         if ($normalizer instanceof TypeAwareNormalizer) {
             $normalizer->handleType($type ?? $this->typeResolver->resolve($reflectionProperty));
-        }
-
-        if ($normalizer instanceof ReflectionTypeAwareNormalizer) {
-            $normalizer->handleReflectionType($reflectionProperty->getType());
         }
 
         return $normalizer;

@@ -9,12 +9,9 @@ use Patchlevel\Hydrator\Normalizer\EnumNormalizer;
 use Patchlevel\Hydrator\Normalizer\InvalidArgument;
 use Patchlevel\Hydrator\Normalizer\InvalidType;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\AnotherEnum;
-use Patchlevel\Hydrator\Tests\Unit\Fixture\AutoTypeDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
 use PHPUnit\Framework\TestCase;
-use ReflectionClass;
-use ReflectionType;
-use RuntimeException;
+use Symfony\Component\TypeInfo\Type;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final class EnumNormalizerTest extends TestCase
@@ -65,7 +62,7 @@ final class EnumNormalizerTest extends TestCase
     public function testAutoDetect(): void
     {
         $normalizer = new EnumNormalizer();
-        $normalizer->handleReflectionType($this->reflectionType(AutoTypeDto::class, 'status'));
+        $normalizer->handleType(Type::enum(Status::class));
 
         self::assertEquals(Status::class, $normalizer->getEnum());
     }
@@ -73,7 +70,7 @@ final class EnumNormalizerTest extends TestCase
     public function testAutoDetectOverrideNotPossible(): void
     {
         $normalizer = new EnumNormalizer(AnotherEnum::class);
-        $normalizer->handleReflectionType($this->reflectionType(AutoTypeDto::class, 'status'));
+        $normalizer->handleType(Type::enum(Status::class));
 
         self::assertEquals(AnotherEnum::class, $normalizer->getEnum());
     }
@@ -91,23 +88,8 @@ final class EnumNormalizerTest extends TestCase
         $this->expectException(InvalidType::class);
 
         $normalizer = new EnumNormalizer();
-        $normalizer->handleReflectionType(null);
+        $normalizer->handleType(null);
 
         $normalizer->getEnum();
-    }
-
-    /** @param class-string $class */
-    private function reflectionType(string $class, string $property): ReflectionType
-    {
-        $reflection = new ReflectionClass($class);
-        $property = $reflection->getProperty($property);
-
-        $type = $property->getType();
-
-        if (!$type instanceof ReflectionType) {
-            throw new RuntimeException('no type');
-        }
-
-        return $type;
     }
 }

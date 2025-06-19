@@ -15,9 +15,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
 use PHPUnit\Framework\TestCase;
-use ReflectionClass;
-use ReflectionType;
-use RuntimeException;
+use Symfony\Component\TypeInfo\Type;
 
 use function serialize;
 use function unserialize;
@@ -133,7 +131,7 @@ final class ObjectNormalizerTest extends TestCase
 
         $normalizer = new ObjectNormalizer();
         $normalizer->setHydrator($hydrator);
-        $normalizer->handleReflectionType($this->reflectionType(AutoTypeDto::class, 'profileCreated'));
+        $normalizer->handleType(Type::object(ProfileCreated::class));
 
         self::assertEquals(ProfileCreated::class, $normalizer->getClassName());
     }
@@ -144,7 +142,7 @@ final class ObjectNormalizerTest extends TestCase
 
         $normalizer = new ObjectNormalizer(AutoTypeDto::class);
         $normalizer->setHydrator($hydrator);
-        $normalizer->handleReflectionType($this->reflectionType(AutoTypeDto::class, 'profileCreated'));
+        $normalizer->handleType(Type::object(ProfileCreated::class));
 
         self::assertEquals(AutoTypeDto::class, $normalizer->getClassName());
     }
@@ -169,7 +167,7 @@ final class ObjectNormalizerTest extends TestCase
 
         $normalizer = new ObjectNormalizer();
         $normalizer->setHydrator($hydrator);
-        $normalizer->handleReflectionType(null);
+        $normalizer->handleType(null);
 
         $normalizer->getClassName();
     }
@@ -187,20 +185,5 @@ final class ObjectNormalizerTest extends TestCase
 
         self::assertInstanceOf(ObjectNormalizer::class, $normalizer2);
         self::assertEquals(new ObjectNormalizer(ProfileCreated::class), $normalizer2);
-    }
-
-    /** @param class-string $class */
-    private function reflectionType(string $class, string $property): ReflectionType
-    {
-        $reflection = new ReflectionClass($class);
-        $property = $reflection->getProperty($property);
-
-        $type = $property->getType();
-
-        if (!$type instanceof ReflectionType) {
-            throw new RuntimeException('no type');
-        }
-
-        return $type;
     }
 }
