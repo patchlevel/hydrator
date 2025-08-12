@@ -17,7 +17,8 @@ use function str_starts_with;
  *     property: string,
  *     fieldName: string,
  *     normalizer: Normalizer|null,
- *     isPersonalData: bool,
+ *     subjectIdIdentifier: string|null,
+ *     personalDataIdentifier: string|null,
  *     personalDataFallback: mixed
  * }
  */
@@ -30,7 +31,8 @@ final class PropertyMetadata
         private readonly ReflectionProperty $reflection,
         private readonly string $fieldName,
         private readonly Normalizer|null $normalizer = null,
-        private readonly bool $isPersonalData = false,
+        private readonly string|null $subjectIdIdentifier = null,
+        private readonly string|null $personalDataIdentifier = null,
         private readonly mixed $personalDataFallback = null,
         private readonly mixed $personalDataFallbackCallable = null,
     ) {
@@ -74,9 +76,21 @@ final class PropertyMetadata
         return $this->reflection->getValue($object);
     }
 
+    /** @phpstan-assert-if-true !null $this->personalDataIdentifier() */
     public function isPersonalData(): bool
     {
-        return $this->isPersonalData;
+        return $this->personalDataIdentifier !== null;
+    }
+
+    /** @phpstan-assert-if-true !null $this->subjectIdIdentifier() */
+    public function isSubjectId(): bool
+    {
+        return $this->subjectIdIdentifier !== null;
+    }
+
+    public function subjectIdIdentifier(): string|null
+    {
+        return $this->subjectIdIdentifier;
     }
 
     public function personalDataFallback(): mixed
@@ -94,6 +108,11 @@ final class PropertyMetadata
         return null;
     }
 
+    public function personalDataIdentifier(): string|null
+    {
+        return $this->personalDataIdentifier;
+    }
+
     /** @return serialized */
     public function __serialize(): array
     {
@@ -102,7 +121,8 @@ final class PropertyMetadata
             'property' => $this->reflection->getName(),
             'fieldName' => $this->fieldName,
             'normalizer' => $this->normalizer,
-            'isPersonalData' => $this->isPersonalData,
+            'subjectIdIdentifier' => $this->subjectIdIdentifier,
+            'personalDataIdentifier' => $this->personalDataIdentifier,
             'personalDataFallback' => $this->personalDataFallback,
         ];
     }
@@ -113,7 +133,8 @@ final class PropertyMetadata
         $this->reflection = new ReflectionProperty($data['className'], $data['property']);
         $this->fieldName = $data['fieldName'];
         $this->normalizer = $data['normalizer'];
-        $this->isPersonalData = $data['isPersonalData'];
+        $this->subjectIdIdentifier = $data['subjectIdIdentifier'];
+        $this->personalDataIdentifier = $data['personalDataIdentifier'];
         $this->personalDataFallback = $data['personalDataFallback'];
     }
 }

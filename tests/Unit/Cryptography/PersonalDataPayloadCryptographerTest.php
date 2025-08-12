@@ -295,7 +295,10 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
         $cipherKeyFactory->expects($this->never())->method('__invoke');
 
         $cipher = $this->createMock(Cipher::class);
-        $cipher->expects($this->once())->method('decrypt')->with($cipherKey, 'encrypted')
+        $cipher
+            ->expects($this->once())
+            ->method('decrypt')
+            ->with($cipherKey, 'encrypted')
             ->willReturn('info@patchlevel.de');
 
         $cryptographer = new PersonalDataPayloadCryptographer(

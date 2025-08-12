@@ -9,4 +9,8 @@ use Attribute;
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final class DataSubjectId
 {
+    public function __construct(
+        public readonly string $identifier = 'default',
+    ) {
+    }
 }

@@ -16,6 +16,7 @@ final class PersonalData
     public function __construct(
         public readonly mixed $fallback = null,
         callable|null $fallbackCallable = null,
+        public readonly string $identifier = 'default',
     ) {
         $this->fallbackCallable = $fallbackCallable;
 

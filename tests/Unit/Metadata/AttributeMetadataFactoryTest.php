@@ -13,8 +13,8 @@ use Patchlevel\Hydrator\Attribute\PreExtract;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassNotFound;
 use Patchlevel\Hydrator\Metadata\DuplicatedFieldNameInMetadata;
+use Patchlevel\Hydrator\Metadata\DuplicateSubjectIdIdentifier;
 use Patchlevel\Hydrator\Metadata\MissingDataSubjectId;
-use Patchlevel\Hydrator\Metadata\MultipleDataSubjectId;
 use Patchlevel\Hydrator\Metadata\PropertyMetadataNotFound;
 use Patchlevel\Hydrator\Metadata\SubjectIdAndPersonalDataConflict;
 use Patchlevel\Hydrator\Normalizer\EnumNormalizer;
@@ -29,6 +29,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\IgnoreParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\MissingSubjectIdDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentWithPersonalDataDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentWithPersonalDataWithIdentifierDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
 use PHPUnit\Framework\TestCase;
@@ -342,14 +343,18 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadataFactory = new AttributeMetadataFactory();
         $metadata = $metadataFactory->metadata($event::class);
 
-        self::assertSame('_id', $metadata->dataSubjectIdField());
         self::assertCount(2, $metadata->properties());
 
         self::assertSame(false, $metadata->propertyForField('_id')->isPersonalData());
+        self::assertSame(true, $metadata->propertyForField('_id')->isSubjectId());
+        self::assertSame('default', $metadata->propertyForField('_id')->subjectIdIdentifier());
         self::assertSame(null, $metadata->propertyForField('_id')->personalDataFallback());
+        self::assertSame(null, $metadata->propertyForField('_id')->personalDataIdentifier());
 
         self::assertSame(true, $metadata->propertyForField('_name')->isPersonalData());
+        self::assertSame(false, $metadata->propertyForField('_name')->isSubjectId());
         self::assertSame('fallback', $metadata->propertyForField('_name')->personalDataFallback());
+        self::assertSame('default', $metadata->propertyForField('_name')->personalDataIdentifier());
     }
 
     public function testMissingDataSubjectId(): void
@@ -377,7 +382,7 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadataFactory->metadata($event::class);
     }
 
-    public function testMultipleDataSubjectId(): void
+    public function testMultipleDataSubjectIdWithSameIdentifier(): void
     {
         $event = new class ('id', 'name') {
             public function __construct(
@@ -389,9 +394,84 @@ final class AttributeMetadataFactoryTest extends TestCase
             }
         };
 
-        $this->expectException(MultipleDataSubjectId::class);
+        $this->expectException(DuplicateSubjectIdIdentifier::class);
 
         $metadataFactory = new AttributeMetadataFactory();
+        $metadataFactory->metadata($event::class);
+    }
+
+    public function testPersonalDataWithMultipleDataSubjectIdWithDifferentIdentifiers(): void
+    {
+        $event = new class ('fooId', 'fooName', 'barId', 'barName') {
+            public function __construct(
+                #[DataSubjectId(identifier: 'foo')]
+                #[NormalizedName('_fooId')]
+                public string $fooId,
+                #[PersonalData('fallback', identifier: 'foo')]
+                #[NormalizedName('_fooName')]
+                public string $fooName,
+                #[DataSubjectId(identifier: 'bar')]
+                #[NormalizedName('_barId')]
+                public string $barId,
+                #[PersonalData('fallback', identifier: 'bar')]
+                #[NormalizedName('_barName')]
+                public string $barName,
+            ) {
+            }
+        };
+
+        $metadataFactory = new AttributeMetadataFactory();
+        $metadata = $metadataFactory->metadata($event::class);
+
+        self::assertCount(4, $metadata->properties());
+
+        $fooIdProperty = $metadata->propertyForField('_fooId');
+        self::assertFalse($fooIdProperty->isPersonalData());
+        self::assertSame(null, $fooIdProperty->personalDataFallback());
+        self::assertTrue($fooIdProperty->isSubjectId());
+        self::assertSame('foo', $fooIdProperty->subjectIdIdentifier());
+
+        $fooNameProperty = $metadata->propertyForField('_fooName');
+        self::assertSame(true, $fooNameProperty->isPersonalData());
+        self::assertSame('fallback', $fooNameProperty->personalDataFallback());
+        self::assertSame('foo', $fooNameProperty->personalDataIdentifier());
+
+        $barIdProperty = $metadata->propertyForField('_barId');
+        self::assertFalse($barIdProperty->isPersonalData());
+        self::assertSame(null, $barIdProperty->personalDataFallback());
+        self::assertTrue($barIdProperty->isSubjectId());
+        self::assertSame('bar', $barIdProperty->subjectIdIdentifier());
+
+        $barNameProperty = $metadata->propertyForField('_barName');
+        self::assertSame(true, $barNameProperty->isPersonalData());
+        self::assertSame('fallback', $barNameProperty->personalDataFallback());
+        self::assertSame('bar', $barNameProperty->personalDataIdentifier());
+    }
+
+    public function testDuplicateSubjectIdIdentifiers(): void
+    {
+        $event = new class ('fooId', 'fooName', 'barId', 'barName') {
+            public function __construct(
+                #[DataSubjectId(identifier: 'foo')]
+                #[NormalizedName('_fooId')]
+                public string $fooId,
+                #[PersonalData('fallback', identifier: 'foo')]
+                #[NormalizedName('_fooName')]
+                public string $fooName,
+                #[DataSubjectId(identifier: 'foo')]
+                #[NormalizedName('_barId')]
+                public string $barId,
+                #[PersonalData('fallback', identifier: 'foo')]
+                #[NormalizedName('_barName')]
+                public string $barName,
+            ) {
+            }
+        };
+
+        $metadataFactory = new AttributeMetadataFactory();
+
+        $this->expectException(DuplicateSubjectIdIdentifier::class);
+        $this->expectExceptionMessageMatches('/Duplicate subject id identifier found\. Used foo for .*::fooId and .*::barId\./');
         $metadataFactory->metadata($event::class);
     }
 
@@ -400,13 +480,13 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadataFactory = new AttributeMetadataFactory();
         $metadata = $metadataFactory->metadata(ParentWithPersonalDataDto::class);
 
-        self::assertSame('profileId', $metadata->dataSubjectIdField());
         self::assertCount(2, $metadata->properties());
 
         $idPropertyMetadata = $metadata->propertyForField('profileId');
 
         self::assertSame('profileId', $idPropertyMetadata->propertyName());
         self::assertSame('profileId', $idPropertyMetadata->fieldName());
+        self::assertTrue($idPropertyMetadata->isSubjectId());
         self::assertFalse($idPropertyMetadata->isPersonalData());
         self::assertInstanceOf(IdNormalizer::class, $idPropertyMetadata->normalizer());
 
@@ -414,7 +494,34 @@ final class AttributeMetadataFactoryTest extends TestCase
 
         self::assertSame('email', $emailPropertyMetadata->propertyName());
         self::assertSame('email', $emailPropertyMetadata->fieldName());
+        self::assertFalse($emailPropertyMetadata->isSubjectId());
         self::assertTrue($emailPropertyMetadata->isPersonalData());
+        self::assertInstanceOf(EmailNormalizer::class, $emailPropertyMetadata->normalizer());
+    }
+
+    public function testExtendsWithPersonalDataWithIdentifier(): void
+    {
+        $metadataFactory = new AttributeMetadataFactory();
+        $metadata = $metadataFactory->metadata(ParentWithPersonalDataWithIdentifierDto::class);
+
+        self::assertCount(2, $metadata->properties());
+
+        $idPropertyMetadata = $metadata->propertyForField('profileId');
+
+        self::assertSame('profileId', $idPropertyMetadata->propertyName());
+        self::assertSame('profileId', $idPropertyMetadata->fieldName());
+        self::assertTrue($idPropertyMetadata->isSubjectId());
+        self::assertFalse($idPropertyMetadata->isPersonalData());
+        self::assertInstanceOf(IdNormalizer::class, $idPropertyMetadata->normalizer());
+
+        $emailPropertyMetadata = $metadata->propertyForField('email');
+
+        self::assertSame('email', $emailPropertyMetadata->propertyName());
+        self::assertSame('email', $emailPropertyMetadata->fieldName());
+        self::assertFalse($emailPropertyMetadata->isSubjectId());
+        self::assertTrue($emailPropertyMetadata->isPersonalData());
+        self::assertNull($emailPropertyMetadata->personalDataFallback());
+        self::assertSame('profile', $emailPropertyMetadata->personalDataIdentifier());
         self::assertInstanceOf(EmailNormalizer::class, $emailPropertyMetadata->normalizer());
     }
 

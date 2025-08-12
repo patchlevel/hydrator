@@ -99,7 +99,6 @@ final class AttributeMetadataFactory implements MetadataFactory
         $metadata = new ClassMetadata(
             $reflectionClass,
             $this->getPropertyMetadataList($reflectionClass),
-            $this->getSubjectIdField($reflectionClass),
             $this->getPostHydrateCallbacks($reflectionClass),
             $this->getPreExtractCallbacks($reflectionClass),
             $this->getLazy($reflectionClass),
@@ -156,6 +155,7 @@ final class AttributeMetadataFactory implements MetadataFactory
                 $reflectionProperty,
                 $fieldName,
                 $this->getNormalizer($reflectionProperty),
+                $this->getSubjectId($reflectionProperty),
                 ...$this->getPersonalData($reflectionProperty),
             );
         }
@@ -270,82 +270,73 @@ final class AttributeMetadataFactory implements MetadataFactory
             $properties[$property->fieldName()] = $property;
         }
 
-        $parentDataSubjectIdField = $parent->dataSubjectIdField();
-        $childDataSubjectIdField = $child->dataSubjectIdField();
-
-        if ($parentDataSubjectIdField !== null && $childDataSubjectIdField !== null) {
-            $parentProperty = $parent->propertyForField($parentDataSubjectIdField);
-            $childProperty = $child->propertyForField($childDataSubjectIdField);
-
-            throw new MultipleDataSubjectId($parentProperty->propertyName(), $childProperty->propertyName());
-        }
-
-        return new ClassMetadata(
+        $mergedClassMetadata = new ClassMetadata(
             $parent->reflection(),
             array_values($properties),
-            $parentDataSubjectIdField ?? $childDataSubjectIdField,
             array_merge($parent->postHydrateCallbacks(), $child->postHydrateCallbacks()),
             array_merge($parent->preExtractCallbacks(), $child->preExtractCallbacks()),
             $child->lazy() ?? $parent->lazy(),
         );
+
+        $this->validate($mergedClassMetadata);
+
+        return $mergedClassMetadata;
     }
 
-    /** @param ReflectionClass<object> $reflectionClass */
-    private function getSubjectIdField(ReflectionClass $reflectionClass): string|null
+    private function getSubjectId(ReflectionProperty $reflectionProperty): string|null
     {
-        $property = null;
+        $attributeReflectionList = $reflectionProperty->getAttributes(DataSubjectId::class);
 
-        foreach ($reflectionClass->getProperties() as $reflectionProperty) {
-            $attributeReflectionList = $reflectionProperty->getAttributes(DataSubjectId::class);
-
-            if (!$attributeReflectionList) {
-                continue;
-            }
-
-            if ($property !== null) {
-                throw new MultipleDataSubjectId($property->getName(), $reflectionProperty->getName());
-            }
-
-            $property = $reflectionProperty;
-        }
-
-        if ($property === null) {
+        if (!$attributeReflectionList) {
             return null;
         }
 
-        return $this->getFieldName($property);
+        return $attributeReflectionList[0]->newInstance()->identifier;
     }
 
-    /** @return array{bool, mixed, (callable(string, mixed):mixed)|null} */
+    /** @return array{string|null, mixed, (callable(string, mixed):mixed)|null} */
     private function getPersonalData(ReflectionProperty $reflectionProperty): array
     {
         $attributeReflectionList = $reflectionProperty->getAttributes(PersonalData::class);
 
         if ($attributeReflectionList === []) {
-            return [false, null];
+            return [null, null, null];
         }
 
         $attribute = $attributeReflectionList[0]->newInstance();
 
-        return [true, $attribute->fallback, $attribute->fallbackCallable];
+        return [$attribute->identifier, $attribute->fallback, $attribute->fallbackCallable];
     }
 
     private function validate(ClassMetadata $metadata): void
     {
-        $hasPersonalData = false;
+        $subjectIds = [];
 
         foreach ($metadata->properties() as $property) {
-            if ($property->isPersonalData()) {
-                $hasPersonalData = true;
-            }
-
-            if ($property->isPersonalData() && $metadata->dataSubjectIdField() === $property->fieldName()) {
+            if ($property->isPersonalData() && $property->isSubjectId()) {
                 throw new SubjectIdAndPersonalDataConflict($metadata->className(), $property->propertyName());
             }
-        }
 
-        if ($hasPersonalData && $metadata->dataSubjectIdField() === null) {
-            throw new MissingDataSubjectId($metadata->className());
+            if ($property->isPersonalData() && !$metadata->hasSubjectIdIdentifier($property->personalDataIdentifier())) {
+                throw new MissingDataSubjectId($metadata->className());
+            }
+
+            if (!$property->isSubjectId()) {
+                continue;
+            }
+
+            $subjectIdIdentifier = $property->subjectIdIdentifier();
+
+            if (array_key_exists($subjectIdIdentifier, $subjectIds)) {
+                throw new DuplicateSubjectIdIdentifier(
+                    $metadata->className(),
+                    $subjectIds[$subjectIdIdentifier],
+                    $property->propertyName(),
+                    $subjectIdIdentifier,
+                );
+            }
+
+            $subjectIds[$subjectIdIdentifier] = $property->propertyName();
         }
     }
 

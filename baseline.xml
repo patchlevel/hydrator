@@ -30,12 +30,6 @@
     </MixedAssignment>
   </file>
   <file src="src/Metadata/AttributeMetadataFactory.php">
-    <InvalidReturnStatement>
-      <code><![CDATA[[false, null]]]></code>
-    </InvalidReturnStatement>
-    <InvalidReturnType>
-      <code><![CDATA[array{bool, mixed, (callable(string, mixed):mixed)|null}]]></code>
-    </InvalidReturnType>
     <PossiblyNullReference>
       <code><![CDATA[guess]]></code>
     </PossiblyNullReference>
@@ -81,23 +75,6 @@
     <MixedArgumentTypeCoercion>
       <code><![CDATA[$value]]></code>
     </MixedArgumentTypeCoercion>
-  </file>
-  <file src="tests/Benchmark/tideways.php">
-    <ClassMustBeFinal>
-      <code><![CDATA[CompiledMetadataHydrator]]></code>
-    </ClassMustBeFinal>
-    <MixedMethodCall>
-      <code><![CDATA[normalize]]></code>
-      <code><![CDATA[normalize]]></code>
-    </MixedMethodCall>
-    <MixedReturnTypeCoercion>
-      <code><![CDATA[array]]></code>
-      <code><![CDATA[match (true) {
-            $object instanceof ProfileCreated => $this->extractProfileCreated($object),
-            $object instanceof Skill => $this->extractSkill($object),
-            default => throw new InvalidArgumentException('Unknown object type'),
-        }]]></code>
-    </MixedReturnTypeCoercion>
   </file>
   <file src="tests/Unit/Cryptography/Cipher/OpensslCipherTest.php">
     <MixedAssignment>
