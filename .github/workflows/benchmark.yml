@@ -22,7 +22,7 @@ jobs:
 
     steps:
       - name: "Install PHP"
-        uses: "shivammathur/setup-php@2.34.1"
+        uses: "shivammathur/setup-php@2.35.4"
         with:
           coverage: "pcov"
           php-version: "${{ matrix.php-version }}"
