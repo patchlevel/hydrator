@@ -14,6 +14,7 @@
         <directory name="tests"/>
         <ignoreFiles>
             <directory name="vendor"/>
+            <file name="tests/Benchmark/tideways.php" />
         </ignoreFiles>
     </projectFiles>
 
