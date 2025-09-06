@@ -10,7 +10,7 @@ use Attribute;
 final class DataSubjectId
 {
     public function __construct(
-        public readonly string $identifier = 'default',
+        public readonly string $name = 'default',
     ) {
     }
 }

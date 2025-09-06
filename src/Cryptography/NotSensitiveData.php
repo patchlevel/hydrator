@@ -8,11 +8,11 @@ use RuntimeException;
 
 use function sprintf;
 
-final class NotPersonalData extends RuntimeException
+final class NotSensitiveData extends RuntimeException
 {
     /** @param class-string $class */
     public function __construct(string $class, string $fieldName)
     {
-        parent::__construct(sprintf('Trying to get subject id for %s::%s which is not marked as personal data.', $class, $fieldName));
+        parent::__construct(sprintf('Trying to get subject id for %s::%s which is not marked as sensitive data.', $class, $fieldName));
     }
 }

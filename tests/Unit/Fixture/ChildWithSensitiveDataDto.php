@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Unit\Fixture;
 
-use Patchlevel\Hydrator\Attribute\PersonalData;
+use Patchlevel\Hydrator\Attribute\SensitiveData;
 
-abstract class ChildWithPersonalDataDto
+abstract class ChildWithSensitiveDataDto
 {
     public function __construct(
         #[EmailNormalizer]
-        #[PersonalData]
+        #[SensitiveData]
         private Email $email,
     ) {
     }

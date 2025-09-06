@@ -7,16 +7,16 @@ namespace Patchlevel\Hydrator\Tests\Unit\Metadata;
 use Patchlevel\Hydrator\Attribute\DataSubjectId;
 use Patchlevel\Hydrator\Attribute\Lazy;
 use Patchlevel\Hydrator\Attribute\NormalizedName;
-use Patchlevel\Hydrator\Attribute\PersonalData;
 use Patchlevel\Hydrator\Attribute\PostHydrate;
 use Patchlevel\Hydrator\Attribute\PreExtract;
+use Patchlevel\Hydrator\Attribute\SensitiveData;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassNotFound;
 use Patchlevel\Hydrator\Metadata\DuplicatedFieldNameInMetadata;
 use Patchlevel\Hydrator\Metadata\DuplicateSubjectIdIdentifier;
 use Patchlevel\Hydrator\Metadata\MissingDataSubjectId;
 use Patchlevel\Hydrator\Metadata\PropertyMetadataNotFound;
-use Patchlevel\Hydrator\Metadata\SubjectIdAndPersonalDataConflict;
+use Patchlevel\Hydrator\Metadata\SubjectIdAndSensitiveDataConflict;
 use Patchlevel\Hydrator\Normalizer\EnumNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\BrokenParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DistributionCreated;
@@ -28,8 +28,8 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\IgnoreDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\IgnoreParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\MissingSubjectIdDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDto;
-use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentWithPersonalDataDto;
-use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentWithPersonalDataWithIdentifierDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentWithSensitiveDataDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentWithSensitiveDataWithIdentifierDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
 use PHPUnit\Framework\TestCase;
@@ -326,14 +326,14 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadata->propertyForField('email');
     }
 
-    public function testPersonalData(): void
+    public function testSensitiveData(): void
     {
         $event = new class ('id', 'name') {
             public function __construct(
                 #[DataSubjectId]
                 #[NormalizedName('_id')]
                 public string $id,
-                #[PersonalData('fallback')]
+                #[SensitiveData('fallback')]
                 #[NormalizedName('_name')]
                 public string $name,
             ) {
@@ -345,16 +345,16 @@ final class AttributeMetadataFactoryTest extends TestCase
 
         self::assertCount(2, $metadata->properties());
 
-        self::assertSame(false, $metadata->propertyForField('_id')->isPersonalData());
+        self::assertSame(false, $metadata->propertyForField('_id')->isSensitiveData());
         self::assertSame(true, $metadata->propertyForField('_id')->isSubjectId());
-        self::assertSame('default', $metadata->propertyForField('_id')->subjectIdIdentifier());
-        self::assertSame(null, $metadata->propertyForField('_id')->personalDataFallback());
-        self::assertSame(null, $metadata->propertyForField('_id')->personalDataIdentifier());
+        self::assertSame('default', $metadata->propertyForField('_id')->subjectIdName());
+        self::assertSame(null, $metadata->propertyForField('_id')->sensitiveDataFallback());
+        self::assertSame(null, $metadata->propertyForField('_id')->sensitiveDataSubjectIdName());
 
-        self::assertSame(true, $metadata->propertyForField('_name')->isPersonalData());
+        self::assertSame(true, $metadata->propertyForField('_name')->isSensitiveData());
         self::assertSame(false, $metadata->propertyForField('_name')->isSubjectId());
-        self::assertSame('fallback', $metadata->propertyForField('_name')->personalDataFallback());
-        self::assertSame('default', $metadata->propertyForField('_name')->personalDataIdentifier());
+        self::assertSame('fallback', $metadata->propertyForField('_name')->sensitiveDataFallback());
+        self::assertSame('default', $metadata->propertyForField('_name')->sensitiveDataSubjectIdName());
     }
 
     public function testMissingDataSubjectId(): void
@@ -365,18 +365,18 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadataFactory->metadata(MissingSubjectIdDto::class);
     }
 
-    public function testSubjectIdAndPersonalDataConflict(): void
+    public function testSubjectIdAndSensitiveDataConflict(): void
     {
         $event = new class ('name') {
             public function __construct(
                 #[DataSubjectId]
-                #[PersonalData]
+                #[SensitiveData]
                 public string $name,
             ) {
             }
         };
 
-        $this->expectException(SubjectIdAndPersonalDataConflict::class);
+        $this->expectException(SubjectIdAndSensitiveDataConflict::class);
 
         $metadataFactory = new AttributeMetadataFactory();
         $metadataFactory->metadata($event::class);
@@ -400,20 +400,20 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadataFactory->metadata($event::class);
     }
 
-    public function testPersonalDataWithMultipleDataSubjectIdWithDifferentIdentifiers(): void
+    public function testSensitiveDataWithMultipleDataSubjectIdWithDifferentNames(): void
     {
         $event = new class ('fooId', 'fooName', 'barId', 'barName') {
             public function __construct(
-                #[DataSubjectId(identifier: 'foo')]
+                #[DataSubjectId(name: 'foo')]
                 #[NormalizedName('_fooId')]
                 public string $fooId,
-                #[PersonalData('fallback', identifier: 'foo')]
+                #[SensitiveData('fallback', subjectIdName: 'foo')]
                 #[NormalizedName('_fooName')]
                 public string $fooName,
-                #[DataSubjectId(identifier: 'bar')]
+                #[DataSubjectId(name: 'bar')]
                 #[NormalizedName('_barId')]
                 public string $barId,
-                #[PersonalData('fallback', identifier: 'bar')]
+                #[SensitiveData('fallback', subjectIdName: 'bar')]
                 #[NormalizedName('_barName')]
                 public string $barName,
             ) {
@@ -426,42 +426,42 @@ final class AttributeMetadataFactoryTest extends TestCase
         self::assertCount(4, $metadata->properties());
 
         $fooIdProperty = $metadata->propertyForField('_fooId');
-        self::assertFalse($fooIdProperty->isPersonalData());
-        self::assertSame(null, $fooIdProperty->personalDataFallback());
+        self::assertFalse($fooIdProperty->isSensitiveData());
+        self::assertSame(null, $fooIdProperty->sensitiveDataFallback());
         self::assertTrue($fooIdProperty->isSubjectId());
-        self::assertSame('foo', $fooIdProperty->subjectIdIdentifier());
+        self::assertSame('foo', $fooIdProperty->subjectIdName());
 
         $fooNameProperty = $metadata->propertyForField('_fooName');
-        self::assertSame(true, $fooNameProperty->isPersonalData());
-        self::assertSame('fallback', $fooNameProperty->personalDataFallback());
-        self::assertSame('foo', $fooNameProperty->personalDataIdentifier());
+        self::assertSame(true, $fooNameProperty->isSensitiveData());
+        self::assertSame('fallback', $fooNameProperty->sensitiveDataFallback());
+        self::assertSame('foo', $fooNameProperty->sensitiveDataSubjectIdName());
 
         $barIdProperty = $metadata->propertyForField('_barId');
-        self::assertFalse($barIdProperty->isPersonalData());
-        self::assertSame(null, $barIdProperty->personalDataFallback());
+        self::assertFalse($barIdProperty->isSensitiveData());
+        self::assertSame(null, $barIdProperty->sensitiveDataFallback());
         self::assertTrue($barIdProperty->isSubjectId());
-        self::assertSame('bar', $barIdProperty->subjectIdIdentifier());
+        self::assertSame('bar', $barIdProperty->subjectIdName());
 
         $barNameProperty = $metadata->propertyForField('_barName');
-        self::assertSame(true, $barNameProperty->isPersonalData());
-        self::assertSame('fallback', $barNameProperty->personalDataFallback());
-        self::assertSame('bar', $barNameProperty->personalDataIdentifier());
+        self::assertSame(true, $barNameProperty->isSensitiveData());
+        self::assertSame('fallback', $barNameProperty->sensitiveDataFallback());
+        self::assertSame('bar', $barNameProperty->sensitiveDataSubjectIdName());
     }
 
     public function testDuplicateSubjectIdIdentifiers(): void
     {
         $event = new class ('fooId', 'fooName', 'barId', 'barName') {
             public function __construct(
-                #[DataSubjectId(identifier: 'foo')]
+                #[DataSubjectId(name: 'foo')]
                 #[NormalizedName('_fooId')]
                 public string $fooId,
-                #[PersonalData('fallback', identifier: 'foo')]
+                #[SensitiveData('fallback', subjectIdName: 'foo')]
                 #[NormalizedName('_fooName')]
                 public string $fooName,
-                #[DataSubjectId(identifier: 'foo')]
+                #[DataSubjectId(name: 'foo')]
                 #[NormalizedName('_barId')]
                 public string $barId,
-                #[PersonalData('fallback', identifier: 'foo')]
+                #[SensitiveData('fallback', subjectIdName: 'foo')]
                 #[NormalizedName('_barName')]
                 public string $barName,
             ) {
@@ -475,10 +475,10 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadataFactory->metadata($event::class);
     }
 
-    public function testExtendsWithPersonalData(): void
+    public function testExtendsWithSensitiveData(): void
     {
         $metadataFactory = new AttributeMetadataFactory();
-        $metadata = $metadataFactory->metadata(ParentWithPersonalDataDto::class);
+        $metadata = $metadataFactory->metadata(ParentWithSensitiveDataDto::class);
 
         self::assertCount(2, $metadata->properties());
 
@@ -487,7 +487,7 @@ final class AttributeMetadataFactoryTest extends TestCase
         self::assertSame('profileId', $idPropertyMetadata->propertyName());
         self::assertSame('profileId', $idPropertyMetadata->fieldName());
         self::assertTrue($idPropertyMetadata->isSubjectId());
-        self::assertFalse($idPropertyMetadata->isPersonalData());
+        self::assertFalse($idPropertyMetadata->isSensitiveData());
         self::assertInstanceOf(IdNormalizer::class, $idPropertyMetadata->normalizer());
 
         $emailPropertyMetadata = $metadata->propertyForField('email');
@@ -495,14 +495,14 @@ final class AttributeMetadataFactoryTest extends TestCase
         self::assertSame('email', $emailPropertyMetadata->propertyName());
         self::assertSame('email', $emailPropertyMetadata->fieldName());
         self::assertFalse($emailPropertyMetadata->isSubjectId());
-        self::assertTrue($emailPropertyMetadata->isPersonalData());
+        self::assertTrue($emailPropertyMetadata->isSensitiveData());
         self::assertInstanceOf(EmailNormalizer::class, $emailPropertyMetadata->normalizer());
     }
 
-    public function testExtendsWithPersonalDataWithIdentifier(): void
+    public function testExtendsWithSensitiveDataWithName(): void
     {
         $metadataFactory = new AttributeMetadataFactory();
-        $metadata = $metadataFactory->metadata(ParentWithPersonalDataWithIdentifierDto::class);
+        $metadata = $metadataFactory->metadata(ParentWithSensitiveDataWithIdentifierDto::class);
 
         self::assertCount(2, $metadata->properties());
 
@@ -511,7 +511,7 @@ final class AttributeMetadataFactoryTest extends TestCase
         self::assertSame('profileId', $idPropertyMetadata->propertyName());
         self::assertSame('profileId', $idPropertyMetadata->fieldName());
         self::assertTrue($idPropertyMetadata->isSubjectId());
-        self::assertFalse($idPropertyMetadata->isPersonalData());
+        self::assertFalse($idPropertyMetadata->isSensitiveData());
         self::assertInstanceOf(IdNormalizer::class, $idPropertyMetadata->normalizer());
 
         $emailPropertyMetadata = $metadata->propertyForField('email');
@@ -519,9 +519,9 @@ final class AttributeMetadataFactoryTest extends TestCase
         self::assertSame('email', $emailPropertyMetadata->propertyName());
         self::assertSame('email', $emailPropertyMetadata->fieldName());
         self::assertFalse($emailPropertyMetadata->isSubjectId());
-        self::assertTrue($emailPropertyMetadata->isPersonalData());
-        self::assertNull($emailPropertyMetadata->personalDataFallback());
-        self::assertSame('profile', $emailPropertyMetadata->personalDataIdentifier());
+        self::assertTrue($emailPropertyMetadata->isSensitiveData());
+        self::assertNull($emailPropertyMetadata->sensitiveDataFallback());
+        self::assertSame('profile', $emailPropertyMetadata->sensitiveDataSubjectIdName());
         self::assertInstanceOf(EmailNormalizer::class, $emailPropertyMetadata->normalizer());
     }
 

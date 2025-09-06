@@ -8,9 +8,9 @@ use Patchlevel\Hydrator\Attribute\DataSubjectId;
 use Patchlevel\Hydrator\Attribute\Ignore;
 use Patchlevel\Hydrator\Attribute\Lazy;
 use Patchlevel\Hydrator\Attribute\NormalizedName;
-use Patchlevel\Hydrator\Attribute\PersonalData;
 use Patchlevel\Hydrator\Attribute\PostHydrate;
 use Patchlevel\Hydrator\Attribute\PreExtract;
+use Patchlevel\Hydrator\Attribute\SensitiveData;
 use Patchlevel\Hydrator\Guesser\BuiltInGuesser;
 use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\Normalizer\ArrayNormalizer;
@@ -156,7 +156,7 @@ final class AttributeMetadataFactory implements MetadataFactory
                 $fieldName,
                 $this->getNormalizer($reflectionProperty),
                 $this->getSubjectId($reflectionProperty),
-                ...$this->getPersonalData($reflectionProperty),
+                ...$this->getSensitiveData($reflectionProperty),
             );
         }
 
@@ -291,13 +291,13 @@ final class AttributeMetadataFactory implements MetadataFactory
             return null;
         }
 
-        return $attributeReflectionList[0]->newInstance()->identifier;
+        return $attributeReflectionList[0]->newInstance()->name;
     }
 
     /** @return array{string|null, mixed, (callable(string, mixed):mixed)|null} */
-    private function getPersonalData(ReflectionProperty $reflectionProperty): array
+    private function getSensitiveData(ReflectionProperty $reflectionProperty): array
     {
-        $attributeReflectionList = $reflectionProperty->getAttributes(PersonalData::class);
+        $attributeReflectionList = $reflectionProperty->getAttributes(SensitiveData::class);
 
         if ($attributeReflectionList === []) {
             return [null, null, null];
@@ -305,7 +305,7 @@ final class AttributeMetadataFactory implements MetadataFactory
 
         $attribute = $attributeReflectionList[0]->newInstance();
 
-        return [$attribute->identifier, $attribute->fallback, $attribute->fallbackCallable];
+        return [$attribute->subjectIdName, $attribute->fallback, $attribute->fallbackCallable];
     }
 
     private function validate(ClassMetadata $metadata): void
@@ -313,11 +313,11 @@ final class AttributeMetadataFactory implements MetadataFactory
         $subjectIds = [];
 
         foreach ($metadata->properties() as $property) {
-            if ($property->isPersonalData() && $property->isSubjectId()) {
-                throw new SubjectIdAndPersonalDataConflict($metadata->className(), $property->propertyName());
+            if ($property->isSensitiveData() && $property->isSubjectId()) {
+                throw new SubjectIdAndSensitiveDataConflict($metadata->className(), $property->propertyName());
             }
 
-            if ($property->isPersonalData() && !$metadata->hasSubjectIdIdentifier($property->personalDataIdentifier())) {
+            if ($property->isSensitiveData() && !$metadata->hasSubjectIdIdentifier($property->sensitiveDataSubjectIdName())) {
                 throw new MissingDataSubjectId($metadata->className());
             }
 
@@ -325,7 +325,7 @@ final class AttributeMetadataFactory implements MetadataFactory
                 continue;
             }
 
-            $subjectIdIdentifier = $property->subjectIdIdentifier();
+            $subjectIdIdentifier = $property->subjectIdName();
 
             if (array_key_exists($subjectIdIdentifier, $subjectIds)) {
                 throw new DuplicateSubjectIdIdentifier(

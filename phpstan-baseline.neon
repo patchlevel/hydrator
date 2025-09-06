@@ -16,7 +16,7 @@ parameters:
 			message: '#^Parameter \#2 \$data of method Patchlevel\\Hydrator\\Cryptography\\Cipher\\Cipher\:\:decrypt\(\) expects string, mixed given\.$#'
 			identifier: argument.type
 			count: 1
-			path: src/Cryptography/PersonalDataPayloadCryptographer.php
+			path: src/Cryptography/SensitiveDataPayloadCryptographer.php
 
 		-
 			message: '#^Method Patchlevel\\Hydrator\\Guesser\\BuiltInGuesser\:\:guess\(\) has parameter \$type with generic class Symfony\\Component\\TypeInfo\\Type\\ObjectType but does not specify its types\: T$#'
@@ -51,12 +51,6 @@ parameters:
 		-
 			message: '#^Dead catch \- ReflectionException is never thrown in the try block\.$#'
 			identifier: catch.neverThrown
-			count: 1
-			path: src/Metadata/AttributeMetadataFactory.php
-
-		-
-			message: '#^Method Patchlevel\\Hydrator\\Metadata\\AttributeMetadataFactory\:\:getPersonalData\(\) should return array\{bool, mixed, \(callable\(string, mixed\)\: mixed\)\|null\} but returns array\{false, null\}\.$#'
-			identifier: return.type
 			count: 1
 			path: src/Metadata/AttributeMetadataFactory.php
 
