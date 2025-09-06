@@ -18,7 +18,7 @@ use function array_key_exists;
 use function is_int;
 use function is_string;
 
-final class PersonalDataPayloadCryptographer implements PayloadCryptographer
+final class SensitiveDataPayloadCryptographer implements PayloadCryptographer
 {
     public function __construct(
         private readonly CipherKeyStore $cipherKeyStore,
@@ -36,22 +36,18 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
      */
     public function encrypt(ClassMetadata $metadata, array $data): array
     {
-        $subjectId = $this->subjectId($metadata, $data);
-
-        if ($subjectId === null) {
-            return $data;
-        }
-
-        try {
-            $cipherKey = $this->cipherKeyStore->get($subjectId);
-        } catch (CipherKeyNotExists) {
-            $cipherKey = ($this->cipherKeyFactory)();
-            $this->cipherKeyStore->store($subjectId, $cipherKey);
-        }
-
         foreach ($metadata->properties() as $propertyMetadata) {
-            if (!$propertyMetadata->isPersonalData()) {
+            if (!$propertyMetadata->isSensitiveData()) {
                 continue;
+            }
+
+            $subjectId = $this->subjectId($propertyMetadata, $metadata, $data);
+
+            try {
+                $cipherKey = $this->cipherKeyStore->get($subjectId);
+            } catch (CipherKeyNotExists) {
+                $cipherKey = ($this->cipherKeyFactory)();
+                $this->cipherKeyStore->store($subjectId, $cipherKey);
             }
 
             $targetFieldName = $this->useEncryptedFieldName
@@ -80,21 +76,17 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
      */
     public function decrypt(ClassMetadata $metadata, array $data): array
     {
-        $subjectId = $this->subjectId($metadata, $data);
-
-        if ($subjectId === null) {
-            return $data;
-        }
-
-        try {
-            $cipherKey = $this->cipherKeyStore->get($subjectId);
-        } catch (CipherKeyNotExists) {
-            $cipherKey = null;
-        }
-
         foreach ($metadata->properties() as $propertyMetadata) {
-            if (!$propertyMetadata->isPersonalData()) {
+            if (!$propertyMetadata->isSensitiveData()) {
                 continue;
+            }
+
+            $subjectId = $this->subjectId($propertyMetadata, $metadata, $data);
+
+            try {
+                $cipherKey = $this->cipherKeyStore->get($subjectId);
+            } catch (CipherKeyNotExists) {
+                $cipherKey = null;
             }
 
             if ($this->useEncryptedFieldName && array_key_exists($propertyMetadata->encryptedFieldName(), $data)) {
@@ -125,13 +117,19 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
     }
 
     /** @param array<string, mixed> $data */
-    private function subjectId(ClassMetadata $metadata, array $data): string|null
+    private function subjectId(PropertyMetadata $propertyMetadata, ClassMetadata $metadata, array $data): string
     {
-        $fieldName = $metadata->dataSubjectIdField();
-
-        if ($fieldName === null) {
-            return null;
+        if (!$propertyMetadata->isSensitiveData()) {
+            throw new NotSensitiveData($metadata->className(), $propertyMetadata->propertyName());
         }
+
+        $sensitiveDataSubjectIdName = $propertyMetadata->sensitiveDataSubjectIdName();
+
+        if (!$metadata->hasSubjectIdIdentifier($sensitiveDataSubjectIdName)) {
+            throw new MissingSubjectId($metadata->className(), $propertyMetadata->propertyName());
+        }
+
+        $fieldName = $metadata->getSubjectIdFieldName($sensitiveDataSubjectIdName);
 
         if (!array_key_exists($fieldName, $data)) {
             throw new MissingSubjectId($metadata->className(), $fieldName);
@@ -152,10 +150,10 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
 
     private function fallback(PropertyMetadata $propertyMetadata, string $subjectId, mixed $rawData): mixed
     {
-        $callback = $propertyMetadata->personalDataFallbackCallback();
+        $callback = $propertyMetadata->sensitiveDataFallbackCallable();
 
         if (!$callback) {
-            return $propertyMetadata->personalDataFallback();
+            return $propertyMetadata->sensitiveDataFallback();
         }
 
         return $callback($subjectId, $rawData);

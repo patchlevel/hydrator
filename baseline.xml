@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <files psalm-version="6.12.0@cf420941d061a57050b6c468ef2c778faf40aee2">
-  <file src="src/Attribute/PersonalData.php">
+  <file src="src/Attribute/SensitiveData.php">
     <MixedPropertyTypeCoercion>
       <code><![CDATA[$fallbackCallable]]></code>
     </MixedPropertyTypeCoercion>
@@ -17,7 +17,7 @@
       <code><![CDATA[list<string>]]></code>
     </MoreSpecificReturnType>
   </file>
-  <file src="src/Cryptography/PersonalDataPayloadCryptographer.php">
+  <file src="src/Cryptography/SensitiveDataPayloadCryptographer.php">
     <MixedArgument>
       <code><![CDATA[$rawData]]></code>
     </MixedArgument>
@@ -30,12 +30,6 @@
     </MixedAssignment>
   </file>
   <file src="src/Metadata/AttributeMetadataFactory.php">
-    <InvalidReturnStatement>
-      <code><![CDATA[[false, null]]]></code>
-    </InvalidReturnStatement>
-    <InvalidReturnType>
-      <code><![CDATA[array{bool, mixed, (callable(string, mixed):mixed)|null}]]></code>
-    </InvalidReturnType>
     <PossiblyNullReference>
       <code><![CDATA[guess]]></code>
     </PossiblyNullReference>
@@ -47,7 +41,7 @@
   </file>
   <file src="src/Metadata/PropertyMetadata.php">
     <RiskyTruthyFalsyComparison>
-      <code><![CDATA[$this->personalDataFallbackCallable]]></code>
+      <code><![CDATA[$this->sensitiveDataFallbackCallable]]></code>
     </RiskyTruthyFalsyComparison>
   </file>
   <file src="src/MetadataHydrator.php">
@@ -81,23 +75,6 @@
     <MixedArgumentTypeCoercion>
       <code><![CDATA[$value]]></code>
     </MixedArgumentTypeCoercion>
-  </file>
-  <file src="tests/Benchmark/tideways.php">
-    <ClassMustBeFinal>
-      <code><![CDATA[CompiledMetadataHydrator]]></code>
-    </ClassMustBeFinal>
-    <MixedMethodCall>
-      <code><![CDATA[normalize]]></code>
-      <code><![CDATA[normalize]]></code>
-    </MixedMethodCall>
-    <MixedReturnTypeCoercion>
-      <code><![CDATA[array]]></code>
-      <code><![CDATA[match (true) {
-            $object instanceof ProfileCreated => $this->extractProfileCreated($object),
-            $object instanceof Skill => $this->extractSkill($object),
-            default => throw new InvalidArgumentException('Unknown object type'),
-        }]]></code>
-    </MixedReturnTypeCoercion>
   </file>
   <file src="tests/Unit/Cryptography/Cipher/OpensslCipherTest.php">
     <MixedAssignment>

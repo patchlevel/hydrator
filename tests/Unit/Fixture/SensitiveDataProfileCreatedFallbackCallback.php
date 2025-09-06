@@ -6,9 +6,9 @@ namespace Patchlevel\Hydrator\Tests\Unit\Fixture;
 
 use Patchlevel\Hydrator\Attribute\DataSubjectId;
 use Patchlevel\Hydrator\Attribute\NormalizedName;
-use Patchlevel\Hydrator\Attribute\PersonalData;
+use Patchlevel\Hydrator\Attribute\SensitiveData;
 
-final class PersonalDataProfileCreatedFallbackCallback
+final class SensitiveDataProfileCreatedFallbackCallback
 {
     public function __construct(
         #[IdNormalizer]
@@ -16,7 +16,7 @@ final class PersonalDataProfileCreatedFallbackCallback
         #[DataSubjectId]
         public ProfileId $profileId,
         #[EmailNormalizer]
-        #[PersonalData(fallbackCallable: [self::class, 'emailFallback'])]
+        #[SensitiveData(fallbackCallable: [self::class, 'emailFallback'])]
         public Email $email,
     ) {
     }

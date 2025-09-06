@@ -6,11 +6,11 @@ namespace Patchlevel\Hydrator\Tests\Unit\Fixture;
 
 use Patchlevel\Hydrator\Attribute\DataSubjectId;
 
-final class ParentWithPersonalDataDto extends ChildWithPersonalDataDto
+final class ParentWithSensitiveDataWithIdentifierDto extends ChildWithSensitiveDataWithIdentifierDto
 {
     public function __construct(
         #[IdNormalizer]
-        #[DataSubjectId]
+        #[DataSubjectId(name: 'profile')]
         public ProfileId $profileId,
         Email $email,
     ) {

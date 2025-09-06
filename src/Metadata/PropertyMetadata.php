@@ -17,22 +17,24 @@ use function str_starts_with;
  *     property: string,
  *     fieldName: string,
  *     normalizer: Normalizer|null,
- *     isPersonalData: bool,
- *     personalDataFallback: mixed
+ *     subjectIdName: string|null,
+ *     sensitiveDataSubjectIdName: string|null,
+ *     sensitiveDataFallback: mixed
  * }
  */
 final class PropertyMetadata
 {
     private const ENCRYPTED_PREFIX = '!';
 
-    /** @param (callable(string, mixed):mixed)|null $personalDataFallbackCallable */
+    /** @param (callable(string, mixed):mixed)|null $sensitiveDataFallbackCallable */
     public function __construct(
         private readonly ReflectionProperty $reflection,
         private readonly string $fieldName,
         private readonly Normalizer|null $normalizer = null,
-        private readonly bool $isPersonalData = false,
-        private readonly mixed $personalDataFallback = null,
-        private readonly mixed $personalDataFallbackCallable = null,
+        private readonly string|null $subjectIdName = null,
+        private readonly string|null $sensitiveDataSubjectIdName = null,
+        private readonly mixed $sensitiveDataFallback = null,
+        private readonly mixed $sensitiveDataFallbackCallable = null,
     ) {
         if (str_starts_with($fieldName, self::ENCRYPTED_PREFIX)) {
             throw new InvalidArgumentException('fieldName must not start with !');
@@ -74,24 +76,41 @@ final class PropertyMetadata
         return $this->reflection->getValue($object);
     }
 
-    public function isPersonalData(): bool
+    /** @phpstan-assert-if-true !null $this->sensitiveDataSubjectIdName() */
+    public function isSensitiveData(): bool
     {
-        return $this->isPersonalData;
+        return $this->sensitiveDataSubjectIdName !== null;
     }
 
-    public function personalDataFallback(): mixed
+    /** @phpstan-assert-if-true !null $this->subjectIdName() */
+    public function isSubjectId(): bool
     {
-        return $this->personalDataFallback;
+        return $this->subjectIdName !== null;
+    }
+
+    public function subjectIdName(): string|null
+    {
+        return $this->subjectIdName;
+    }
+
+    public function sensitiveDataFallback(): mixed
+    {
+        return $this->sensitiveDataFallback;
     }
 
     /** @return (Closure(string, mixed):mixed)|null */
-    public function personalDataFallbackCallback(): Closure|null
+    public function sensitiveDataFallbackCallable(): Closure|null
     {
-        if ($this->personalDataFallbackCallable) {
-            return ($this->personalDataFallbackCallable)(...);
+        if ($this->sensitiveDataFallbackCallable) {
+            return ($this->sensitiveDataFallbackCallable)(...);
         }
 
         return null;
+    }
+
+    public function sensitiveDataSubjectIdName(): string|null
+    {
+        return $this->sensitiveDataSubjectIdName;
     }
 
     /** @return serialized */
@@ -102,8 +121,9 @@ final class PropertyMetadata
             'property' => $this->reflection->getName(),
             'fieldName' => $this->fieldName,
             'normalizer' => $this->normalizer,
-            'isPersonalData' => $this->isPersonalData,
-            'personalDataFallback' => $this->personalDataFallback,
+            'subjectIdName' => $this->subjectIdName,
+            'sensitiveDataSubjectIdName' => $this->sensitiveDataSubjectIdName,
+            'sensitiveDataFallback' => $this->sensitiveDataFallback,
         ];
     }
 
@@ -113,7 +133,8 @@ final class PropertyMetadata
         $this->reflection = new ReflectionProperty($data['className'], $data['property']);
         $this->fieldName = $data['fieldName'];
         $this->normalizer = $data['normalizer'];
-        $this->isPersonalData = $data['isPersonalData'];
-        $this->personalDataFallback = $data['personalDataFallback'];
+        $this->subjectIdName = $data['subjectIdName'];
+        $this->sensitiveDataSubjectIdName = $data['sensitiveDataSubjectIdName'];
+        $this->sensitiveDataFallback = $data['sensitiveDataFallback'];
     }
 }

@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Metadata;
 
 use ReflectionClass;
+use RuntimeException;
 
 /**
  * @psalm-type serialized array{
  *     className: class-string,
  *     properties: list<PropertyMetadata>,
- *     dataSubjectIdField: string|null,
  *     postHydrateCallbacks: list<CallbackMetadata>,
  *     preExtractCallbacks: list<CallbackMetadata>,
  *     lazy: bool|null,
@@ -28,7 +28,6 @@ final class ClassMetadata
     public function __construct(
         private readonly ReflectionClass $reflection,
         private readonly array $properties = [],
-        private readonly string|null $dataSubjectIdField = null,
         private readonly array $postHydrateCallbacks = [],
         private readonly array $preExtractCallbacks = [],
         private readonly bool|null $lazy = null,
@@ -70,11 +69,6 @@ final class ClassMetadata
         return $this->lazy;
     }
 
-    public function dataSubjectIdField(): string|null
-    {
-        return $this->dataSubjectIdField;
-    }
-
     public function propertyForField(string $name): PropertyMetadata
     {
         foreach ($this->properties as $property) {
@@ -84,6 +78,28 @@ final class ClassMetadata
         }
 
         throw PropertyMetadataNotFound::withName($name);
+    }
+
+    public function hasSubjectIdIdentifier(string $subjectIdIdentifier): bool
+    {
+        foreach ($this->properties as $property) {
+            if ($property->subjectIdName() === $subjectIdIdentifier) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function getSubjectIdFieldName(string $subjectIdIdentifier): string
+    {
+        foreach ($this->properties as $property) {
+            if ($property->subjectIdName() === $subjectIdIdentifier) {
+                return $property->fieldName();
+            }
+        }
+
+        throw new RuntimeException('No subject id');
     }
 
     /** @return T */
@@ -98,7 +114,6 @@ final class ClassMetadata
         return [
             'className' => $this->reflection->getName(),
             'properties' => $this->properties,
-            'dataSubjectIdField' => $this->dataSubjectIdField,
             'postHydrateCallbacks' => $this->postHydrateCallbacks,
             'preExtractCallbacks' => $this->preExtractCallbacks,
             'lazy' => $this->lazy,
@@ -110,7 +125,6 @@ final class ClassMetadata
     {
         $this->reflection = new ReflectionClass($data['className']);
         $this->properties = $data['properties'];
-        $this->dataSubjectIdField = $data['dataSubjectIdField'];
         $this->postHydrateCallbacks = $data['postHydrateCallbacks'];
         $this->preExtractCallbacks = $data['preExtractCallbacks'];
         $this->lazy = $data['lazy'];
