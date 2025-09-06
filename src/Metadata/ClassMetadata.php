@@ -83,7 +83,7 @@ final class ClassMetadata
     public function hasSubjectIdIdentifier(string $subjectIdIdentifier): bool
     {
         foreach ($this->properties as $property) {
-            if ($property->subjectIdIdentifier() === $subjectIdIdentifier) {
+            if ($property->subjectIdName() === $subjectIdIdentifier) {
                 return true;
             }
         }
@@ -94,7 +94,7 @@ final class ClassMetadata
     public function getSubjectIdFieldName(string $subjectIdIdentifier): string
     {
         foreach ($this->properties as $property) {
-            if ($property->subjectIdIdentifier() === $subjectIdIdentifier) {
+            if ($property->subjectIdName() === $subjectIdIdentifier) {
                 return $property->fieldName();
             }
         }

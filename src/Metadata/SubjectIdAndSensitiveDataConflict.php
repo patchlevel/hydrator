@@ -8,14 +8,14 @@ use RuntimeException;
 
 use function sprintf;
 
-final class SubjectIdAndPersonalDataConflict extends RuntimeException implements MetadataException
+final class SubjectIdAndSensitiveDataConflict extends RuntimeException implements MetadataException
 {
     /** @param class-string $class */
     public function __construct(string $class, string $property)
     {
         parent::__construct(
             sprintf(
-                'Personal data cannot be used as a subject id. Fix subject id for %s::%s.',
+                'Sensitive data cannot be used as a subject id. Fix subject id for %s::%s.',
                 $class,
                 $property,
             ),

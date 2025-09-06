@@ -6,7 +6,7 @@ namespace Patchlevel\Hydrator\Tests\Unit\Fixture;
 
 use Patchlevel\Hydrator\Attribute\DataSubjectId;
 
-final class ParentWithPersonalDataDto extends ChildWithPersonalDataDto
+final class ParentWithSensitiveDataDto extends ChildWithSensitiveDataDto
 {
     public function __construct(
         #[IdNormalizer]

@@ -18,7 +18,7 @@ use function array_key_exists;
 use function is_int;
 use function is_string;
 
-final class PersonalDataPayloadCryptographer implements PayloadCryptographer
+final class SensitiveDataPayloadCryptographer implements PayloadCryptographer
 {
     public function __construct(
         private readonly CipherKeyStore $cipherKeyStore,
@@ -37,7 +37,7 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
     public function encrypt(ClassMetadata $metadata, array $data): array
     {
         foreach ($metadata->properties() as $propertyMetadata) {
-            if (!$propertyMetadata->isPersonalData()) {
+            if (!$propertyMetadata->isSensitiveData()) {
                 continue;
             }
 
@@ -77,7 +77,7 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
     public function decrypt(ClassMetadata $metadata, array $data): array
     {
         foreach ($metadata->properties() as $propertyMetadata) {
-            if (!$propertyMetadata->isPersonalData()) {
+            if (!$propertyMetadata->isSensitiveData()) {
                 continue;
             }
 
@@ -119,17 +119,17 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
     /** @param array<string, mixed> $data */
     private function subjectId(PropertyMetadata $propertyMetadata, ClassMetadata $metadata, array $data): string
     {
-        if (!$propertyMetadata->isPersonalData()) {
-            throw new NotPersonalData($metadata->className(), $propertyMetadata->propertyName());
+        if (!$propertyMetadata->isSensitiveData()) {
+            throw new NotSensitiveData($metadata->className(), $propertyMetadata->propertyName());
         }
 
-        $personalDataIdentifier = $propertyMetadata->personalDataIdentifier();
+        $sensitiveDataSubjectIdName = $propertyMetadata->sensitiveDataSubjectIdName();
 
-        if (!$metadata->hasSubjectIdIdentifier($personalDataIdentifier)) {
+        if (!$metadata->hasSubjectIdIdentifier($sensitiveDataSubjectIdName)) {
             throw new MissingSubjectId($metadata->className(), $propertyMetadata->propertyName());
         }
 
-        $fieldName = $metadata->getSubjectIdFieldName($personalDataIdentifier);
+        $fieldName = $metadata->getSubjectIdFieldName($sensitiveDataSubjectIdName);
 
         if (!array_key_exists($fieldName, $data)) {
             throw new MissingSubjectId($metadata->className(), $fieldName);
@@ -150,10 +150,10 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
 
     private function fallback(PropertyMetadata $propertyMetadata, string $subjectId, mixed $rawData): mixed
     {
-        $callback = $propertyMetadata->personalDataFallbackCallback();
+        $callback = $propertyMetadata->sensitiveDataFallbackCallable();
 
         if (!$callback) {
-            return $propertyMetadata->personalDataFallback();
+            return $propertyMetadata->sensitiveDataFallback();
         }
 
         return $callback($subjectId, $rawData);
