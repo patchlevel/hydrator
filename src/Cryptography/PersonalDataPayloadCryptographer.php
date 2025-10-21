@@ -13,6 +13,7 @@ use Patchlevel\Hydrator\Cryptography\Store\CipherKeyNotExists;
 use Patchlevel\Hydrator\Cryptography\Store\CipherKeyStore;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Metadata\PropertyMetadata;
+use Stringable;
 
 use function array_key_exists;
 use function is_int;
@@ -141,6 +142,10 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
 
         if (is_int($subjectId)) {
             $subjectId = (string)$subjectId;
+        }
+
+        if ($subjectId instanceof Stringable) {
+            $subjectId = $subjectId->__toString();
         }
 
         if (!is_string($subjectId)) {
