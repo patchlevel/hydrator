@@ -6,14 +6,13 @@ namespace Patchlevel\Hydrator\Event;
 
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 
-final class PreHydrate
+final class PreExtract
 {
     /**
-     * @param array<string, mixed> $data
      * @param array<string, mixed> $context
      */
     public function __construct(
-        public array $data,
+        public object $object,
         public readonly ClassMetadata $metadata,
         public array $context = [],
     ) {

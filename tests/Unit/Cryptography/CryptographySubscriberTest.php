@@ -7,6 +7,7 @@ namespace Patchlevel\Hydrator\Tests\Unit\Cryptography;
 use Patchlevel\Hydrator\Cryptography\CryptographySubscriber;
 use Patchlevel\Hydrator\Cryptography\PayloadCryptographer;
 use Patchlevel\Hydrator\Event\PostExtract;
+use Patchlevel\Hydrator\Event\PreExtract;
 use Patchlevel\Hydrator\Event\PreHydrate;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -21,6 +22,7 @@ final class CryptographySubscriberTest extends TestCase
     {
         self::assertEquals([
             PreHydrate::class => 'preHydrate',
+            PreExtract::class => 'preExtract',
             PostExtract::class => 'postExtract',
         ], CryptographySubscriber::getSubscribedEvents());
     }

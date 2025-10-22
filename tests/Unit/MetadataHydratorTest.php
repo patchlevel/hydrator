@@ -12,6 +12,7 @@ use Patchlevel\Hydrator\ClassNotSupported;
 use Patchlevel\Hydrator\Cryptography\PayloadCryptographer;
 use Patchlevel\Hydrator\DenormalizationFailure;
 use Patchlevel\Hydrator\Event\PostExtract;
+use Patchlevel\Hydrator\Event\PreExtract;
 use Patchlevel\Hydrator\Event\PreHydrate;
 use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
@@ -19,6 +20,7 @@ use Patchlevel\Hydrator\MetadataHydrator;
 use Patchlevel\Hydrator\NormalizationFailure;
 use Patchlevel\Hydrator\NormalizationMissing;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
+use Patchlevel\Hydrator\Tests\ReturnCallback;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle1Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle2Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle3Dto;
@@ -307,7 +309,7 @@ final class MetadataHydratorTest extends TestCase
         self::assertSame($encryptedPayload, $return);
     }
 
-    public function testPreHydrate(): void
+    public function testHydrateEvents(): void
     {
         $object = new ProfileCreated(
             ProfileId::fromString('1'),
@@ -343,7 +345,7 @@ final class MetadataHydratorTest extends TestCase
         self::assertEquals($object, $return);
     }
 
-    public function testPostExtract(): void
+    public function testExtractEvents(): void
     {
         $object = new ProfileCreated(
             ProfileId::fromString('1'),
@@ -354,6 +356,11 @@ final class MetadataHydratorTest extends TestCase
         $encryptedPayload = ['profileId' => '1', 'email' => 'encrypted'];
 
         $metadataFactory = new AttributeMetadataFactory();
+
+        $preExtract = new PreExtract(
+            $object,
+            $metadataFactory->metadata(ProfileCreated::class),
+        );
 
         $event = new PostExtract(
             $payload,
@@ -366,8 +373,20 @@ final class MetadataHydratorTest extends TestCase
         );
 
         $eventDispatcher = $this->createMock(EventDispatcherInterface::class);
-        $eventDispatcher->expects($this->once())->method('dispatch')->with($event)
-            ->willReturn($eventReturn);
+        $eventDispatcher->expects($this->exactly(2))
+        ->method('dispatch')
+        ->willReturnCallback(
+            new ReturnCallback([
+                [
+                    [$preExtract, null],
+                    $preExtract,
+                ],
+                [
+                    [$event, null],
+                    $eventReturn,
+                ],
+            ]),
+        );
 
         $hydrator = new MetadataHydrator($metadataFactory, eventDispatcher: $eventDispatcher);
 

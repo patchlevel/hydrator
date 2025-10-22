@@ -34,9 +34,9 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
      *
      * @return array<string, mixed>
      */
-    public function encrypt(ClassMetadata $metadata, array $data): array
+    public function encrypt(ClassMetadata $metadata, array $data, string|null $overrideSubjectId = null): array
     {
-        $subjectId = $this->subjectId($metadata, $data);
+        $subjectId = $overrideSubjectId ?: $this->subjectId($metadata, $data);
 
         if ($subjectId === null) {
             return $data;
@@ -78,9 +78,9 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
      *
      * @return array<string, mixed>
      */
-    public function decrypt(ClassMetadata $metadata, array $data): array
+    public function decrypt(ClassMetadata $metadata, array $data, string|null $overrideSubjectId = null): array
     {
-        $subjectId = $this->subjectId($metadata, $data);
+        $subjectId = $overrideSubjectId ?: $this->subjectId($metadata, $data);
 
         if ($subjectId === null) {
             return $data;
