@@ -58,6 +58,7 @@ final class EnumNormalizer implements Normalizer, ReflectionTypeAwareNormalizer,
         }
     }
 
+    /** @deprecated use `handleType()` instead */
     public function handleReflectionType(ReflectionType|null $reflectionType): void
     {
         if ($this->enum !== null || $reflectionType === null) {

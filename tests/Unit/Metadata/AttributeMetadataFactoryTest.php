@@ -18,6 +18,7 @@ use Patchlevel\Hydrator\Metadata\MultipleDataSubjectId;
 use Patchlevel\Hydrator\Metadata\PropertyMetadataNotFound;
 use Patchlevel\Hydrator\Metadata\SubjectIdAndPersonalDataConflict;
 use Patchlevel\Hydrator\Normalizer\EnumNormalizer;
+use Patchlevel\Hydrator\Normalizer\ObjectNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\BrokenParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DistributionCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DuplicateFieldNameDto;
@@ -29,8 +30,10 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\IgnoreParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\MissingSubjectIdDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentWithPersonalDataDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWithGeneric;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\Wrapper;
 use PHPUnit\Framework\TestCase;
 
 final class AttributeMetadataFactoryTest extends TestCase
@@ -136,7 +139,7 @@ final class AttributeMetadataFactoryTest extends TestCase
         self::assertNull($propertyMetadata->normalizer());
     }
 
-    public function testEventWithFieldName(): void
+    public function testNormalizedName(): void
     {
         $object = new class ('Foo') {
             public function __construct(
@@ -160,7 +163,7 @@ final class AttributeMetadataFactoryTest extends TestCase
         self::assertNull($propertyMetadata->normalizer());
     }
 
-    public function testEventWithNormalizer(): void
+    public function testDefineNormalizer(): void
     {
         $object = new class (Email::fromString('info@patchlevel.de')) {
             public function __construct(
@@ -184,7 +187,7 @@ final class AttributeMetadataFactoryTest extends TestCase
         self::assertInstanceOf(EmailNormalizer::class, $propertyMetadata->normalizer());
     }
 
-    public function testEventWithTypeAwareNormalizer(): void
+    public function testTypeAwareNormalizer(): void
     {
         $object = new class (Status::Draft) {
             public function __construct(
@@ -212,7 +215,7 @@ final class AttributeMetadataFactoryTest extends TestCase
         self::assertSame(Status::class, $normalizer->getEnum());
     }
 
-    public function testEventWithInferNormalizer(): void
+    public function testInferNormalizer(): void
     {
         $object = new class {
             public function __construct(
@@ -231,6 +234,34 @@ final class AttributeMetadataFactoryTest extends TestCase
         $propertyMetadata = $metadata->propertyForField('profileId');
 
         self::assertEquals(new IdNormalizer(ProfileId::class), $propertyMetadata->normalizer());
+    }
+
+    public function testInferNormalizerWithGeneric(): void
+    {
+        $metadataFactory = new AttributeMetadataFactory();
+        $metadata = $metadataFactory->metadata(ProfileCreatedWithGeneric::class);
+
+        self::assertCount(2, $metadata->properties());
+
+        $propertyMetadata = $metadata->propertyForField('email');
+        self::assertEquals(new ObjectNormalizer(Wrapper::class), $propertyMetadata->normalizer());
+    }
+
+    public function testInferNormalizerWithTemplate(): void
+    {
+        $metadataFactory = new AttributeMetadataFactory();
+        $metadata = $metadataFactory->metadata(Wrapper::class);
+
+        self::assertCount(3, $metadata->properties());
+
+        $propertyMetadata = $metadata->propertyForField('value');
+        self::assertNull($propertyMetadata->normalizer());
+
+        $propertyMetadata = $metadata->propertyForField('object');
+        self::assertEquals(new ObjectNormalizer(Wrapper::class), $propertyMetadata->normalizer());
+
+        $propertyMetadata = $metadata->propertyForField('scalar');
+        self::assertEquals(new ObjectNormalizer(Wrapper::class), $propertyMetadata->normalizer());
     }
 
     public function testExtends(): void
