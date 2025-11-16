@@ -36,7 +36,7 @@ final class SensitiveDataPayloadCryptographer implements PayloadCryptographer
      */
     public function encrypt(ClassMetadata $metadata, array $data): array
     {
-        foreach ($metadata->properties() as $propertyMetadata) {
+        foreach ($metadata->properties as $propertyMetadata) {
             if (!$propertyMetadata->isSensitiveData()) {
                 continue;
             }
@@ -52,18 +52,18 @@ final class SensitiveDataPayloadCryptographer implements PayloadCryptographer
 
             $targetFieldName = $this->useEncryptedFieldName
                 ? $propertyMetadata->encryptedFieldName()
-                : $propertyMetadata->fieldName();
+                : $propertyMetadata->fieldName;
 
             $data[$targetFieldName] = $this->cipher->encrypt(
                 $cipherKey,
-                $data[$propertyMetadata->fieldName()],
+                $data[$propertyMetadata->fieldName],
             );
 
             if (!$this->useEncryptedFieldName) {
                 continue;
             }
 
-            unset($data[$propertyMetadata->fieldName()]);
+            unset($data[$propertyMetadata->fieldName]);
         }
 
         return $data;
@@ -76,7 +76,7 @@ final class SensitiveDataPayloadCryptographer implements PayloadCryptographer
      */
     public function decrypt(ClassMetadata $metadata, array $data): array
     {
-        foreach ($metadata->properties() as $propertyMetadata) {
+        foreach ($metadata->properties as $propertyMetadata) {
             if (!$propertyMetadata->isSensitiveData()) {
                 continue;
             }
@@ -93,23 +93,23 @@ final class SensitiveDataPayloadCryptographer implements PayloadCryptographer
                 $rawData = $data[$propertyMetadata->encryptedFieldName()];
                 unset($data[$propertyMetadata->encryptedFieldName()]);
             } elseif (!$this->useEncryptedFieldName || $this->fallbackToFieldName) {
-                $rawData = $data[$propertyMetadata->fieldName()];
+                $rawData = $data[$propertyMetadata->fieldName];
             } else {
                 continue;
             }
 
             if (!$cipherKey) {
-                $data[$propertyMetadata->fieldName()] = $this->fallback($propertyMetadata, $subjectId, $rawData);
+                $data[$propertyMetadata->fieldName] = $this->fallback($propertyMetadata, $subjectId, $rawData);
                 continue;
             }
 
             try {
-                $data[$propertyMetadata->fieldName()] = $this->cipher->decrypt(
+                $data[$propertyMetadata->fieldName] = $this->cipher->decrypt(
                     $cipherKey,
                     $rawData,
                 );
             } catch (DecryptionFailed) {
-                $data[$propertyMetadata->fieldName()] = $this->fallback($propertyMetadata, $subjectId, $rawData);
+                $data[$propertyMetadata->fieldName] = $this->fallback($propertyMetadata, $subjectId, $rawData);
             }
         }
 
@@ -123,7 +123,7 @@ final class SensitiveDataPayloadCryptographer implements PayloadCryptographer
             throw new NotSensitiveData($metadata->className(), $propertyMetadata->propertyName());
         }
 
-        $sensitiveDataSubjectIdName = $propertyMetadata->sensitiveDataSubjectIdName();
+        $sensitiveDataSubjectIdName = $propertyMetadata->sensitiveDataSubjectIdName;
 
         if (!$metadata->hasSubjectIdIdentifier($sensitiveDataSubjectIdName)) {
             throw new MissingSubjectId($metadata->className(), $propertyMetadata->propertyName());
@@ -153,7 +153,7 @@ final class SensitiveDataPayloadCryptographer implements PayloadCryptographer
         $callback = $propertyMetadata->sensitiveDataFallbackCallable();
 
         if (!$callback) {
-            return $propertyMetadata->sensitiveDataFallback();
+            return $propertyMetadata->sensitiveDataFallback;
         }
 
         return $callback($subjectId, $rawData);

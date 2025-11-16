@@ -22,9 +22,9 @@
       <code><![CDATA[$rawData]]></code>
     </MixedArgument>
     <MixedAssignment>
-      <code><![CDATA[$data[$propertyMetadata->fieldName()]]]></code>
-      <code><![CDATA[$data[$propertyMetadata->fieldName()]]]></code>
-      <code><![CDATA[$data[$propertyMetadata->fieldName()]]]></code>
+      <code><![CDATA[$data[$propertyMetadata->fieldName]]]></code>
+      <code><![CDATA[$data[$propertyMetadata->fieldName]]]></code>
+      <code><![CDATA[$data[$propertyMetadata->fieldName]]]></code>
       <code><![CDATA[$rawData]]></code>
       <code><![CDATA[$rawData]]></code>
     </MixedAssignment>

@@ -256,28 +256,28 @@ final class AttributeMetadataFactory implements MetadataFactory
     {
         $properties = [];
 
-        foreach ($parent->properties() as $property) {
-            $properties[$property->fieldName()] = $property;
+        foreach ($parent->properties as $property) {
+            $properties[$property->fieldName] = $property;
         }
 
-        foreach ($child->properties() as $property) {
-            if (array_key_exists($property->fieldName(), $properties)) {
+        foreach ($child->properties as $property) {
+            if (array_key_exists($property->fieldName, $properties)) {
                 throw DuplicatedFieldNameInMetadata::byInheritance(
-                    $property->fieldName(),
+                    $property->fieldName,
                     $parent->className(),
                     $child->className(),
                 );
             }
 
-            $properties[$property->fieldName()] = $property;
+            $properties[$property->fieldName] = $property;
         }
 
         $mergedClassMetadata = new ClassMetadata(
-            $parent->reflection(),
+            $parent->reflection,
             array_values($properties),
-            array_merge($parent->postHydrateCallbacks(), $child->postHydrateCallbacks()),
-            array_merge($parent->preExtractCallbacks(), $child->preExtractCallbacks()),
-            $child->lazy() ?? $parent->lazy(),
+            array_merge($parent->postHydrateCallbacks, $child->postHydrateCallbacks),
+            array_merge($parent->preExtractCallbacks, $child->preExtractCallbacks),
+            $child->lazy ?? $parent->lazy,
         );
 
         $this->validate($mergedClassMetadata);
@@ -314,12 +314,12 @@ final class AttributeMetadataFactory implements MetadataFactory
     {
         $subjectIds = [];
 
-        foreach ($metadata->properties() as $property) {
+        foreach ($metadata->properties as $property) {
             if ($property->isSensitiveData() && $property->isSubjectId()) {
                 throw new SubjectIdAndSensitiveDataConflict($metadata->className(), $property->propertyName());
             }
 
-            if ($property->isSensitiveData() && !$metadata->hasSubjectIdIdentifier($property->sensitiveDataSubjectIdName())) {
+            if ($property->isSensitiveData() && !$metadata->hasSubjectIdIdentifier($property->sensitiveDataSubjectIdName)) {
                 throw new MissingDataSubjectId($metadata->className());
             }
 
@@ -327,7 +327,7 @@ final class AttributeMetadataFactory implements MetadataFactory
                 continue;
             }
 
-            $subjectIdIdentifier = $property->subjectIdName();
+            $subjectIdIdentifier = $property->subjectIdName;
 
             if (array_key_exists($subjectIdIdentifier, $subjectIds)) {
                 throw new DuplicateSubjectIdIdentifier(
