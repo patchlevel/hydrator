@@ -34,6 +34,8 @@
     "phpunit/phpunit": "^11.5.17",
     "psalm/plugin-phpunit": "^0.19.2",
     "roave/infection-static-analysis-plugin": "^1.36.0",
+    "symfony/property-access": "^7.3",
+    "symfony/serializer": "^7.0.0",
     "symfony/var-dumper": "^5.4.29 || ^6.4.0 || ^7.0.0",
     "vimeo/psalm": "^6.0.0"
   },
