@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<files psalm-version="6.12.0@cf420941d061a57050b6c468ef2c778faf40aee2">
+  <file src="src/Attribute/SensitiveData.php">
+    <MixedPropertyTypeCoercion>
+      <code><![CDATA[$fallbackCallable]]></code>
+    </MixedPropertyTypeCoercion>
+  </file>
+  <file src="src/Cryptography/Cipher/OpensslCipherKeyFactory.php">
+    <ArgumentTypeCoercion>
+      <code><![CDATA[openssl_random_pseudo_bytes($this->ivLength)]]></code>
+      <code><![CDATA[openssl_random_pseudo_bytes($this->keyLength)]]></code>
+    </ArgumentTypeCoercion>
+    <LessSpecificReturnStatement>
+      <code><![CDATA[openssl_get_cipher_methods(true)]]></code>
+    </LessSpecificReturnStatement>
+    <MoreSpecificReturnType>
+      <code><![CDATA[list<string>]]></code>
+    </MoreSpecificReturnType>
+  </file>
+  <file src="src/Cryptography/SensitiveDataPayloadCryptographer.php">
+    <MixedArgument>
+      <code><![CDATA[$rawData]]></code>
+    </MixedArgument>
+    <MixedAssignment>
+      <code><![CDATA[$data[$propertyMetadata->fieldName()]]]></code>
+      <code><![CDATA[$data[$propertyMetadata->fieldName()]]]></code>
+      <code><![CDATA[$data[$propertyMetadata->fieldName()]]]></code>
+      <code><![CDATA[$rawData]]></code>
+      <code><![CDATA[$rawData]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Metadata/AttributeMetadataFactory.php">
+    <PossiblyNullReference>
+      <code><![CDATA[guess]]></code>
+    </PossiblyNullReference>
+  </file>
+  <file src="src/Metadata/ClassMetadata.php">
+    <InvalidPropertyAssignmentValue>
+      <code><![CDATA[new ReflectionClass($data['className'])]]></code>
+    </InvalidPropertyAssignmentValue>
+  </file>
+  <file src="src/Metadata/PropertyMetadata.php">
+    <RiskyTruthyFalsyComparison>
+      <code><![CDATA[$this->sensitiveDataFallbackCallable]]></code>
+    </RiskyTruthyFalsyComparison>
+  </file>
+  <file src="src/MetadataHydrator.php">
+    <InvalidOperand>
+      <code><![CDATA[$guessers]]></code>
+    </InvalidOperand>
+    <MixedReturnStatement>
+      <code><![CDATA[(new ReflectionClass($class))->newLazyProxy(
+            function () use ($metadata, $data): object {
+                return $this->doHydrate($metadata, $data);
+            },
+        )]]></code>
+    </MixedReturnStatement>
+    <PossiblyInvalidArgument>
+      <code><![CDATA[[
+                ...$guessers,
+                $guesser,
+            ]]]></code>
+    </PossiblyInvalidArgument>
+  </file>
+  <file src="src/Normalizer/ArrayShapeNormalizer.php">
+    <MixedAssignment>
+      <code><![CDATA[$result[$field]]]></code>
+      <code><![CDATA[$result[$field]]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Normalizer/ObjectNormalizer.php">
+    <MixedArgument>
+      <code><![CDATA[$value]]></code>
+    </MixedArgument>
+    <MixedArgumentTypeCoercion>
+      <code><![CDATA[$value]]></code>
+    </MixedArgumentTypeCoercion>
+  </file>
+  <file src="tests/Unit/Cryptography/Cipher/OpensslCipherTest.php">
+    <MixedAssignment>
+      <code><![CDATA[$return]]></code>
+    </MixedAssignment>
+    <MixedReturnStatement>
+      <code><![CDATA[Generator]]></code>
+    </MixedReturnStatement>
+  </file>
+  <file src="tests/Unit/Cryptography/CryptographySubscriberTest.php">
+    <InvalidArgument>
+      <code><![CDATA[$metadata]]></code>
+      <code><![CDATA[$metadata]]></code>
+    </InvalidArgument>
+  </file>
+  <file src="tests/Unit/Fixture/IdNormalizer.php">
+    <PropertyTypeCoercion>
+      <code><![CDATA[$type->getClassName()]]></code>
+    </PropertyTypeCoercion>
+  </file>
+  <file src="tests/Unit/Metadata/AttributeMetadataFactoryTest.php">
+    <ArgumentTypeCoercion>
+      <code><![CDATA['Unknown']]></code>
+    </ArgumentTypeCoercion>
+    <UndefinedClass>
+      <code><![CDATA['Unknown']]></code>
+    </UndefinedClass>
+  </file>
+  <file src="tests/Unit/MetadataHydratorTest.php">
+    <ArgumentTypeCoercion>
+      <code><![CDATA['Unknown']]></code>
+    </ArgumentTypeCoercion>
+    <InvalidArgument>
+      <code><![CDATA[$metadataFactory->metadata(ProfileCreated::class)]]></code>
+      <code><![CDATA[$metadataFactory->metadata(ProfileCreated::class)]]></code>
+      <code><![CDATA[$metadataFactory->metadata(ProfileCreated::class)]]></code>
+      <code><![CDATA[$metadataFactory->metadata(ProfileCreated::class)]]></code>
+    </InvalidArgument>
+    <UndefinedClass>
+      <code><![CDATA['Unknown']]></code>
+    </UndefinedClass>
+  </file>
+  <file src="tests/Unit/Normalizer/ArrayNormalizerTest.php">
+    <InvalidArgument>
+      <code><![CDATA[$normalizer]]></code>
+    </InvalidArgument>
+  </file>
+  <file src="tests/Unit/Normalizer/ArrayShapeNormalizerTest.php">
+    <InvalidArgument>
+      <code><![CDATA[['foo' => $normalizer]]]></code>
+    </InvalidArgument>
+  </file>
+</files>
