@@ -25,8 +25,10 @@ use ReflectionProperty;
 use Symfony\Component\TypeInfo\Type;
 use Symfony\Component\TypeInfo\Type\ArrayShapeType;
 use Symfony\Component\TypeInfo\Type\CollectionType;
+use Symfony\Component\TypeInfo\Type\GenericType;
 use Symfony\Component\TypeInfo\Type\NullableType;
 use Symfony\Component\TypeInfo\Type\ObjectType;
+use Symfony\Component\TypeInfo\Type\TemplateType;
 use Symfony\Component\TypeInfo\TypeResolver\TypeResolver;
 
 use function array_key_exists;
@@ -388,6 +390,14 @@ final class AttributeMetadataFactory implements MetadataFactory
     private function inferNormalizerByType(Type $type): Normalizer|null
     {
         if ($type instanceof NullableType) {
+            $type = $type->getWrappedType();
+        }
+
+        if ($type instanceof TemplateType) {
+            $type = $type->getWrappedType();
+        }
+
+        if ($type instanceof GenericType) {
             $type = $type->getWrappedType();
         }
 

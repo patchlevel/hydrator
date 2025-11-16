@@ -54,6 +54,13 @@
     <InvalidOperand>
       <code><![CDATA[$guessers]]></code>
     </InvalidOperand>
+    <MixedReturnStatement>
+      <code><![CDATA[(new ReflectionClass($class))->newLazyProxy(
+            function () use ($metadata, $data): object {
+                return $this->doHydrate($metadata, $data);
+            },
+        )]]></code>
+    </MixedReturnStatement>
     <PossiblyInvalidArgument>
       <code><![CDATA[[
                 ...$guessers,
@@ -88,23 +95,6 @@
     <MixedArgumentTypeCoercion>
       <code><![CDATA[$value]]></code>
     </MixedArgumentTypeCoercion>
-  </file>
-  <file src="tests/Benchmark/tideways.php">
-    <ClassMustBeFinal>
-      <code><![CDATA[CompiledMetadataHydrator]]></code>
-    </ClassMustBeFinal>
-    <MixedMethodCall>
-      <code><![CDATA[normalize]]></code>
-      <code><![CDATA[normalize]]></code>
-    </MixedMethodCall>
-    <MixedReturnTypeCoercion>
-      <code><![CDATA[array]]></code>
-      <code><![CDATA[match (true) {
-            $object instanceof ProfileCreated => $this->extractProfileCreated($object),
-            $object instanceof Skill => $this->extractSkill($object),
-            default => throw new InvalidArgumentException('Unknown object type'),
-        }]]></code>
-    </MixedReturnTypeCoercion>
   </file>
   <file src="tests/Unit/Cryptography/Cipher/OpensslCipherTest.php">
     <MixedAssignment>
@@ -162,6 +152,20 @@
     <InvalidArgument>
       <code><![CDATA[['foo' => $normalizer]]]></code>
     </InvalidArgument>
+  </file>
+  <file src="tests/Unit/Normalizer/EnumNormalizerTest.php">
+    <DeprecatedMethod>
+      <code><![CDATA[handleReflectionType]]></code>
+      <code><![CDATA[handleReflectionType]]></code>
+      <code><![CDATA[handleReflectionType]]></code>
+    </DeprecatedMethod>
+  </file>
+  <file src="tests/Unit/Normalizer/ObjectNormalizerTest.php">
+    <DeprecatedMethod>
+      <code><![CDATA[handleReflectionType]]></code>
+      <code><![CDATA[handleReflectionType]]></code>
+      <code><![CDATA[handleReflectionType]]></code>
+    </DeprecatedMethod>
   </file>
   <file src="tests/Unit/Normalizer/ReflectionTypeUtilTest.php">
     <DeprecatedClass>

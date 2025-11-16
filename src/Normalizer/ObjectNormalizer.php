@@ -8,8 +8,10 @@ use Attribute;
 use Patchlevel\Hydrator\Hydrator;
 use ReflectionType;
 use Symfony\Component\TypeInfo\Type;
+use Symfony\Component\TypeInfo\Type\GenericType;
 use Symfony\Component\TypeInfo\Type\NullableType;
 use Symfony\Component\TypeInfo\Type\ObjectType;
+use Symfony\Component\TypeInfo\Type\TemplateType;
 
 use function is_array;
 
@@ -68,6 +70,7 @@ final class ObjectNormalizer implements Normalizer, ReflectionTypeAwareNormalize
         $this->hydrator = $hydrator;
     }
 
+    /** @deprecated use handleType instead */
     public function handleReflectionType(ReflectionType|null $reflectionType): void
     {
         if ($this->className !== null || $reflectionType === null) {
@@ -84,6 +87,14 @@ final class ObjectNormalizer implements Normalizer, ReflectionTypeAwareNormalize
         }
 
         if ($type instanceof NullableType) {
+            $type = $type->getWrappedType();
+        }
+
+        if ($type instanceof GenericType) {
+            $type = $type->getWrappedType();
+        }
+
+        if ($type instanceof TemplateType) {
             $type = $type->getWrappedType();
         }
 
