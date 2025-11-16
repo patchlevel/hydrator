@@ -10,7 +10,6 @@ use Symfony\Component\TypeInfo\Type;
 use Symfony\Component\TypeInfo\Type\CollectionType;
 use Symfony\Component\TypeInfo\Type\NullableType;
 
-use function array_map;
 use function is_array;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
@@ -32,7 +31,11 @@ final class ArrayNormalizer implements Normalizer, TypeAwareNormalizer, Hydrator
             throw InvalidArgument::withWrongType('array|null', $value);
         }
 
-        return array_map(fn (mixed $value): mixed => $this->normalizer->normalize($value), $value);
+        foreach ($value as &$item) {
+            $item = $this->normalizer->normalize($item);
+        }
+
+        return $value;
     }
 
     /** @return array<array-key, mixed>|null */
@@ -46,7 +49,11 @@ final class ArrayNormalizer implements Normalizer, TypeAwareNormalizer, Hydrator
             throw InvalidArgument::withWrongType('array|null', $value);
         }
 
-        return array_map(fn (mixed $value): mixed => $this->normalizer->denormalize($value), $value);
+        foreach ($value as &$item) {
+            $item = $this->normalizer->denormalize($item);
+        }
+
+        return $value;
     }
 
     public function setHydrator(Hydrator $hydrator): void
