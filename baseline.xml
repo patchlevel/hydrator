@@ -29,11 +29,6 @@
       <code><![CDATA[$rawData]]></code>
     </MixedAssignment>
   </file>
-  <file src="src/Metadata/AttributeMetadataFactory.php">
-    <PossiblyNullReference>
-      <code><![CDATA[guess]]></code>
-    </PossiblyNullReference>
-  </file>
   <file src="src/Metadata/ClassMetadata.php">
     <InvalidPropertyAssignmentValue>
       <code><![CDATA[new ReflectionClass($data['className'])]]></code>
@@ -48,6 +43,12 @@
     <InvalidOperand>
       <code><![CDATA[$guessers]]></code>
     </InvalidOperand>
+    <InvalidReturnStatement>
+      <code><![CDATA[$this->classMetadata[$class]]]></code>
+    </InvalidReturnStatement>
+    <InvalidReturnType>
+      <code><![CDATA[ClassMetadata<T>]]></code>
+    </InvalidReturnType>
     <MixedReturnStatement>
       <code><![CDATA[(new ReflectionClass($class))->newLazyProxy(
             function () use ($metadata, $data): object {

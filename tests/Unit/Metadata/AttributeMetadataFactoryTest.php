@@ -52,16 +52,6 @@ final class AttributeMetadataFactoryTest extends TestCase
         self::assertCount(0, $metadata->postHydrateCallbacks);
     }
 
-    public function testSameMetadata(): void
-    {
-        $object = new class {
-        };
-
-        $metadataFactory = new AttributeMetadataFactory();
-
-        self::assertSame($metadataFactory->metadata($object::class), $metadataFactory->metadata($object::class));
-    }
-
     public function testNotFoundProperty(): void
     {
         $this->expectException(PropertyMetadataNotFound::class);

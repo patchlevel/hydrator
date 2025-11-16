@@ -35,6 +35,9 @@ final class MetadataHydrator implements Hydrator
     /** @var array<int, class-string> */
     private array $stack = [];
 
+    /** @var array<class-string, ClassMetadata> */
+    private array $classMetadata = [];
+
     public function __construct(
         private readonly MetadataFactory $metadataFactory = new AttributeMetadataFactory(),
         PayloadCryptographer|null $cryptographer = null,
@@ -65,7 +68,7 @@ final class MetadataHydrator implements Hydrator
     public function hydrate(string $class, array $data): object
     {
         try {
-            $metadata = $this->metadataFactory->metadata($class);
+            $metadata = $this->metadata($class);
         } catch (ClassNotFound $e) {
             throw new ClassNotSupported($class, $e);
         }
@@ -132,10 +135,6 @@ final class MetadataHydrator implements Hydrator
             $normalizer = $propertyMetadata->normalizer;
 
             if ($normalizer) {
-                if ($normalizer instanceof HydratorAwareNormalizer) {
-                    $normalizer->setHydrator($this);
-                }
-
                 try {
                     /** @psalm-suppress MixedAssignment */
                     $value = $normalizer->denormalize($value);
@@ -182,7 +181,7 @@ final class MetadataHydrator implements Hydrator
         $this->stack[$objectId] = $object::class;
 
         try {
-            $metadata = $this->metadataFactory->metadata($object::class);
+            $metadata = $this->metadata($object::class);
 
             foreach ($metadata->preExtractCallbacks as $callback) {
                 $callback->invoke($object);
@@ -197,10 +196,6 @@ final class MetadataHydrator implements Hydrator
                 $normalizer = $propertyMetadata->normalizer;
 
                 if ($normalizer) {
-                    if ($normalizer instanceof HydratorAwareNormalizer) {
-                        $normalizer->setHydrator($this);
-                    }
-
                     try {
                         /** @psalm-suppress MixedAssignment */
                         $value = $normalizer->normalize($value);
@@ -259,6 +254,32 @@ final class MetadataHydrator implements Hydrator
         }
 
         return $result;
+    }
+
+    /**
+     * @param class-string<T> $class
+     *
+     * @return ClassMetadata<T>
+     *
+     * @template T of object
+     */
+    private function metadata(string $class): ClassMetadata
+    {
+        if (array_key_exists($class, $this->classMetadata)) {
+            return $this->classMetadata[$class];
+        }
+
+        $this->classMetadata[$class] = $metadata = $this->metadataFactory->metadata($class);
+
+        foreach ($metadata->properties as $property) {
+            if (!($property->normalizer instanceof HydratorAwareNormalizer)) {
+                continue;
+            }
+
+            $property->normalizer->setHydrator($this);
+        }
+
+        return $metadata;
     }
 
     /** @param iterable<Guesser> $guessers */
