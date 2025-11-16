@@ -113,7 +113,10 @@ final class ObjectNormalizerTest extends TestCase
             Email::fromString('info@patchlevel.de'),
         );
 
-        $hydrator->expects($this->once())->method('hydrate')->with(ProfileCreated::class, ['profileId' => '1', 'email' => 'info@patchlevel.de'])
+        $hydrator->expects($this->once())->method('hydrate')->with(
+            ProfileCreated::class,
+            ['profileId' => '1', 'email' => 'info@patchlevel.de'],
+        )
             ->willReturn($expected);
 
         $normalizer = new ObjectNormalizer(ProfileCreated::class);
@@ -170,6 +173,28 @@ final class ObjectNormalizerTest extends TestCase
         $normalizer->handleType(null);
 
         $normalizer->getClassName();
+    }
+
+    public function testGeneric(): void
+    {
+        $hydrator = $this->createMock(Hydrator::class);
+
+        $normalizer = new ObjectNormalizer();
+        $normalizer->setHydrator($hydrator);
+        $normalizer->handleType(Type::generic(Type::object(ProfileCreated::class)));
+
+        self::assertEquals(ProfileCreated::class, $normalizer->getClassName());
+    }
+
+    public function testTemplate(): void
+    {
+        $hydrator = $this->createMock(Hydrator::class);
+
+        $normalizer = new ObjectNormalizer();
+        $normalizer->setHydrator($hydrator);
+        $normalizer->handleType(Type::template('T', Type::object(ProfileCreated::class)));
+
+        self::assertEquals(ProfileCreated::class, $normalizer->getClassName());
     }
 
     public function testSerialize(): void

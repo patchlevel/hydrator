@@ -7,8 +7,10 @@ namespace Patchlevel\Hydrator\Normalizer;
 use Attribute;
 use Patchlevel\Hydrator\Hydrator;
 use Symfony\Component\TypeInfo\Type;
+use Symfony\Component\TypeInfo\Type\GenericType;
 use Symfony\Component\TypeInfo\Type\NullableType;
 use Symfony\Component\TypeInfo\Type\ObjectType;
+use Symfony\Component\TypeInfo\Type\TemplateType;
 
 use function is_array;
 
@@ -74,6 +76,14 @@ final class ObjectNormalizer implements Normalizer, TypeAwareNormalizer, Hydrato
         }
 
         if ($type instanceof NullableType) {
+            $type = $type->getWrappedType();
+        }
+
+        if ($type instanceof GenericType) {
+            $type = $type->getWrappedType();
+        }
+
+        if ($type instanceof TemplateType) {
             $type = $type->getWrappedType();
         }
 
