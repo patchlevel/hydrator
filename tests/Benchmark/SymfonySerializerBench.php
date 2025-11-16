@@ -6,6 +6,7 @@ namespace Patchlevel\Hydrator\Tests\Benchmark;
 
 use Patchlevel\Hydrator\Tests\Benchmark\Fixture\ProfileCreated;
 use Patchlevel\Hydrator\Tests\Benchmark\Fixture\ProfileId;
+use Patchlevel\Hydrator\Tests\Benchmark\Fixture\ProfileIdSymfonyNormalizer;
 use Patchlevel\Hydrator\Tests\Benchmark\Fixture\Skill;
 use PhpBench\Attributes as Bench;
 use Symfony\Component\Serializer\Normalizer\BackedEnumNormalizer;
@@ -21,6 +22,7 @@ final class SymfonySerializerBench
     public function __construct()
     {
         $this->serializer = new Serializer([
+            new ProfileIdSymfonyNormalizer(),
             new ObjectNormalizer(),
             new BackedEnumNormalizer(),
             new DateTimeNormalizer(),
