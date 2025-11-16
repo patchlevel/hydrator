@@ -47,9 +47,9 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadataFactory = new AttributeMetadataFactory();
         $metadata = $metadataFactory->metadata($object::class);
 
-        self::assertCount(0, $metadata->properties());
-        self::assertCount(0, $metadata->preExtractCallbacks());
-        self::assertCount(0, $metadata->postHydrateCallbacks());
+        self::assertCount(0, $metadata->properties);
+        self::assertCount(0, $metadata->preExtractCallbacks);
+        self::assertCount(0, $metadata->postHydrateCallbacks);
     }
 
     public function testSameMetadata(): void
@@ -84,15 +84,15 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadataFactory = new AttributeMetadataFactory();
         $metadata = $metadataFactory->metadata($object::class);
 
-        $properties = $metadata->properties();
+        $properties = $metadata->properties;
 
         self::assertCount(1, $properties);
 
         $propertyMetadata = $metadata->propertyForField('name');
 
         self::assertSame('name', $propertyMetadata->propertyName());
-        self::assertSame('name', $propertyMetadata->fieldName());
-        self::assertNull($propertyMetadata->normalizer());
+        self::assertSame('name', $propertyMetadata->fieldName);
+        self::assertNull($propertyMetadata->normalizer);
     }
 
     public function testUnknownClass(): void
@@ -112,7 +112,7 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadataFactory = new AttributeMetadataFactory();
         $metadata = $metadataFactory->metadata($object::class);
 
-        $properties = $metadata->properties();
+        $properties = $metadata->properties;
 
         self::assertCount(0, $properties);
     }
@@ -129,15 +129,15 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadataFactory = new AttributeMetadataFactory();
         $metadata = $metadataFactory->metadata($object::class);
 
-        $properties = $metadata->properties();
+        $properties = $metadata->properties;
 
         self::assertCount(1, $properties);
 
         $propertyMetadata = $metadata->propertyForField('name');
 
         self::assertSame('name', $propertyMetadata->propertyName());
-        self::assertSame('name', $propertyMetadata->fieldName());
-        self::assertNull($propertyMetadata->normalizer());
+        self::assertSame('name', $propertyMetadata->fieldName);
+        self::assertNull($propertyMetadata->normalizer);
     }
 
     public function testNormalizedName(): void
@@ -153,15 +153,15 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadataFactory = new AttributeMetadataFactory();
         $metadata = $metadataFactory->metadata($object::class);
 
-        $properties = $metadata->properties();
+        $properties = $metadata->properties;
 
         self::assertCount(1, $properties);
 
         $propertyMetadata = $metadata->propertyForField('username');
 
         self::assertSame('name', $propertyMetadata->propertyName());
-        self::assertSame('username', $propertyMetadata->fieldName());
-        self::assertNull($propertyMetadata->normalizer());
+        self::assertSame('username', $propertyMetadata->fieldName);
+        self::assertNull($propertyMetadata->normalizer);
     }
 
     public function testDefineNormalizer(): void
@@ -177,15 +177,15 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadataFactory = new AttributeMetadataFactory();
         $metadata = $metadataFactory->metadata($object::class);
 
-        $properties = $metadata->properties();
+        $properties = $metadata->properties;
 
         self::assertCount(1, $properties);
 
         $propertyMetadata = $metadata->propertyForField('email');
 
         self::assertSame('email', $propertyMetadata->propertyName());
-        self::assertSame('email', $propertyMetadata->fieldName());
-        self::assertInstanceOf(EmailNormalizer::class, $propertyMetadata->normalizer());
+        self::assertSame('email', $propertyMetadata->fieldName);
+        self::assertInstanceOf(EmailNormalizer::class, $propertyMetadata->normalizer);
     }
 
     public function testTypeAwareNormalizer(): void
@@ -201,16 +201,16 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadataFactory = new AttributeMetadataFactory();
         $metadata = $metadataFactory->metadata($object::class);
 
-        $properties = $metadata->properties();
+        $properties = $metadata->properties;
 
         self::assertCount(1, $properties);
 
         $propertyMetadata = $metadata->propertyForField('status');
 
         self::assertSame('status', $propertyMetadata->propertyName());
-        self::assertSame('status', $propertyMetadata->fieldName());
+        self::assertSame('status', $propertyMetadata->fieldName);
 
-        $normalizer = $propertyMetadata->normalizer();
+        $normalizer = $propertyMetadata->normalizer;
 
         self::assertInstanceOf(EnumNormalizer::class, $normalizer);
         self::assertSame(Status::class, $normalizer->getEnum());
@@ -228,13 +228,13 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadataFactory = new AttributeMetadataFactory();
         $metadata = $metadataFactory->metadata($object::class);
 
-        $properties = $metadata->properties();
+        $properties = $metadata->properties;
 
         self::assertCount(1, $properties);
 
         $propertyMetadata = $metadata->propertyForField('profileId');
 
-        self::assertEquals(new IdNormalizer(ProfileId::class), $propertyMetadata->normalizer());
+        self::assertEquals(new IdNormalizer(ProfileId::class), $propertyMetadata->normalizer);
     }
 
     public function testInferNormalizerWithGeneric(): void
@@ -242,10 +242,10 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadataFactory = new AttributeMetadataFactory();
         $metadata = $metadataFactory->metadata(ProfileCreatedWithGeneric::class);
 
-        self::assertCount(2, $metadata->properties());
+        self::assertCount(2, $metadata->properties);
 
         $propertyMetadata = $metadata->propertyForField('email');
-        self::assertEquals(new ObjectNormalizer(Wrapper::class), $propertyMetadata->normalizer());
+        self::assertEquals(new ObjectNormalizer(Wrapper::class), $propertyMetadata->normalizer);
     }
 
     public function testInferNormalizerWithTemplate(): void
@@ -253,16 +253,16 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadataFactory = new AttributeMetadataFactory();
         $metadata = $metadataFactory->metadata(Wrapper::class);
 
-        self::assertCount(3, $metadata->properties());
+        self::assertCount(3, $metadata->properties);
 
         $propertyMetadata = $metadata->propertyForField('value');
-        self::assertNull($propertyMetadata->normalizer());
+        self::assertNull($propertyMetadata->normalizer);
 
         $propertyMetadata = $metadata->propertyForField('object');
-        self::assertEquals(new ObjectNormalizer(Wrapper::class), $propertyMetadata->normalizer());
+        self::assertEquals(new ObjectNormalizer(Wrapper::class), $propertyMetadata->normalizer);
 
         $propertyMetadata = $metadata->propertyForField('scalar');
-        self::assertEquals(new ObjectNormalizer(Wrapper::class), $propertyMetadata->normalizer());
+        self::assertEquals(new ObjectNormalizer(Wrapper::class), $propertyMetadata->normalizer);
     }
 
     public function testExtends(): void
@@ -270,19 +270,19 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadataFactory = new AttributeMetadataFactory();
         $metadata = $metadataFactory->metadata(ParentDto::class);
 
-        self::assertCount(2, $metadata->properties());
+        self::assertCount(2, $metadata->properties);
 
         $emailPropertyMetadata = $metadata->propertyForField('profileId');
 
         self::assertSame('profileId', $emailPropertyMetadata->propertyName());
-        self::assertSame('profileId', $emailPropertyMetadata->fieldName());
-        self::assertInstanceOf(IdNormalizer::class, $emailPropertyMetadata->normalizer());
+        self::assertSame('profileId', $emailPropertyMetadata->fieldName);
+        self::assertInstanceOf(IdNormalizer::class, $emailPropertyMetadata->normalizer);
 
         $emailPropertyMetadata = $metadata->propertyForField('email');
 
         self::assertSame('email', $emailPropertyMetadata->propertyName());
-        self::assertSame('email', $emailPropertyMetadata->fieldName());
-        self::assertInstanceOf(EmailNormalizer::class, $emailPropertyMetadata->normalizer());
+        self::assertSame('email', $emailPropertyMetadata->fieldName);
+        self::assertInstanceOf(EmailNormalizer::class, $emailPropertyMetadata->normalizer);
     }
 
     public function testExtendsDuplicatedFieldName(): void
@@ -298,7 +298,7 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadataFactory = new AttributeMetadataFactory();
         $metadata = $metadataFactory->metadata(DistributionCreated::class);
 
-        self::assertCount(1, $metadata->properties());
+        self::assertCount(1, $metadata->properties);
 
         $property = $metadata->propertyForField('recordedDate');
 
@@ -318,19 +318,19 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadataFactory = new AttributeMetadataFactory();
         $metadata = $metadataFactory->metadata(IgnoreParentDto::class);
 
-        self::assertCount(2, $metadata->properties());
+        self::assertCount(2, $metadata->properties);
 
         $emailPropertyMetadata = $metadata->propertyForField('profileId');
 
         self::assertSame('profileId', $emailPropertyMetadata->propertyName());
-        self::assertSame('profileId', $emailPropertyMetadata->fieldName());
-        self::assertInstanceOf(IdNormalizer::class, $emailPropertyMetadata->normalizer());
+        self::assertSame('profileId', $emailPropertyMetadata->fieldName);
+        self::assertInstanceOf(IdNormalizer::class, $emailPropertyMetadata->normalizer);
 
         $emailPropertyMetadata = $metadata->propertyForField('email');
 
         self::assertSame('email', $emailPropertyMetadata->propertyName());
-        self::assertSame('email', $emailPropertyMetadata->fieldName());
-        self::assertInstanceOf(EmailNormalizer::class, $emailPropertyMetadata->normalizer());
+        self::assertSame('email', $emailPropertyMetadata->fieldName);
+        self::assertInstanceOf(EmailNormalizer::class, $emailPropertyMetadata->normalizer);
     }
 
     public function testIgnore(): void
@@ -338,13 +338,13 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadataFactory = new AttributeMetadataFactory();
         $metadata = $metadataFactory->metadata(IgnoreDto::class);
 
-        self::assertCount(1, $metadata->properties());
+        self::assertCount(1, $metadata->properties);
 
         $emailPropertyMetadata = $metadata->propertyForField('profileId');
 
         self::assertSame('profileId', $emailPropertyMetadata->propertyName());
-        self::assertSame('profileId', $emailPropertyMetadata->fieldName());
-        self::assertInstanceOf(IdNormalizer::class, $emailPropertyMetadata->normalizer());
+        self::assertSame('profileId', $emailPropertyMetadata->fieldName);
+        self::assertInstanceOf(IdNormalizer::class, $emailPropertyMetadata->normalizer);
     }
 
     public function testIgnoreNotFoundProperty(): void
@@ -374,18 +374,18 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadataFactory = new AttributeMetadataFactory();
         $metadata = $metadataFactory->metadata($event::class);
 
-        self::assertCount(2, $metadata->properties());
+        self::assertCount(2, $metadata->properties);
 
         self::assertSame(false, $metadata->propertyForField('_id')->isSensitiveData());
         self::assertSame(true, $metadata->propertyForField('_id')->isSubjectId());
-        self::assertSame('default', $metadata->propertyForField('_id')->subjectIdName());
-        self::assertSame(null, $metadata->propertyForField('_id')->sensitiveDataFallback());
-        self::assertSame(null, $metadata->propertyForField('_id')->sensitiveDataSubjectIdName());
+        self::assertSame('default', $metadata->propertyForField('_id')->subjectIdName);
+        self::assertSame(null, $metadata->propertyForField('_id')->sensitiveDataFallback);
+        self::assertSame(null, $metadata->propertyForField('_id')->sensitiveDataSubjectIdName);
 
         self::assertSame(true, $metadata->propertyForField('_name')->isSensitiveData());
         self::assertSame(false, $metadata->propertyForField('_name')->isSubjectId());
-        self::assertSame('fallback', $metadata->propertyForField('_name')->sensitiveDataFallback());
-        self::assertSame('default', $metadata->propertyForField('_name')->sensitiveDataSubjectIdName());
+        self::assertSame('fallback', $metadata->propertyForField('_name')->sensitiveDataFallback);
+        self::assertSame('default', $metadata->propertyForField('_name')->sensitiveDataSubjectIdName);
     }
 
     public function testMissingDataSubjectId(): void
@@ -454,29 +454,29 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadataFactory = new AttributeMetadataFactory();
         $metadata = $metadataFactory->metadata($event::class);
 
-        self::assertCount(4, $metadata->properties());
+        self::assertCount(4, $metadata->properties);
 
         $fooIdProperty = $metadata->propertyForField('_fooId');
         self::assertFalse($fooIdProperty->isSensitiveData());
-        self::assertSame(null, $fooIdProperty->sensitiveDataFallback());
+        self::assertSame(null, $fooIdProperty->sensitiveDataFallback);
         self::assertTrue($fooIdProperty->isSubjectId());
-        self::assertSame('foo', $fooIdProperty->subjectIdName());
+        self::assertSame('foo', $fooIdProperty->subjectIdName);
 
         $fooNameProperty = $metadata->propertyForField('_fooName');
         self::assertSame(true, $fooNameProperty->isSensitiveData());
-        self::assertSame('fallback', $fooNameProperty->sensitiveDataFallback());
-        self::assertSame('foo', $fooNameProperty->sensitiveDataSubjectIdName());
+        self::assertSame('fallback', $fooNameProperty->sensitiveDataFallback);
+        self::assertSame('foo', $fooNameProperty->sensitiveDataSubjectIdName);
 
         $barIdProperty = $metadata->propertyForField('_barId');
         self::assertFalse($barIdProperty->isSensitiveData());
-        self::assertSame(null, $barIdProperty->sensitiveDataFallback());
+        self::assertSame(null, $barIdProperty->sensitiveDataFallback);
         self::assertTrue($barIdProperty->isSubjectId());
-        self::assertSame('bar', $barIdProperty->subjectIdName());
+        self::assertSame('bar', $barIdProperty->subjectIdName);
 
         $barNameProperty = $metadata->propertyForField('_barName');
         self::assertSame(true, $barNameProperty->isSensitiveData());
-        self::assertSame('fallback', $barNameProperty->sensitiveDataFallback());
-        self::assertSame('bar', $barNameProperty->sensitiveDataSubjectIdName());
+        self::assertSame('fallback', $barNameProperty->sensitiveDataFallback);
+        self::assertSame('bar', $barNameProperty->sensitiveDataSubjectIdName);
     }
 
     public function testDuplicateSubjectIdIdentifiers(): void
@@ -511,23 +511,23 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadataFactory = new AttributeMetadataFactory();
         $metadata = $metadataFactory->metadata(ParentWithSensitiveDataDto::class);
 
-        self::assertCount(2, $metadata->properties());
+        self::assertCount(2, $metadata->properties);
 
         $idPropertyMetadata = $metadata->propertyForField('profileId');
 
         self::assertSame('profileId', $idPropertyMetadata->propertyName());
-        self::assertSame('profileId', $idPropertyMetadata->fieldName());
+        self::assertSame('profileId', $idPropertyMetadata->fieldName);
         self::assertTrue($idPropertyMetadata->isSubjectId());
         self::assertFalse($idPropertyMetadata->isSensitiveData());
-        self::assertInstanceOf(IdNormalizer::class, $idPropertyMetadata->normalizer());
+        self::assertInstanceOf(IdNormalizer::class, $idPropertyMetadata->normalizer);
 
         $emailPropertyMetadata = $metadata->propertyForField('email');
 
         self::assertSame('email', $emailPropertyMetadata->propertyName());
-        self::assertSame('email', $emailPropertyMetadata->fieldName());
+        self::assertSame('email', $emailPropertyMetadata->fieldName);
         self::assertFalse($emailPropertyMetadata->isSubjectId());
         self::assertTrue($emailPropertyMetadata->isSensitiveData());
-        self::assertInstanceOf(EmailNormalizer::class, $emailPropertyMetadata->normalizer());
+        self::assertInstanceOf(EmailNormalizer::class, $emailPropertyMetadata->normalizer);
     }
 
     public function testExtendsWithSensitiveDataWithName(): void
@@ -535,25 +535,25 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadataFactory = new AttributeMetadataFactory();
         $metadata = $metadataFactory->metadata(ParentWithSensitiveDataWithIdentifierDto::class);
 
-        self::assertCount(2, $metadata->properties());
+        self::assertCount(2, $metadata->properties);
 
         $idPropertyMetadata = $metadata->propertyForField('profileId');
 
         self::assertSame('profileId', $idPropertyMetadata->propertyName());
-        self::assertSame('profileId', $idPropertyMetadata->fieldName());
+        self::assertSame('profileId', $idPropertyMetadata->fieldName);
         self::assertTrue($idPropertyMetadata->isSubjectId());
         self::assertFalse($idPropertyMetadata->isSensitiveData());
-        self::assertInstanceOf(IdNormalizer::class, $idPropertyMetadata->normalizer());
+        self::assertInstanceOf(IdNormalizer::class, $idPropertyMetadata->normalizer);
 
         $emailPropertyMetadata = $metadata->propertyForField('email');
 
         self::assertSame('email', $emailPropertyMetadata->propertyName());
-        self::assertSame('email', $emailPropertyMetadata->fieldName());
+        self::assertSame('email', $emailPropertyMetadata->fieldName);
         self::assertFalse($emailPropertyMetadata->isSubjectId());
         self::assertTrue($emailPropertyMetadata->isSensitiveData());
-        self::assertNull($emailPropertyMetadata->sensitiveDataFallback());
-        self::assertSame('profile', $emailPropertyMetadata->sensitiveDataSubjectIdName());
-        self::assertInstanceOf(EmailNormalizer::class, $emailPropertyMetadata->normalizer());
+        self::assertNull($emailPropertyMetadata->sensitiveDataFallback);
+        self::assertSame('profile', $emailPropertyMetadata->sensitiveDataSubjectIdName);
+        self::assertInstanceOf(EmailNormalizer::class, $emailPropertyMetadata->normalizer);
     }
 
     public function testHooks(): void
@@ -573,12 +573,12 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadataFactory = new AttributeMetadataFactory();
         $metadata = $metadataFactory->metadata($object::class);
 
-        $preExtract = $metadata->preExtractCallbacks();
+        $preExtract = $metadata->preExtractCallbacks;
 
         self::assertCount(1, $preExtract);
         self::assertSame('preExtract', $preExtract[0]->methodName());
 
-        $postHydrate = $metadata->postHydrateCallbacks();
+        $postHydrate = $metadata->postHydrateCallbacks;
 
         self::assertCount(1, $postHydrate);
         self::assertSame('postHydrate', $postHydrate[0]->methodName());
@@ -601,8 +601,8 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadataFactory = new AttributeMetadataFactory();
         $metadata = $metadataFactory->metadata($object::class);
 
-        self::assertCount(0, $metadata->preExtractCallbacks());
-        self::assertCount(0, $metadata->postHydrateCallbacks());
+        self::assertCount(0, $metadata->preExtractCallbacks);
+        self::assertCount(0, $metadata->postHydrateCallbacks);
     }
 
     public function testNoLazy(): void
@@ -613,7 +613,7 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadataFactory = new AttributeMetadataFactory();
         $metadata = $metadataFactory->metadata($object::class);
 
-        self::assertNull($metadata->lazy());
+        self::assertNull($metadata->lazy);
     }
 
     public function testLazy(): void
@@ -625,6 +625,6 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadataFactory = new AttributeMetadataFactory();
         $metadata = $metadataFactory->metadata($object::class);
 
-        self::assertTrue($metadata->lazy());
+        self::assertTrue($metadata->lazy);
     }
 }

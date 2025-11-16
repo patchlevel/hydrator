@@ -26,18 +26,12 @@ final class ClassMetadata
      * @param list<CallbackMetadata> $preExtractCallbacks
      */
     public function __construct(
-        private readonly ReflectionClass $reflection,
-        private readonly array $properties = [],
-        private readonly array $postHydrateCallbacks = [],
-        private readonly array $preExtractCallbacks = [],
-        private readonly bool|null $lazy = null,
+        public readonly ReflectionClass $reflection,
+        public readonly array $properties = [],
+        public readonly array $postHydrateCallbacks = [],
+        public readonly array $preExtractCallbacks = [],
+        public readonly bool|null $lazy = null,
     ) {
-    }
-
-    /** @return ReflectionClass<T> */
-    public function reflection(): ReflectionClass
-    {
-        return $this->reflection;
     }
 
     /** @return class-string<T> */
@@ -46,33 +40,10 @@ final class ClassMetadata
         return $this->reflection->getName();
     }
 
-    /** @return list<PropertyMetadata> */
-    public function properties(): array
-    {
-        return $this->properties;
-    }
-
-    /** @return list<CallbackMetadata> */
-    public function postHydrateCallbacks(): array
-    {
-        return $this->postHydrateCallbacks;
-    }
-
-    /** @return list<CallbackMetadata> */
-    public function preExtractCallbacks(): array
-    {
-        return $this->preExtractCallbacks;
-    }
-
-    public function lazy(): bool|null
-    {
-        return $this->lazy;
-    }
-
     public function propertyForField(string $name): PropertyMetadata
     {
         foreach ($this->properties as $property) {
-            if ($property->fieldName() === $name) {
+            if ($property->fieldName === $name) {
                 return $property;
             }
         }
@@ -83,7 +54,7 @@ final class ClassMetadata
     public function hasSubjectIdIdentifier(string $subjectIdIdentifier): bool
     {
         foreach ($this->properties as $property) {
-            if ($property->subjectIdName() === $subjectIdIdentifier) {
+            if ($property->subjectIdName === $subjectIdIdentifier) {
                 return true;
             }
         }
@@ -94,8 +65,8 @@ final class ClassMetadata
     public function getSubjectIdFieldName(string $subjectIdIdentifier): string
     {
         foreach ($this->properties as $property) {
-            if ($property->subjectIdName() === $subjectIdIdentifier) {
-                return $property->fieldName();
+            if ($property->subjectIdName === $subjectIdIdentifier) {
+                return $property->fieldName;
             }
         }
 

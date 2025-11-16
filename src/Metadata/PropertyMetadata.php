@@ -28,22 +28,17 @@ final class PropertyMetadata
 
     /** @param (callable(string, mixed):mixed)|null $sensitiveDataFallbackCallable */
     public function __construct(
-        private readonly ReflectionProperty $reflection,
-        private readonly string $fieldName,
-        private readonly Normalizer|null $normalizer = null,
-        private readonly string|null $subjectIdName = null,
-        private readonly string|null $sensitiveDataSubjectIdName = null,
-        private readonly mixed $sensitiveDataFallback = null,
-        private readonly mixed $sensitiveDataFallbackCallable = null,
+        public readonly ReflectionProperty $reflection,
+        public readonly string $fieldName,
+        public readonly Normalizer|null $normalizer = null,
+        public readonly string|null $subjectIdName = null,
+        public readonly string|null $sensitiveDataSubjectIdName = null,
+        public readonly mixed $sensitiveDataFallback = null,
+        public readonly mixed $sensitiveDataFallbackCallable = null,
     ) {
         if (str_starts_with($fieldName, self::ENCRYPTED_PREFIX)) {
             throw new InvalidArgumentException('fieldName must not start with !');
         }
-    }
-
-    public function reflection(): ReflectionProperty
-    {
-        return $this->reflection;
     }
 
     public function propertyName(): string
@@ -51,19 +46,9 @@ final class PropertyMetadata
         return $this->reflection->getName();
     }
 
-    public function fieldName(): string
-    {
-        return $this->fieldName;
-    }
-
     public function encryptedFieldName(): string
     {
         return self::ENCRYPTED_PREFIX . $this->fieldName;
-    }
-
-    public function normalizer(): Normalizer|null
-    {
-        return $this->normalizer;
     }
 
     public function setValue(object $object, mixed $value): void
@@ -76,26 +61,16 @@ final class PropertyMetadata
         return $this->reflection->getValue($object);
     }
 
-    /** @phpstan-assert-if-true !null $this->sensitiveDataSubjectIdName() */
+    /** @phpstan-assert-if-true !null $this->sensitiveDataSubjectIdName */
     public function isSensitiveData(): bool
     {
         return $this->sensitiveDataSubjectIdName !== null;
     }
 
-    /** @phpstan-assert-if-true !null $this->subjectIdName() */
+    /** @phpstan-assert-if-true !null $this->subjectIdName */
     public function isSubjectId(): bool
     {
         return $this->subjectIdName !== null;
-    }
-
-    public function subjectIdName(): string|null
-    {
-        return $this->subjectIdName;
-    }
-
-    public function sensitiveDataFallback(): mixed
-    {
-        return $this->sensitiveDataFallback;
     }
 
     /** @return (Closure(string, mixed):mixed)|null */
@@ -106,11 +81,6 @@ final class PropertyMetadata
         }
 
         return null;
-    }
-
-    public function sensitiveDataSubjectIdName(): string|null
-    {
-        return $this->sensitiveDataSubjectIdName;
     }
 
     /** @return serialized */

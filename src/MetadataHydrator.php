@@ -74,7 +74,7 @@ final class MetadataHydrator implements Hydrator
             return $this->doHydrate($metadata, $data);
         }
 
-        $lazy = $metadata->lazy() ?? $this->defaultLazy;
+        $lazy = $metadata->lazy ?? $this->defaultLazy;
 
         if (!$lazy) {
             return $this->doHydrate($metadata, $data);
@@ -105,9 +105,9 @@ final class MetadataHydrator implements Hydrator
 
         $constructorParameters = null;
 
-        foreach ($metadata->properties() as $propertyMetadata) {
-            if (!array_key_exists($propertyMetadata->fieldName(), $data)) {
-                if (!$propertyMetadata->reflection()->isPromoted()) {
+        foreach ($metadata->properties as $propertyMetadata) {
+            if (!array_key_exists($propertyMetadata->fieldName, $data)) {
+                if (!$propertyMetadata->reflection->isPromoted()) {
                     continue;
                 }
 
@@ -127,9 +127,9 @@ final class MetadataHydrator implements Hydrator
             }
 
             /** @psalm-suppress MixedAssignment */
-            $value = $data[$propertyMetadata->fieldName()];
+            $value = $data[$propertyMetadata->fieldName];
 
-            $normalizer = $propertyMetadata->normalizer();
+            $normalizer = $propertyMetadata->normalizer;
 
             if ($normalizer) {
                 if ($normalizer instanceof HydratorAwareNormalizer) {
@@ -160,7 +160,7 @@ final class MetadataHydrator implements Hydrator
             }
         }
 
-        foreach ($metadata->postHydrateCallbacks() as $callback) {
+        foreach ($metadata->postHydrateCallbacks as $callback) {
             $callback->invoke($object);
         }
 
@@ -184,17 +184,17 @@ final class MetadataHydrator implements Hydrator
         try {
             $metadata = $this->metadataFactory->metadata($object::class);
 
-            foreach ($metadata->preExtractCallbacks() as $callback) {
+            foreach ($metadata->preExtractCallbacks as $callback) {
                 $callback->invoke($object);
             }
 
             $data = [];
 
-            foreach ($metadata->properties() as $propertyMetadata) {
+            foreach ($metadata->properties as $propertyMetadata) {
                 /** @psalm-suppress MixedAssignment */
                 $value = $propertyMetadata->getValue($object);
 
-                $normalizer = $propertyMetadata->normalizer();
+                $normalizer = $propertyMetadata->normalizer;
 
                 if ($normalizer) {
                     if ($normalizer instanceof HydratorAwareNormalizer) {
@@ -221,7 +221,7 @@ final class MetadataHydrator implements Hydrator
                 }
 
                 /** @psalm-suppress MixedAssignment */
-                $data[$propertyMetadata->fieldName()] = $value;
+                $data[$propertyMetadata->fieldName] = $value;
             }
 
             if ($this->eventDispatcher) {
@@ -237,7 +237,7 @@ final class MetadataHydrator implements Hydrator
     /** @return array<string, ReflectionParameter> */
     private function promotedConstructorParametersWithDefaultValue(ClassMetadata $metadata): array
     {
-        $constructor = $metadata->reflection()->getConstructor();
+        $constructor = $metadata->reflection->getConstructor();
 
         if (!$constructor) {
             return [];
