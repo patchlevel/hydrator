@@ -62,6 +62,14 @@
             ]]]></code>
     </PossiblyInvalidArgument>
   </file>
+  <file src="src/Normalizer/ArrayNormalizer.php">
+    <MixedAssignment>
+      <code><![CDATA[$item]]></code>
+      <code><![CDATA[$item]]></code>
+      <code><![CDATA[$item]]></code>
+      <code><![CDATA[$item]]></code>
+    </MixedAssignment>
+  </file>
   <file src="src/Normalizer/ArrayShapeNormalizer.php">
     <MixedAssignment>
       <code><![CDATA[$result[$field]]]></code>
