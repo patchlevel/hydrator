@@ -36,12 +36,9 @@ use function array_values;
 
 final class AttributeMetadataFactory implements MetadataFactory
 {
-    /** @var array<class-string, ClassMetadata> */
-    private array $classMetadata = [];
-
     private readonly TypeResolver $typeResolver;
 
-    private readonly Guesser|null $guesser;
+    private readonly Guesser $guesser;
 
     public function __construct(
         TypeResolver|null $typeResolver = null,
@@ -60,13 +57,6 @@ final class AttributeMetadataFactory implements MetadataFactory
      */
     public function metadata(string $class): ClassMetadata
     {
-        if (array_key_exists($class, $this->classMetadata)) {
-            /** @var ClassMetadata<T> $classMetadata */
-            $classMetadata = $this->classMetadata[$class];
-
-            return $classMetadata;
-        }
-
         try {
             $reflectionClass = new ReflectionClass($class);
         } catch (ReflectionException) {
@@ -89,15 +79,6 @@ final class AttributeMetadataFactory implements MetadataFactory
      */
     private function getClassMetadata(ReflectionClass $reflectionClass): ClassMetadata
     {
-        $class = $reflectionClass->getName();
-
-        if (array_key_exists($class, $this->classMetadata)) {
-            /** @var ClassMetadata<T> $classMetadata */
-            $classMetadata = $this->classMetadata[$class];
-
-            return $classMetadata;
-        }
-
         $metadata = new ClassMetadata(
             $reflectionClass,
             $this->getPropertyMetadataList($reflectionClass),
@@ -114,8 +95,6 @@ final class AttributeMetadataFactory implements MetadataFactory
                 $this->getClassMetadata($parentMetadataClass),
             );
         }
-
-        $this->classMetadata[$class] = $metadata;
 
         return $metadata;
     }
