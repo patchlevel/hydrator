@@ -9,6 +9,7 @@ use Patchlevel\Hydrator\Cryptography\Cipher\Cipher;
 use Patchlevel\Hydrator\Cryptography\Cipher\CipherKey;
 use Patchlevel\Hydrator\Cryptography\Cipher\CipherKeyFactory;
 use Patchlevel\Hydrator\Cryptography\Cipher\DecryptionFailed;
+use Patchlevel\Hydrator\Cryptography\CryptographyMetadataFactory;
 use Patchlevel\Hydrator\Cryptography\MissingSubjectId;
 use Patchlevel\Hydrator\Cryptography\SensitiveDataPayloadCryptographer;
 use Patchlevel\Hydrator\Cryptography\Store\CipherKeyNotExists;
@@ -422,6 +423,10 @@ final class SensitiveDataPayloadCryptographerTest extends TestCase
     /** @param class-string $class */
     private function metadata(string $class): ClassMetadata
     {
-        return (new AttributeMetadataFactory())->metadata($class);
+        $factory = new CryptographyMetadataFactory(
+            new AttributeMetadataFactory(),
+        );
+
+        return $factory->metadata($class);
     }
 }

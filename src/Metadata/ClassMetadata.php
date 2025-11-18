@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Metadata;
 
 use ReflectionClass;
-use RuntimeException;
 
 /**
  * @psalm-type serialized array{
@@ -14,6 +13,7 @@ use RuntimeException;
  *     postHydrateCallbacks: list<CallbackMetadata>,
  *     preExtractCallbacks: list<CallbackMetadata>,
  *     lazy: bool|null,
+ *     extras: array<string, mixed>,
  * }
  * @template T of object = object
  */
@@ -24,6 +24,7 @@ final class ClassMetadata
      * @param list<PropertyMetadata> $properties
      * @param list<CallbackMetadata> $postHydrateCallbacks
      * @param list<CallbackMetadata> $preExtractCallbacks
+     * @param array<string, mixed>   $extras
      */
     public function __construct(
         public readonly ReflectionClass $reflection,
@@ -31,6 +32,7 @@ final class ClassMetadata
         public readonly array $postHydrateCallbacks = [],
         public readonly array $preExtractCallbacks = [],
         public readonly bool|null $lazy = null,
+        public array $extras = [],
     ) {
     }
 
@@ -51,28 +53,6 @@ final class ClassMetadata
         throw PropertyMetadataNotFound::withName($name);
     }
 
-    public function hasSubjectIdIdentifier(string $subjectIdIdentifier): bool
-    {
-        foreach ($this->properties as $property) {
-            if ($property->subjectIdName === $subjectIdIdentifier) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    public function getSubjectIdFieldName(string $subjectIdIdentifier): string
-    {
-        foreach ($this->properties as $property) {
-            if ($property->subjectIdName === $subjectIdIdentifier) {
-                return $property->fieldName;
-            }
-        }
-
-        throw new RuntimeException('No subject id');
-    }
-
     /** @return T */
     public function newInstance(): object
     {
@@ -88,6 +68,7 @@ final class ClassMetadata
             'postHydrateCallbacks' => $this->postHydrateCallbacks,
             'preExtractCallbacks' => $this->preExtractCallbacks,
             'lazy' => $this->lazy,
+            'extras' => $this->extras,
         ];
     }
 
@@ -99,5 +80,6 @@ final class ClassMetadata
         $this->postHydrateCallbacks = $data['postHydrateCallbacks'];
         $this->preExtractCallbacks = $data['preExtractCallbacks'];
         $this->lazy = $data['lazy'];
+        $this->extras = $data['extras'];
     }
 }

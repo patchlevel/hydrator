@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Cryptography;
 
+use Closure;
 use Patchlevel\Hydrator\Cryptography\Cipher\Cipher;
 use Patchlevel\Hydrator\Cryptography\Cipher\CipherKeyFactory;
 use Patchlevel\Hydrator\Cryptography\Cipher\DecryptionFailed;
@@ -12,7 +13,6 @@ use Patchlevel\Hydrator\Cryptography\Cipher\OpensslCipherKeyFactory;
 use Patchlevel\Hydrator\Cryptography\Store\CipherKeyNotExists;
 use Patchlevel\Hydrator\Cryptography\Store\CipherKeyStore;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
-use Patchlevel\Hydrator\Metadata\PropertyMetadata;
 
 use function array_key_exists;
 use function is_int;
@@ -20,6 +20,8 @@ use function is_string;
 
 final class SensitiveDataPayloadCryptographer implements PayloadCryptographer
 {
+    private const ENCRYPTED_PREFIX = '!';
+
     public function __construct(
         private readonly CipherKeyStore $cipherKeyStore,
         private readonly CipherKeyFactory $cipherKeyFactory,
@@ -36,12 +38,26 @@ final class SensitiveDataPayloadCryptographer implements PayloadCryptographer
      */
     public function encrypt(ClassMetadata $metadata, array $data): array
     {
+        $mapping = $metadata->extras[SubjectIdFieldMapping::class] ?? null;
+
+        if (!$mapping instanceof SubjectIdFieldMapping) {
+            return $data;
+        }
+
+        $subjectIds = $this->getSubjectIds($metadata, $mapping, $data);
+
         foreach ($metadata->properties as $propertyMetadata) {
-            if (!$propertyMetadata->isSensitiveData()) {
+            $sensitiveDataInfo = $propertyMetadata->extras[SensitiveDataInfo::class] ?? null;
+
+            if (!$sensitiveDataInfo instanceof SensitiveDataInfo) {
                 continue;
             }
 
-            $subjectId = $this->subjectId($propertyMetadata, $metadata, $data);
+            $subjectId = $subjectIds[$sensitiveDataInfo->subjectIdName] ?? null;
+
+            if ($subjectId === null) {
+                throw new MissingSubjectId($metadata->className(), $sensitiveDataInfo->subjectIdName);
+            }
 
             try {
                 $cipherKey = $this->cipherKeyStore->get($subjectId);
@@ -51,7 +67,7 @@ final class SensitiveDataPayloadCryptographer implements PayloadCryptographer
             }
 
             $targetFieldName = $this->useEncryptedFieldName
-                ? $propertyMetadata->encryptedFieldName()
+                ? self::ENCRYPTED_PREFIX . $propertyMetadata->fieldName
                 : $propertyMetadata->fieldName;
 
             $data[$targetFieldName] = $this->cipher->encrypt(
@@ -76,12 +92,26 @@ final class SensitiveDataPayloadCryptographer implements PayloadCryptographer
      */
     public function decrypt(ClassMetadata $metadata, array $data): array
     {
+        $mapping = $metadata->extras[SubjectIdFieldMapping::class] ?? null;
+
+        if (!$mapping instanceof SubjectIdFieldMapping) {
+            return $data;
+        }
+
+        $subjectIds = $this->getSubjectIds($metadata, $mapping, $data);
+
         foreach ($metadata->properties as $propertyMetadata) {
-            if (!$propertyMetadata->isSensitiveData()) {
+            $sensitiveDataInfo = $propertyMetadata->extras[SensitiveDataInfo::class] ?? null;
+
+            if (!$sensitiveDataInfo instanceof SensitiveDataInfo) {
                 continue;
             }
 
-            $subjectId = $this->subjectId($propertyMetadata, $metadata, $data);
+            $subjectId = $subjectIds[$sensitiveDataInfo->subjectIdName] ?? null;
+
+            if ($subjectId === null) {
+                throw new MissingSubjectId($metadata->className(), $sensitiveDataInfo->subjectIdName);
+            }
 
             try {
                 $cipherKey = $this->cipherKeyStore->get($subjectId);
@@ -89,9 +119,9 @@ final class SensitiveDataPayloadCryptographer implements PayloadCryptographer
                 $cipherKey = null;
             }
 
-            if ($this->useEncryptedFieldName && array_key_exists($propertyMetadata->encryptedFieldName(), $data)) {
-                $rawData = $data[$propertyMetadata->encryptedFieldName()];
-                unset($data[$propertyMetadata->encryptedFieldName()]);
+            if ($this->useEncryptedFieldName && array_key_exists(self::ENCRYPTED_PREFIX . $propertyMetadata->fieldName, $data)) {
+                $rawData = $data[self::ENCRYPTED_PREFIX . $propertyMetadata->fieldName];
+                unset($data[self::ENCRYPTED_PREFIX . $propertyMetadata->fieldName]);
             } elseif (!$this->useEncryptedFieldName || $this->fallbackToFieldName) {
                 $rawData = $data[$propertyMetadata->fieldName];
             } else {
@@ -99,7 +129,7 @@ final class SensitiveDataPayloadCryptographer implements PayloadCryptographer
             }
 
             if (!$cipherKey) {
-                $data[$propertyMetadata->fieldName] = $this->fallback($propertyMetadata, $subjectId, $rawData);
+                $data[$propertyMetadata->fieldName] = $this->fallback($sensitiveDataInfo, $subjectId, $rawData);
                 continue;
             }
 
@@ -109,54 +139,50 @@ final class SensitiveDataPayloadCryptographer implements PayloadCryptographer
                     $rawData,
                 );
             } catch (DecryptionFailed) {
-                $data[$propertyMetadata->fieldName] = $this->fallback($propertyMetadata, $subjectId, $rawData);
+                $data[$propertyMetadata->fieldName] = $this->fallback($sensitiveDataInfo, $subjectId, $rawData);
             }
         }
 
         return $data;
     }
 
-    /** @param array<string, mixed> $data */
-    private function subjectId(PropertyMetadata $propertyMetadata, ClassMetadata $metadata, array $data): string
+    /**
+     * @param array<string, mixed> $data
+     *
+     * @return array<string, string>
+     */
+    private function getSubjectIds(ClassMetadata $metadata, SubjectIdFieldMapping $mapping, array $data): array
     {
-        if (!$propertyMetadata->isSensitiveData()) {
-            throw new NotSensitiveData($metadata->className(), $propertyMetadata->propertyName());
+        $result = [];
+
+        foreach ($mapping->nameToField as $name => $fieldName) {
+            if (!array_key_exists($fieldName, $data)) {
+                throw new MissingSubjectId($metadata->className(), $fieldName);
+            }
+
+            $subjectId = $data[$fieldName];
+
+            if (is_int($subjectId)) {
+                $subjectId = (string)$subjectId;
+            }
+
+            if (!is_string($subjectId)) {
+                throw new UnsupportedSubjectId($metadata->className(), $fieldName, $subjectId);
+            }
+
+            $result[$name] = $subjectId;
         }
 
-        $sensitiveDataSubjectIdName = $propertyMetadata->sensitiveDataSubjectIdName;
-
-        if (!$metadata->hasSubjectIdIdentifier($sensitiveDataSubjectIdName)) {
-            throw new MissingSubjectId($metadata->className(), $propertyMetadata->propertyName());
-        }
-
-        $fieldName = $metadata->getSubjectIdFieldName($sensitiveDataSubjectIdName);
-
-        if (!array_key_exists($fieldName, $data)) {
-            throw new MissingSubjectId($metadata->className(), $fieldName);
-        }
-
-        $subjectId = $data[$fieldName];
-
-        if (is_int($subjectId)) {
-            $subjectId = (string)$subjectId;
-        }
-
-        if (!is_string($subjectId)) {
-            throw new UnsupportedSubjectId($metadata->className(), $fieldName, $subjectId);
-        }
-
-        return $subjectId;
+        return $result;
     }
 
-    private function fallback(PropertyMetadata $propertyMetadata, string $subjectId, mixed $rawData): mixed
+    private function fallback(SensitiveDataInfo $sensitiveDataInfo, string $subjectId, mixed $rawData): mixed
     {
-        $callback = $propertyMetadata->sensitiveDataFallbackCallable();
-
-        if (!$callback) {
-            return $propertyMetadata->sensitiveDataFallback;
+        if ($sensitiveDataInfo->fallback instanceof Closure) {
+            return ($sensitiveDataInfo->fallback)($subjectId, $rawData);
         }
 
-        return $callback($subjectId, $rawData);
+        return $sensitiveDataInfo->fallback;
     }
 
     /** @param non-empty-string $method */

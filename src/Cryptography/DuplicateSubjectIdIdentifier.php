@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Patchlevel\Hydrator\Metadata;
+namespace Patchlevel\Hydrator\Cryptography;
 
+use Patchlevel\Hydrator\Metadata\MetadataException;
 use RuntimeException;
 
 use function sprintf;
