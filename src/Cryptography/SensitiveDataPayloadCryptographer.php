@@ -57,7 +57,7 @@ final class SensitiveDataPayloadCryptographer implements PayloadCryptographer
             $subjectId = $subjectIds[$sensitiveDataInfo->subjectIdName] ?? null;
 
             if ($subjectId === null) {
-                throw new MissingSubjectId($metadata->className(), $sensitiveDataInfo->subjectIdName);
+                throw new MissingSubjectId($metadata->className, $sensitiveDataInfo->subjectIdName);
             }
 
             try {
@@ -111,7 +111,7 @@ final class SensitiveDataPayloadCryptographer implements PayloadCryptographer
             $subjectId = $subjectIds[$sensitiveDataInfo->subjectIdName] ?? null;
 
             if ($subjectId === null) {
-                throw new MissingSubjectId($metadata->className(), $sensitiveDataInfo->subjectIdName);
+                throw new MissingSubjectId($metadata->className, $sensitiveDataInfo->subjectIdName);
             }
 
             try {
@@ -158,7 +158,7 @@ final class SensitiveDataPayloadCryptographer implements PayloadCryptographer
 
         foreach ($mapping->nameToField as $name => $fieldName) {
             if (!array_key_exists($fieldName, $data)) {
-                throw new MissingSubjectId($metadata->className(), $fieldName);
+                throw new MissingSubjectId($metadata->className, $fieldName);
             }
 
             $subjectId = $data[$fieldName];
@@ -172,7 +172,7 @@ final class SensitiveDataPayloadCryptographer implements PayloadCryptographer
             }
 
             if (!is_string($subjectId)) {
-                throw new UnsupportedSubjectId($metadata->className(), $fieldName, $subjectId);
+                throw new UnsupportedSubjectId($metadata->className, $fieldName, $subjectId);
             }
 
             $result[$name] = $subjectId;

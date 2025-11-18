@@ -5,17 +5,17 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Tests\Benchmark;
 
 use Patchlevel\Hydrator\Cryptography\CryptographyMetadataFactory;
-use Patchlevel\Hydrator\Cryptography\CryptographySubscriber;
+use Patchlevel\Hydrator\Cryptography\CryptographyMiddleware;
 use Patchlevel\Hydrator\Cryptography\SensitiveDataPayloadCryptographer;
 use Patchlevel\Hydrator\Cryptography\Store\InMemoryCipherKeyStore;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\MetadataHydrator;
+use Patchlevel\Hydrator\Middleware\TransformMiddleware;
 use Patchlevel\Hydrator\Tests\Benchmark\Fixture\ProfileCreated;
 use Patchlevel\Hydrator\Tests\Benchmark\Fixture\ProfileId;
 use Patchlevel\Hydrator\Tests\Benchmark\Fixture\Skill;
 use PhpBench\Attributes as Bench;
-use Symfony\Component\EventDispatcher\EventDispatcher;
 
 #[Bench\BeforeMethods('setUp')]
 final class HydratorWithCryptographyBench
@@ -28,14 +28,12 @@ final class HydratorWithCryptographyBench
     {
         $this->store = new InMemoryCipherKeyStore();
 
-        $eventDispatcher = new EventDispatcher();
-        $eventDispatcher->addSubscriber(new CryptographySubscriber(
-            SensitiveDataPayloadCryptographer::createWithDefaultSettings($this->store),
-        ));
-
         $this->hydrator = new MetadataHydrator(
-            metadataFactory: new CryptographyMetadataFactory(new AttributeMetadataFactory()),
-            eventDispatcher: $eventDispatcher,
+            new CryptographyMetadataFactory(new AttributeMetadataFactory()),
+            [
+                new CryptographyMiddleware(SensitiveDataPayloadCryptographer::createWithDefaultSettings($this->store)),
+                new TransformMiddleware(),
+            ],
         );
     }
 
