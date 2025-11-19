@@ -34,6 +34,7 @@ final class ArrayNormalizerTest extends TestCase
     public function testNormalizeWithInvalidArgument(): void
     {
         $this->expectException(InvalidArgument::class);
+        $this->expectExceptionCode(0);
 
         $innerNormalizer = $this->createMock(Normalizer::class);
 
@@ -44,6 +45,7 @@ final class ArrayNormalizerTest extends TestCase
     public function testDenormalizeWithInvalidArgument(): void
     {
         $this->expectException(InvalidArgument::class);
+        $this->expectExceptionCode(0);
 
         $innerNormalizer = $this->createMock(Normalizer::class);
 
