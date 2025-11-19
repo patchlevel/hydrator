@@ -7,7 +7,7 @@ namespace Patchlevel\Hydrator\Tests\Unit\Fixture;
 use Patchlevel\Hydrator\Attribute\DataSubjectId;
 use Patchlevel\Hydrator\Attribute\PersonalData;
 
-class PersonalDataWithStringableSubjectId
+final class PersonalDataWithStringableSubjectId
 {
     public function __construct(
         #[DataSubjectId]

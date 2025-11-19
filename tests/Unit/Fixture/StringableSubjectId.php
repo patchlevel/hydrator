@@ -6,7 +6,7 @@ namespace Patchlevel\Hydrator\Tests\Unit\Fixture;
 
 use Stringable;
 
-class StringableSubjectId implements Stringable
+final class StringableSubjectId implements Stringable
 {
     public function __construct(private string $id)
     {
