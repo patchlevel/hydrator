@@ -28,6 +28,7 @@ final class DateTimeZoneNormalizerTest extends TestCase
     public function testNormalizeWithInvalidArgument(): void
     {
         $this->expectException(InvalidArgument::class);
+        $this->expectExceptionCode(0);
 
         $normalizer = new DateTimeZoneNormalizer();
         $normalizer->normalize(123);
@@ -36,6 +37,7 @@ final class DateTimeZoneNormalizerTest extends TestCase
     public function testDenormalizeWithInvalidArgument(): void
     {
         $this->expectException(InvalidArgument::class);
+        $this->expectExceptionCode(0);
 
         $normalizer = new DateTimeZoneNormalizer();
         $normalizer->denormalize(123);
