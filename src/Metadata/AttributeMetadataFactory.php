@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Metadata;
 
-use Patchlevel\Hydrator\Attribute\DataSubjectId;
 use Patchlevel\Hydrator\Attribute\Ignore;
 use Patchlevel\Hydrator\Attribute\Lazy;
 use Patchlevel\Hydrator\Attribute\NormalizedName;
 use Patchlevel\Hydrator\Attribute\PostHydrate;
 use Patchlevel\Hydrator\Attribute\PreExtract;
-use Patchlevel\Hydrator\Attribute\SensitiveData;
 use Patchlevel\Hydrator\Guesser\BuiltInGuesser;
 use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\Normalizer\ArrayNormalizer;
@@ -63,11 +61,7 @@ final class AttributeMetadataFactory implements MetadataFactory
             throw new ClassNotFound($class);
         }
 
-        $classMetadata = $this->getClassMetadata($reflectionClass);
-
-        $this->validate($classMetadata);
-
-        return $classMetadata;
+        return $this->getClassMetadata($reflectionClass);
     }
 
     /**
@@ -136,8 +130,6 @@ final class AttributeMetadataFactory implements MetadataFactory
                 $reflectionProperty,
                 $fieldName,
                 $this->getNormalizer($reflectionProperty),
-                $this->getSubjectId($reflectionProperty),
-                ...$this->getSensitiveData($reflectionProperty),
             );
         }
 
@@ -251,74 +243,14 @@ final class AttributeMetadataFactory implements MetadataFactory
             $properties[$property->fieldName] = $property;
         }
 
-        $mergedClassMetadata = new ClassMetadata(
+        return new ClassMetadata(
             $parent->reflection,
             array_values($properties),
             array_merge($parent->postHydrateCallbacks, $child->postHydrateCallbacks),
             array_merge($parent->preExtractCallbacks, $child->preExtractCallbacks),
             $child->lazy ?? $parent->lazy,
+            array_merge($parent->extras, $child->extras),
         );
-
-        $this->validate($mergedClassMetadata);
-
-        return $mergedClassMetadata;
-    }
-
-    private function getSubjectId(ReflectionProperty $reflectionProperty): string|null
-    {
-        $attributeReflectionList = $reflectionProperty->getAttributes(DataSubjectId::class);
-
-        if (!$attributeReflectionList) {
-            return null;
-        }
-
-        return $attributeReflectionList[0]->newInstance()->name;
-    }
-
-    /** @return array{string|null, mixed, (callable(string, mixed):mixed)|null} */
-    private function getSensitiveData(ReflectionProperty $reflectionProperty): array
-    {
-        $attributeReflectionList = $reflectionProperty->getAttributes(SensitiveData::class);
-
-        if ($attributeReflectionList === []) {
-            return [null, null, null];
-        }
-
-        $attribute = $attributeReflectionList[0]->newInstance();
-
-        return [$attribute->subjectIdName, $attribute->fallback, $attribute->fallbackCallable];
-    }
-
-    private function validate(ClassMetadata $metadata): void
-    {
-        $subjectIds = [];
-
-        foreach ($metadata->properties as $property) {
-            if ($property->isSensitiveData() && $property->isSubjectId()) {
-                throw new SubjectIdAndSensitiveDataConflict($metadata->className(), $property->propertyName());
-            }
-
-            if ($property->isSensitiveData() && !$metadata->hasSubjectIdIdentifier($property->sensitiveDataSubjectIdName)) {
-                throw new MissingDataSubjectId($metadata->className());
-            }
-
-            if (!$property->isSubjectId()) {
-                continue;
-            }
-
-            $subjectIdIdentifier = $property->subjectIdName;
-
-            if (array_key_exists($subjectIdIdentifier, $subjectIds)) {
-                throw new DuplicateSubjectIdIdentifier(
-                    $metadata->className(),
-                    $subjectIds[$subjectIdIdentifier],
-                    $property->propertyName(),
-                    $subjectIdIdentifier,
-                );
-            }
-
-            $subjectIds[$subjectIdIdentifier] = $property->propertyName();
-        }
     }
 
     private function getNormalizer(ReflectionProperty $reflectionProperty): Normalizer|null

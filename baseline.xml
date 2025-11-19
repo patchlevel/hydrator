@@ -34,11 +34,6 @@
       <code><![CDATA[new ReflectionClass($data['className'])]]></code>
     </InvalidPropertyAssignmentValue>
   </file>
-  <file src="src/Metadata/PropertyMetadata.php">
-    <RiskyTruthyFalsyComparison>
-      <code><![CDATA[$this->sensitiveDataFallbackCallable]]></code>
-    </RiskyTruthyFalsyComparison>
-  </file>
   <file src="src/MetadataHydrator.php">
     <InvalidOperand>
       <code><![CDATA[$guessers]]></code>
@@ -92,6 +87,11 @@
     <MixedReturnStatement>
       <code><![CDATA[Generator]]></code>
     </MixedReturnStatement>
+  </file>
+  <file src="tests/Unit/Cryptography/CryptographyMetadataFactoryTest.php">
+    <MixedAssignment>
+      <code><![CDATA[$sensitiveDataInfo]]></code>
+    </MixedAssignment>
   </file>
   <file src="tests/Unit/Cryptography/CryptographySubscriberTest.php">
     <InvalidArgument>
