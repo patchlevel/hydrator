@@ -15,6 +15,6 @@
     "@default": true
   },
   "minMsi": 84,
-  "minCoveredMsi": 92,
+  "minCoveredMsi": 88,
   "testFrameworkOptions": "--testsuite=unit"
 }

@@ -62,6 +62,7 @@ final class ObjectNormalizerTest extends TestCase
     public function testNormalizeWithInvalidArgument(): void
     {
         $this->expectException(InvalidArgument::class);
+        $this->expectExceptionCode(0);
         $this->expectExceptionMessage('type "Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated|null" was expected but "string" was passed.');
 
         $hydrator = $this->createMock(Hydrator::class);
@@ -74,6 +75,7 @@ final class ObjectNormalizerTest extends TestCase
     public function testDenormalizeWithInvalidArgument(): void
     {
         $this->expectException(InvalidArgument::class);
+        $this->expectExceptionCode(0);
         $this->expectExceptionMessage('array<string, mixed>|null" was expected but "string" was passed.');
 
         $hydrator = $this->createMock(Hydrator::class);

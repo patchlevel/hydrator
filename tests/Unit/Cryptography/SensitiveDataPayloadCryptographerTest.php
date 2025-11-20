@@ -20,6 +20,8 @@ use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\SensitiveDataProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\SensitiveDataProfileCreatedFallbackCallback;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\SensitiveDataWithStringableSubjectId;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\StringableSubjectId;
 use PHPUnit\Framework\TestCase;
 
 /** @covers \Patchlevel\Hydrator\Cryptography\SensitiveDataPayloadCryptographer */
@@ -407,6 +409,41 @@ final class SensitiveDataPayloadCryptographerTest extends TestCase
         );
 
         $cryptographer->decrypt($this->metadata(SensitiveDataProfileCreated::class), ['email' => 'encrypted']);
+    }
+
+    public function testStringableSubjectId(): void
+    {
+        $cipherKey = new CipherKey(
+            'user-123',
+            'bar',
+            'baz',
+        );
+
+        $cipherKeyStore = $this->createMock(CipherKeyStore::class);
+        $cipherKeyStore->method('get')->willThrowException(new CipherKeyNotExists('user-123'));
+        $cipherKeyStore->expects($this->once())->method('store')->with('user-123', $cipherKey);
+
+        $cipherKeyFactory = $this->createMock(CipherKeyFactory::class);
+        $cipherKeyFactory->expects($this->once())->method('__invoke')->willReturn($cipherKey);
+
+        $cipher = $this->createMock(Cipher::class);
+        $cipher->expects($this->once())->method('encrypt')->with($cipherKey, 'John Doe')
+            ->willReturn('encrypted');
+
+        $cryptographer = new SensitiveDataPayloadCryptographer(
+            $cipherKeyStore,
+            $cipherKeyFactory,
+            $cipher,
+        );
+
+        $subjectId = new StringableSubjectId('user-123');
+
+        $result = $cryptographer->encrypt(
+            $this->metadata(SensitiveDataWithStringableSubjectId::class),
+            ['subjectId' => $subjectId, 'name' => 'John Doe'],
+        );
+
+        self::assertEquals(['subjectId' => $subjectId, 'name' => 'encrypted'], $result);
     }
 
     public function testCreateWithOpenssl(): void

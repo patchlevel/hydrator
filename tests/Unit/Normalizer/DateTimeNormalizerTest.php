@@ -28,6 +28,7 @@ final class DateTimeNormalizerTest extends TestCase
     public function testNormalizeWithInvalidArgument(): void
     {
         $this->expectException(InvalidArgument::class);
+        $this->expectExceptionCode(0);
 
         $normalizer = new DateTimeNormalizer();
         $normalizer->normalize(123);
@@ -36,6 +37,7 @@ final class DateTimeNormalizerTest extends TestCase
     public function testDenormalizeWithInvalidArgument(): void
     {
         $this->expectException(InvalidArgument::class);
+        $this->expectExceptionCode(0);
 
         $normalizer = new DateTimeNormalizer();
         $normalizer->denormalize(123);

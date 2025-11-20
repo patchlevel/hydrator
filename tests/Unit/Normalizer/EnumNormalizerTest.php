@@ -31,6 +31,7 @@ final class EnumNormalizerTest extends TestCase
     public function testNormalizeWithInvalidArgument(): void
     {
         $this->expectException(InvalidArgument::class);
+        $this->expectExceptionCode(0);
         $this->expectExceptionMessage('type "Patchlevel\Hydrator\Tests\Unit\Fixture\Status|null" was expected but "string" was passed.');
 
         $normalizer = new EnumNormalizer(Status::class);
@@ -40,6 +41,7 @@ final class EnumNormalizerTest extends TestCase
     public function testDenormalizeWithInvalidArgument(): void
     {
         $this->expectException(InvalidArgument::class);
+        $this->expectExceptionCode(0);
         $this->expectExceptionMessage('foo');
         $this->expectExceptionMessage('Patchlevel\Hydrator\Tests\Unit\Fixture\Status');
 

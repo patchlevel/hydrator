@@ -173,6 +173,7 @@ final class MetadataHydratorTest extends TestCase
     public function testHydrateUnknownClass(): void
     {
         $this->expectException(ClassNotSupported::class);
+        $this->expectExceptionCode(0);
 
         $this->hydrator->hydrate(
             'Unknown',
