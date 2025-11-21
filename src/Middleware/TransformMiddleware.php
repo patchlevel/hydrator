@@ -8,6 +8,7 @@ use Patchlevel\Hydrator\CircularReference;
 use Patchlevel\Hydrator\DenormalizationFailure;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\NormalizationFailure;
+use Patchlevel\Hydrator\Normalizer\ContextAwareNormalizer;
 use Patchlevel\Hydrator\TypeMismatch;
 use ReflectionParameter;
 use Throwable;
@@ -25,12 +26,13 @@ final class TransformMiddleware implements Middleware
     /**
      * @param ClassMetadata<T>     $metadata
      * @param array<string, mixed> $data
+     * @param array<string, mixed> $context
      *
      * @return T
      *
      * @template T of object
      */
-    public function hydrate(ClassMetadata $metadata, array $data, Stack $stack): object
+    public function hydrate(ClassMetadata $metadata, array $data, array $context, Stack $stack): object
     {
         $object = $metadata->newInstance();
 
@@ -58,17 +60,20 @@ final class TransformMiddleware implements Middleware
                 continue;
             }
 
-            $normalizer = $propertyMetadata->normalizer;
-
-            if ($normalizer) {
+            if ($propertyMetadata->normalizer) {
                 try {
-                    /** @psalm-suppress MixedAssignment */
-                    $value = $normalizer->denormalize($data[$propertyMetadata->fieldName]);
+                    if ($propertyMetadata->normalizer instanceof ContextAwareNormalizer) {
+                        /** @psalm-suppress MixedAssignment */
+                        $value = $propertyMetadata->normalizer->denormalize($data[$propertyMetadata->fieldName], $context);
+                    } else {
+                        /** @psalm-suppress MixedAssignment */
+                        $value = $propertyMetadata->normalizer->denormalize($data[$propertyMetadata->fieldName]);
+                    }
                 } catch (Throwable $e) {
                     throw new DenormalizationFailure(
                         $metadata->className,
                         $propertyMetadata->propertyName,
-                        $normalizer::class,
+                        $propertyMetadata->normalizer::class,
                         $e,
                     );
                 }
@@ -90,8 +95,12 @@ final class TransformMiddleware implements Middleware
         return $object;
     }
 
-    /** @return array<string, mixed> */
-    public function extract(ClassMetadata $metadata, object $object, Stack $stack): array
+    /**
+     * @param array<string, mixed> $context
+     *
+     * @return array<string, mixed>
+     */
+    public function extract(ClassMetadata $metadata, object $object, array $context, Stack $stack): array
     {
         $objectId = spl_object_id($object);
 
@@ -110,10 +119,18 @@ final class TransformMiddleware implements Middleware
             foreach ($metadata->properties as $propertyMetadata) {
                 if ($propertyMetadata->normalizer) {
                     try {
-                        /** @psalm-suppress MixedAssignment */
-                        $data[$propertyMetadata->fieldName] = $propertyMetadata->normalizer->normalize(
-                            $propertyMetadata->getValue($object),
-                        );
+                        if ($propertyMetadata->normalizer instanceof ContextAwareNormalizer) {
+                            /** @psalm-suppress MixedAssignment */
+                            $data[$propertyMetadata->fieldName] = $propertyMetadata->normalizer->normalize(
+                                $propertyMetadata->getValue($object),
+                                $context,
+                            );
+                        } else {
+                            /** @psalm-suppress MixedAssignment */
+                            $data[$propertyMetadata->fieldName] = $propertyMetadata->normalizer->normalize(
+                                $propertyMetadata->getValue($object),
+                            );
+                        }
                     } catch (CircularReference $e) {
                         throw $e;
                     } catch (Throwable $e) {

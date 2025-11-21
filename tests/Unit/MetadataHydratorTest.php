@@ -498,27 +498,29 @@ final class MetadataHydratorTest extends TestCase
                     /**
                      * @param ClassMetadata<T>     $metadata
                      * @param array<string, mixed> $data
+                     * @param array<string, mixed> $context
                      *
                      * @return T
                      *
                      * @template T of object
                      */
-                    public function hydrate(ClassMetadata $metadata, array $data, Stack $stack): object
+                    public function hydrate(ClassMetadata $metadata, array $data, array $context, Stack $stack): object
                     {
-                        return $stack->next()->hydrate($metadata, $data, $stack);
+                        return $stack->next()->hydrate($metadata, $data, $context, $stack);
                     }
 
                     /**
-                     * @param ClassMetadata<T> $metadata
-                     * @param T                $object
+                     * @param ClassMetadata<T>     $metadata
+                     * @param T                    $object
+                     * @param array<string, mixed> $context
                      *
                      * @return array<string, mixed>
                      *
                      * @template T of object
                      */
-                    public function extract(ClassMetadata $metadata, object $object, Stack $stack): array
+                    public function extract(ClassMetadata $metadata, object $object, array $context, Stack $stack): array
                     {
-                        return $stack->next()->extract($metadata, $object, $stack);
+                        return $stack->next()->extract($metadata, $object, $context, $stack);
                     }
                 },
             ],

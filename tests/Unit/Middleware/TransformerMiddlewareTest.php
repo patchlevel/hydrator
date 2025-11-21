@@ -29,6 +29,7 @@ class TransformerMiddlewareTest extends TestCase
         $event = $middleware->hydrate(
             $this->classMetadata(ProfileCreated::class),
             ['profileId' => '1', 'email' => 'info@patchlevel.de'],
+            [],
             new Stack([]),
         );
 
@@ -47,6 +48,7 @@ class TransformerMiddlewareTest extends TestCase
                 ProfileId::fromString('1'),
                 Email::fromString('info@patchlevel.de'),
             ),
+            [],
             new Stack([]),
         );
 

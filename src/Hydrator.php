@@ -9,6 +9,7 @@ interface Hydrator
     /**
      * @param class-string<T>      $class
      * @param array<string, mixed> $data
+     * @param array<string, mixed> $context
      *
      * @return T
      *
@@ -16,8 +17,12 @@ interface Hydrator
      *
      * @template T of object
      */
-    public function hydrate(string $class, array $data): object;
+    public function hydrate(string $class, array $data, array $context = []): object;
 
-    /** @return array<string, mixed> */
-    public function extract(object $object): array;
+    /**
+     * @param array<string, mixed> $context
+     *
+     * @return array<string, mixed>
+     */
+    public function extract(object $object, array $context = []): array;
 }
