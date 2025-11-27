@@ -44,6 +44,7 @@ use Patchlevel\Hydrator\TypeMismatch;
 use PHPUnit\Framework\Attributes\RequiresPhp;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use stdClass;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\TypeInfo\Type\ObjectType;
 
@@ -534,14 +535,10 @@ final class MetadataHydratorTest extends TestCase
             Email::fromString('info@patchlevel.de'),
         );
 
-        self::assertInstanceOf(LazyProfileCreated::class, $event);
-
         $reflection = new ReflectionClass(LazyProfileCreated::class);
-
         self::assertTrue($reflection->isUninitializedLazyObject($event));
 
         $reflection->initializeLazyObject($event);
-
         self::assertEquals($expected, $event);
     }
 
@@ -576,21 +573,28 @@ final class MetadataHydratorTest extends TestCase
 
     public function testCreate(): void
     {
-        $eventDispatcher = $this->createMock(EventDispatcherInterface::class);
+        $guesser = new class implements Guesser {
+            public int $count = 0;
 
-        $hydrator = MetadataHydrator::create(
-            [
-                new class implements Guesser
-                {
-                    public function guess(ObjectType $type): Normalizer|null
-                    {
-                        return null;
-                    }
-                },
-            ],
-            $eventDispatcher,
-        );
+            /** @param ObjectType<stdClass> $type */
+            public function guess(ObjectType $type): Normalizer|null
+            {
+                $this->count++;
 
-        self::assertInstanceOf(MetadataHydrator::class, $hydrator);
+                return null;
+            }
+        };
+
+        $hydrator = MetadataHydrator::create([$guesser]);
+
+        $hydrator->extract(new InferNormalizerDto(
+            Status::Draft,
+            new DateTimeImmutable('2015-02-13 22:34:32+01:00'),
+            new DateTime('2015-02-13 22:34:32+01:00'),
+            new DateTimeZone('EDT'),
+            ['foo'],
+        ));
+
+        self::assertSame(4, $guesser->count);
     }
 }

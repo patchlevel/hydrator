@@ -4,6 +4,8 @@
       "src"
     ]
   },
+  "staticAnalysisTool": "phpstan",
+  "staticAnalysisToolOptions": "--memory-limit=-1",
   "logs": {
     "text": "infection.log",
     "html": "infection.html",
@@ -14,7 +16,7 @@
   "mutators": {
     "@default": true
   },
-  "minMsi": 84,
+  "minMsi": 89,
   "minCoveredMsi": 88,
   "testFrameworkOptions": "--testsuite=unit"
 }

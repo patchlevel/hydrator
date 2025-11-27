@@ -8,7 +8,7 @@ abstract class ChildDto
 {
     public function __construct(
         #[EmailNormalizer]
-        private Email $email,
+        public Email $email,
     ) {
     }
 }

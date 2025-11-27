@@ -27,7 +27,6 @@ jobs:
           coverage: "none"
           php-version: "${{ matrix.php-version }}"
           ini-values: memory_limit=-1, opcache.enable_cli=1, opcache.jit=tracing, opcache.jit_buffer_size=64M
-          extensions: pdo_sqlite
 
       - name: "Checkout base"
         uses: actions/checkout@v6
