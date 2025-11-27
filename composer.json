@@ -23,8 +23,8 @@
     "ext-openssl": "*",
     "psr/cache": "^2.0.0 || ^3.0.0",
     "psr/simple-cache": "^2.0.0 || ^3.0.0",
-    "symfony/event-dispatcher": "^5.4.29 || ^6.4.0 || ^7.0.0",
-    "symfony/type-info": "^7.3.0"
+    "symfony/event-dispatcher": "^5.4.29 || ^6.4.0 || ^7.0.0 || ^8.0.0",
+    "symfony/type-info": "^7.3.0 || ^8.0.0"
   },
   "require-dev": {
     "infection/infection": "^0.31.9",
@@ -33,7 +33,7 @@
     "phpstan/phpstan": "^2.1.0",
     "phpunit/phpunit": "^11.5.17",
     "psalm/plugin-phpunit": "^0.19.2",
-    "symfony/var-dumper": "^5.4.29 || ^6.4.0 || ^7.0.0",
+    "symfony/var-dumper": "^8.0.0",
     "vimeo/psalm": "^6.0.0"
   },
   "config": {
