@@ -11,7 +11,7 @@ abstract class ChildWithPersonalDataDto
     public function __construct(
         #[EmailNormalizer]
         #[PersonalData]
-        private Email $email,
+        public Email $email,
     ) {
     }
 }

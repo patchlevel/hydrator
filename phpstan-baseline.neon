@@ -107,3 +107,87 @@ parameters:
 			identifier: return.type
 			count: 1
 			path: src/Normalizer/ReflectionTypeUtil.php
+
+		-
+			message: '#^Method Patchlevel\\Hydrator\\Tests\\Unit\\Fixture\\DtoWithHooks\:\:postHydrate\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: tests/Unit/Fixture/DtoWithHooks.php
+
+		-
+			message: '#^Method Patchlevel\\Hydrator\\Tests\\Unit\\Fixture\\DtoWithHooks\:\:preExtract\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: tests/Unit/Fixture/DtoWithHooks.php
+
+		-
+			message: '#^Method class@anonymous/tests/Unit/Metadata/AttributeMetadataFactoryTest\.php\:454\:\:postHydrate\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: tests/Unit/Metadata/AttributeMetadataFactoryTest.php
+
+		-
+			message: '#^Method class@anonymous/tests/Unit/Metadata/AttributeMetadataFactoryTest\.php\:454\:\:preExtract\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: tests/Unit/Metadata/AttributeMetadataFactoryTest.php
+
+		-
+			message: '#^Parameter \#1 \$class of method Patchlevel\\Hydrator\\Metadata\\AttributeMetadataFactory\:\:metadata\(\) expects class\-string\<Unknown\>, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: tests/Unit/Metadata/AttributeMetadataFactoryTest.php
+
+		-
+			message: '#^Static method class@anonymous/tests/Unit/Metadata/AttributeMetadataFactoryTest\.php\:482\:\:postHydrate\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: tests/Unit/Metadata/AttributeMetadataFactoryTest.php
+
+		-
+			message: '#^Static method class@anonymous/tests/Unit/Metadata/AttributeMetadataFactoryTest\.php\:482\:\:preExtract\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: tests/Unit/Metadata/AttributeMetadataFactoryTest.php
+
+		-
+			message: '#^Parameter \#1 \$class of method Patchlevel\\Hydrator\\MetadataHydrator\:\:hydrate\(\) expects class\-string\<Unknown\>, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: tests/Unit/MetadataHydratorTest.php
+
+		-
+			message: '#^Cannot cast mixed to int\.$#'
+			identifier: cast.int
+			count: 2
+			path: tests/Unit/Normalizer/ArrayNormalizerTest.php
+
+		-
+			message: '#^Cannot cast mixed to string\.$#'
+			identifier: cast.string
+			count: 2
+			path: tests/Unit/Normalizer/ArrayNormalizerTest.php
+
+		-
+			message: '#^Parameter \#1 \$normalizer of class Patchlevel\\Hydrator\\Normalizer\\ArrayNormalizer constructor expects Patchlevel\\Hydrator\\Normalizer\\Normalizer, PHPUnit\\Framework\\MockObject\\MockObject given\.$#'
+			identifier: argument.type
+			count: 1
+			path: tests/Unit/Normalizer/ArrayNormalizerTest.php
+
+		-
+			message: '#^Cannot cast mixed to int\.$#'
+			identifier: cast.int
+			count: 2
+			path: tests/Unit/Normalizer/ArrayShapeNormalizerTest.php
+
+		-
+			message: '#^Cannot cast mixed to string\.$#'
+			identifier: cast.string
+			count: 2
+			path: tests/Unit/Normalizer/ArrayShapeNormalizerTest.php
+
+		-
+			message: '#^Parameter \#1 \$normalizerMap of class Patchlevel\\Hydrator\\Normalizer\\ArrayShapeNormalizer constructor expects array\<Patchlevel\\Hydrator\\Normalizer\\Normalizer\>, array\<string, PHPUnit\\Framework\\MockObject\\MockObject\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: tests/Unit/Normalizer/ArrayShapeNormalizerTest.php

@@ -12,7 +12,7 @@ final class IgnoreParentDto extends ChildDto
         #[IdNormalizer]
         public ProfileId $profileId,
         #[Ignore]
-        private Email $email,
+        public Email $email,
     ) {
         parent::__construct($email);
     }
