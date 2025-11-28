@@ -67,12 +67,6 @@ parameters:
 			path: src/Metadata/ClassMetadata.php
 
 		-
-			message: '#^Dead catch \- Patchlevel\\Hydrator\\CircularReference is never thrown in the try block\.$#'
-			identifier: catch.neverThrown
-			count: 1
-			path: src/MetadataHydrator.php
-
-		-
 			message: '#^Property Patchlevel\\Hydrator\\Normalizer\\EnumNormalizer\:\:\$enum \(class\-string\<BackedEnum\>\|null\) does not accept string\.$#'
 			identifier: assign.propertyType
 			count: 1
@@ -97,50 +91,14 @@ parameters:
 			path: tests/Unit/Fixture/ChildWithSensitiveDataWithIdentifierDto.php
 
 		-
-			message: '#^Method Patchlevel\\Hydrator\\Tests\\Unit\\Fixture\\DtoWithHooks\:\:postHydrate\(\) is unused\.$#'
-			identifier: method.unused
-			count: 1
-			path: tests/Unit/Fixture/DtoWithHooks.php
-
-		-
-			message: '#^Method Patchlevel\\Hydrator\\Tests\\Unit\\Fixture\\DtoWithHooks\:\:preExtract\(\) is unused\.$#'
-			identifier: method.unused
-			count: 1
-			path: tests/Unit/Fixture/DtoWithHooks.php
-
-		-
 			message: '#^Property Patchlevel\\Hydrator\\Tests\\Unit\\Fixture\\IdNormalizer\:\:\$idClass \(class\-string\<Patchlevel\\Hydrator\\Tests\\Unit\\Fixture\\Id\>\|null\) does not accept string\.$#'
 			identifier: assign.propertyType
 			count: 1
 			path: tests/Unit/Fixture/IdNormalizer.php
 
 		-
-			message: '#^Method class@anonymous/tests/Unit/Metadata/AttributeMetadataFactoryTest\.php\:344\:\:postHydrate\(\) is unused\.$#'
-			identifier: method.unused
-			count: 1
-			path: tests/Unit/Metadata/AttributeMetadataFactoryTest.php
-
-		-
-			message: '#^Method class@anonymous/tests/Unit/Metadata/AttributeMetadataFactoryTest\.php\:344\:\:preExtract\(\) is unused\.$#'
-			identifier: method.unused
-			count: 1
-			path: tests/Unit/Metadata/AttributeMetadataFactoryTest.php
-
-		-
 			message: '#^Parameter \#1 \$class of method Patchlevel\\Hydrator\\Metadata\\AttributeMetadataFactory\:\:metadata\(\) expects class\-string\<Unknown\>, string given\.$#'
 			identifier: argument.type
-			count: 1
-			path: tests/Unit/Metadata/AttributeMetadataFactoryTest.php
-
-		-
-			message: '#^Static method class@anonymous/tests/Unit/Metadata/AttributeMetadataFactoryTest\.php\:372\:\:postHydrate\(\) is unused\.$#'
-			identifier: method.unused
-			count: 1
-			path: tests/Unit/Metadata/AttributeMetadataFactoryTest.php
-
-		-
-			message: '#^Static method class@anonymous/tests/Unit/Metadata/AttributeMetadataFactoryTest\.php\:372\:\:preExtract\(\) is unused\.$#'
-			identifier: method.unused
 			count: 1
 			path: tests/Unit/Metadata/AttributeMetadataFactoryTest.php
 

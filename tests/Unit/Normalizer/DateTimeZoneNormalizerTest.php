@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Unit\Normalizer;
 
-use Attribute;
 use DateTimeZone;
 use Patchlevel\Hydrator\Normalizer\DateTimeZoneNormalizer;
 use Patchlevel\Hydrator\Normalizer\InvalidArgument;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-#[Attribute(Attribute::TARGET_PROPERTY)]
+#[CoversClass(DateTimeZoneNormalizer::class)]
 final class DateTimeZoneNormalizerTest extends TestCase
 {
     public function testNormalizeWithNull(): void

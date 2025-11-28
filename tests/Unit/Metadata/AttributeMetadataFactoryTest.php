@@ -25,8 +25,10 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWithGeneric;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Wrapper;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(AttributeMetadataFactory::class)]
 final class AttributeMetadataFactoryTest extends TestCase
 {
     public function testEmptyObject(): void

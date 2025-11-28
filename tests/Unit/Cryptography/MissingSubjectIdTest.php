@@ -6,9 +6,10 @@ namespace Patchlevel\Hydrator\Tests\Unit\Cryptography;
 
 use Patchlevel\Hydrator\Cryptography\MissingSubjectId;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-/** @covers \Patchlevel\Hydrator\Cryptography\MissingSubjectId */
+#[CoversClass(MissingSubjectId::class)]
 final class MissingSubjectIdTest extends TestCase
 {
     public function testCreation(): void

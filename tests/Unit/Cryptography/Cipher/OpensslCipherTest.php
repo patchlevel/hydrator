@@ -9,10 +9,11 @@ use Patchlevel\Hydrator\Cryptography\Cipher\CipherKey;
 use Patchlevel\Hydrator\Cryptography\Cipher\DecryptionFailed;
 use Patchlevel\Hydrator\Cryptography\Cipher\EncryptionFailed;
 use Patchlevel\Hydrator\Cryptography\Cipher\OpensslCipher;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-/** @covers \Patchlevel\Hydrator\Cryptography\Cipher\OpensslCipher */
+#[CoversClass(OpensslCipher::class)]
 final class OpensslCipherTest extends TestCase
 {
     #[DataProvider('dataProvider')]

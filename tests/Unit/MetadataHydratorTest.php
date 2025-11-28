@@ -41,13 +41,15 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\StatusWithNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer;
 use Patchlevel\Hydrator\TypeMismatch;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\RequiresPhp;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use stdClass;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\TypeInfo\Type\ObjectType;
 
+#[CoversClass(MetadataHydrator::class)]
+#[CoversClass(TransformMiddleware::class)]
 final class MetadataHydratorTest extends TestCase
 {
     private MetadataHydrator $hydrator;

@@ -22,9 +22,10 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\SensitiveDataProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\SensitiveDataProfileCreatedFallbackCallback;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\SensitiveDataWithStringableSubjectId;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\StringableSubjectId;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-/** @covers \Patchlevel\Hydrator\Cryptography\SensitiveDataPayloadCryptographer */
+#[CoversClass(SensitiveDataPayloadCryptographer::class)]
 final class SensitiveDataPayloadCryptographerTest extends TestCase
 {
     public function testSkipEncrypt(): void

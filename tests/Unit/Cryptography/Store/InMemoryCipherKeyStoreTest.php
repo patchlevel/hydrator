@@ -7,9 +7,10 @@ namespace Patchlevel\Hydrator\Tests\Unit\Cryptography\Store;
 use Patchlevel\Hydrator\Cryptography\Cipher\CipherKey;
 use Patchlevel\Hydrator\Cryptography\Store\CipherKeyNotExists;
 use Patchlevel\Hydrator\Cryptography\Store\InMemoryCipherKeyStore;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-/** @covers \Patchlevel\Hydrator\Cryptography\Store\InMemoryCipherKeyStore */
+#[CoversClass(InMemoryCipherKeyStore::class)]
 final class InMemoryCipherKeyStoreTest extends TestCase
 {
     public function testStoreAndLoad(): void
