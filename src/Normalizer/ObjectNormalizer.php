@@ -6,7 +6,6 @@ namespace Patchlevel\Hydrator\Normalizer;
 
 use Attribute;
 use Patchlevel\Hydrator\Hydrator;
-use ReflectionType;
 use Symfony\Component\TypeInfo\Type;
 use Symfony\Component\TypeInfo\Type\GenericType;
 use Symfony\Component\TypeInfo\Type\NullableType;
@@ -16,7 +15,7 @@ use Symfony\Component\TypeInfo\Type\TemplateType;
 use function is_array;
 
 #[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_CLASS)]
-final class ObjectNormalizer implements Normalizer, ReflectionTypeAwareNormalizer, TypeAwareNormalizer, HydratorAwareNormalizer
+final class ObjectNormalizer implements Normalizer, TypeAwareNormalizer, HydratorAwareNormalizer
 {
     private Hydrator|null $hydrator = null;
 
@@ -68,16 +67,6 @@ final class ObjectNormalizer implements Normalizer, ReflectionTypeAwareNormalize
     public function setHydrator(Hydrator $hydrator): void
     {
         $this->hydrator = $hydrator;
-    }
-
-    /** @deprecated use handleType instead */
-    public function handleReflectionType(ReflectionType|null $reflectionType): void
-    {
-        if ($this->className !== null || $reflectionType === null) {
-            return;
-        }
-
-        $this->className = ReflectionTypeUtil::classString($reflectionType);
     }
 
     public function handleType(Type|null $type): void

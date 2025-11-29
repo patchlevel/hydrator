@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Metadata;
 
-use Patchlevel\Hydrator\Attribute\DataSubjectId;
 use Patchlevel\Hydrator\Attribute\Ignore;
 use Patchlevel\Hydrator\Attribute\Lazy;
 use Patchlevel\Hydrator\Attribute\NormalizedName;
-use Patchlevel\Hydrator\Attribute\PersonalData;
 use Patchlevel\Hydrator\Attribute\PostHydrate;
 use Patchlevel\Hydrator\Attribute\PreExtract;
 use Patchlevel\Hydrator\Guesser\BuiltInGuesser;
@@ -16,7 +14,6 @@ use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\Normalizer\ArrayNormalizer;
 use Patchlevel\Hydrator\Normalizer\ArrayShapeNormalizer;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
-use Patchlevel\Hydrator\Normalizer\ReflectionTypeAwareNormalizer;
 use Patchlevel\Hydrator\Normalizer\TypeAwareNormalizer;
 use ReflectionAttribute;
 use ReflectionClass;
@@ -37,12 +34,9 @@ use function array_values;
 
 final class AttributeMetadataFactory implements MetadataFactory
 {
-    /** @var array<class-string, ClassMetadata> */
-    private array $classMetadata = [];
-
     private readonly TypeResolver $typeResolver;
 
-    private readonly Guesser|null $guesser;
+    private readonly Guesser $guesser;
 
     public function __construct(
         TypeResolver|null $typeResolver = null,
@@ -61,24 +55,13 @@ final class AttributeMetadataFactory implements MetadataFactory
      */
     public function metadata(string $class): ClassMetadata
     {
-        if (array_key_exists($class, $this->classMetadata)) {
-            /** @var ClassMetadata<T> $classMetadata */
-            $classMetadata = $this->classMetadata[$class];
-
-            return $classMetadata;
-        }
-
         try {
             $reflectionClass = new ReflectionClass($class);
         } catch (ReflectionException) {
             throw new ClassNotFound($class);
         }
 
-        $classMetadata = $this->getClassMetadata($reflectionClass);
-
-        $this->validate($classMetadata);
-
-        return $classMetadata;
+        return $this->getClassMetadata($reflectionClass);
     }
 
     /**
@@ -90,19 +73,9 @@ final class AttributeMetadataFactory implements MetadataFactory
      */
     private function getClassMetadata(ReflectionClass $reflectionClass): ClassMetadata
     {
-        $class = $reflectionClass->getName();
-
-        if (array_key_exists($class, $this->classMetadata)) {
-            /** @var ClassMetadata<T> $classMetadata */
-            $classMetadata = $this->classMetadata[$class];
-
-            return $classMetadata;
-        }
-
         $metadata = new ClassMetadata(
             $reflectionClass,
             $this->getPropertyMetadataList($reflectionClass),
-            $this->getSubjectIdField($reflectionClass),
             $this->getPostHydrateCallbacks($reflectionClass),
             $this->getPreExtractCallbacks($reflectionClass),
             $this->getLazy($reflectionClass),
@@ -116,8 +89,6 @@ final class AttributeMetadataFactory implements MetadataFactory
                 $this->getClassMetadata($parentMetadataClass),
             );
         }
-
-        $this->classMetadata[$class] = $metadata;
 
         return $metadata;
     }
@@ -159,7 +130,6 @@ final class AttributeMetadataFactory implements MetadataFactory
                 $reflectionProperty,
                 $fieldName,
                 $this->getNormalizer($reflectionProperty),
-                ...$this->getPersonalData($reflectionProperty),
             );
         }
 
@@ -257,99 +227,30 @@ final class AttributeMetadataFactory implements MetadataFactory
     {
         $properties = [];
 
-        foreach ($parent->properties() as $property) {
-            $properties[$property->fieldName()] = $property;
+        foreach ($parent->properties as $property) {
+            $properties[$property->fieldName] = $property;
         }
 
-        foreach ($child->properties() as $property) {
-            if (array_key_exists($property->fieldName(), $properties)) {
+        foreach ($child->properties as $property) {
+            if (array_key_exists($property->fieldName, $properties)) {
                 throw DuplicatedFieldNameInMetadata::byInheritance(
-                    $property->fieldName(),
+                    $property->fieldName,
                     $parent->className(),
                     $child->className(),
                 );
             }
 
-            $properties[$property->fieldName()] = $property;
-        }
-
-        $parentDataSubjectIdField = $parent->dataSubjectIdField();
-        $childDataSubjectIdField = $child->dataSubjectIdField();
-
-        if ($parentDataSubjectIdField !== null && $childDataSubjectIdField !== null) {
-            $parentProperty = $parent->propertyForField($parentDataSubjectIdField);
-            $childProperty = $child->propertyForField($childDataSubjectIdField);
-
-            throw new MultipleDataSubjectId($parentProperty->propertyName(), $childProperty->propertyName());
+            $properties[$property->fieldName] = $property;
         }
 
         return new ClassMetadata(
-            $parent->reflection(),
+            $parent->reflection,
             array_values($properties),
-            $parentDataSubjectIdField ?? $childDataSubjectIdField,
-            array_merge($parent->postHydrateCallbacks(), $child->postHydrateCallbacks()),
-            array_merge($parent->preExtractCallbacks(), $child->preExtractCallbacks()),
-            $child->lazy() ?? $parent->lazy(),
+            array_merge($parent->postHydrateCallbacks, $child->postHydrateCallbacks),
+            array_merge($parent->preExtractCallbacks, $child->preExtractCallbacks),
+            $child->lazy ?? $parent->lazy,
+            array_merge($parent->extras, $child->extras),
         );
-    }
-
-    /** @param ReflectionClass<object> $reflectionClass */
-    private function getSubjectIdField(ReflectionClass $reflectionClass): string|null
-    {
-        $property = null;
-
-        foreach ($reflectionClass->getProperties() as $reflectionProperty) {
-            $attributeReflectionList = $reflectionProperty->getAttributes(DataSubjectId::class);
-
-            if (!$attributeReflectionList) {
-                continue;
-            }
-
-            if ($property !== null) {
-                throw new MultipleDataSubjectId($property->getName(), $reflectionProperty->getName());
-            }
-
-            $property = $reflectionProperty;
-        }
-
-        if ($property === null) {
-            return null;
-        }
-
-        return $this->getFieldName($property);
-    }
-
-    /** @return array{bool, mixed, (callable(string, mixed):mixed)|null} */
-    private function getPersonalData(ReflectionProperty $reflectionProperty): array
-    {
-        $attributeReflectionList = $reflectionProperty->getAttributes(PersonalData::class);
-
-        if ($attributeReflectionList === []) {
-            return [false, null];
-        }
-
-        $attribute = $attributeReflectionList[0]->newInstance();
-
-        return [true, $attribute->fallback, $attribute->fallbackCallable];
-    }
-
-    private function validate(ClassMetadata $metadata): void
-    {
-        $hasPersonalData = false;
-
-        foreach ($metadata->properties() as $property) {
-            if ($property->isPersonalData()) {
-                $hasPersonalData = true;
-            }
-
-            if ($property->isPersonalData() && $metadata->dataSubjectIdField() === $property->fieldName()) {
-                throw new SubjectIdAndPersonalDataConflict($metadata->className(), $property->propertyName());
-            }
-        }
-
-        if ($hasPersonalData && $metadata->dataSubjectIdField() === null) {
-            throw new MissingDataSubjectId($metadata->className());
-        }
     }
 
     private function getNormalizer(ReflectionProperty $reflectionProperty): Normalizer|null
@@ -364,10 +265,6 @@ final class AttributeMetadataFactory implements MetadataFactory
 
         if ($normalizer instanceof TypeAwareNormalizer) {
             $normalizer->handleType($type ?? $this->typeResolver->resolve($reflectionProperty));
-        }
-
-        if ($normalizer instanceof ReflectionTypeAwareNormalizer) {
-            $normalizer->handleReflectionType($reflectionProperty->getType());
         }
 
         return $normalizer;

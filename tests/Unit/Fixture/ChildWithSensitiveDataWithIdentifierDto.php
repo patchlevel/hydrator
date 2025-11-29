@@ -6,11 +6,12 @@ namespace Patchlevel\Hydrator\Tests\Unit\Fixture;
 
 use Patchlevel\Hydrator\Attribute\SensitiveData;
 
-final class MissingSubjectIdDto
+abstract class ChildWithSensitiveDataWithIdentifierDto
 {
     public function __construct(
-        #[SensitiveData(fallback: 'fallback')]
-        public Email $email,
+        #[EmailNormalizer]
+        #[SensitiveData(subjectIdName: 'profile')]
+        private Email $email,
     ) {
     }
 }

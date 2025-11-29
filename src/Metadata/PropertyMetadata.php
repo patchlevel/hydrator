@@ -4,12 +4,8 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Metadata;
 
-use Closure;
-use InvalidArgumentException;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
 use ReflectionProperty;
-
-use function str_starts_with;
 
 /**
  * @psalm-type serialized = array{
@@ -17,51 +13,23 @@ use function str_starts_with;
  *     property: string,
  *     fieldName: string,
  *     normalizer: Normalizer|null,
- *     isPersonalData: bool,
- *     personalDataFallback: mixed
+ *     extras: array<string, mixed>,
  * }
  */
 final class PropertyMetadata
 {
-    private const ENCRYPTED_PREFIX = '!';
-
-    /** @param (callable(string, mixed):mixed)|null $personalDataFallbackCallable */
+    /** @param array<string, mixed> $extras */
     public function __construct(
-        private readonly ReflectionProperty $reflection,
-        private readonly string $fieldName,
-        private readonly Normalizer|null $normalizer = null,
-        private readonly bool $isPersonalData = false,
-        private readonly mixed $personalDataFallback = null,
-        private readonly mixed $personalDataFallbackCallable = null,
+        public readonly ReflectionProperty $reflection,
+        public readonly string $fieldName,
+        public readonly Normalizer|null $normalizer = null,
+        public array $extras = [],
     ) {
-        if (str_starts_with($fieldName, self::ENCRYPTED_PREFIX)) {
-            throw new InvalidArgumentException('fieldName must not start with !');
-        }
-    }
-
-    public function reflection(): ReflectionProperty
-    {
-        return $this->reflection;
     }
 
     public function propertyName(): string
     {
         return $this->reflection->getName();
-    }
-
-    public function fieldName(): string
-    {
-        return $this->fieldName;
-    }
-
-    public function encryptedFieldName(): string
-    {
-        return self::ENCRYPTED_PREFIX . $this->fieldName;
-    }
-
-    public function normalizer(): Normalizer|null
-    {
-        return $this->normalizer;
     }
 
     public function setValue(object $object, mixed $value): void
@@ -74,26 +42,6 @@ final class PropertyMetadata
         return $this->reflection->getValue($object);
     }
 
-    public function isPersonalData(): bool
-    {
-        return $this->isPersonalData;
-    }
-
-    public function personalDataFallback(): mixed
-    {
-        return $this->personalDataFallback;
-    }
-
-    /** @return (Closure(string, mixed):mixed)|null */
-    public function personalDataFallbackCallback(): Closure|null
-    {
-        if ($this->personalDataFallbackCallable) {
-            return ($this->personalDataFallbackCallable)(...);
-        }
-
-        return null;
-    }
-
     /** @return serialized */
     public function __serialize(): array
     {
@@ -102,8 +50,7 @@ final class PropertyMetadata
             'property' => $this->reflection->getName(),
             'fieldName' => $this->fieldName,
             'normalizer' => $this->normalizer,
-            'isPersonalData' => $this->isPersonalData,
-            'personalDataFallback' => $this->personalDataFallback,
+            'extras' => $this->extras,
         ];
     }
 
@@ -113,7 +60,6 @@ final class PropertyMetadata
         $this->reflection = new ReflectionProperty($data['className'], $data['property']);
         $this->fieldName = $data['fieldName'];
         $this->normalizer = $data['normalizer'];
-        $this->isPersonalData = $data['isPersonalData'];
-        $this->personalDataFallback = $data['personalDataFallback'];
+        $this->extras = $data['extras'];
     }
 }

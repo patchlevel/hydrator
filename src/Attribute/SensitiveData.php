@@ -8,7 +8,7 @@ use Attribute;
 use InvalidArgumentException;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
-final class PersonalData
+final class SensitiveData
 {
     /** @var (callable(string, mixed):mixed)|null */
     public readonly mixed $fallbackCallable;
@@ -16,6 +16,7 @@ final class PersonalData
     public function __construct(
         public readonly mixed $fallback = null,
         callable|null $fallbackCallable = null,
+        public readonly string $subjectIdName = 'default',
     ) {
         $this->fallbackCallable = $fallbackCallable;
 

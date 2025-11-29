@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Tests\Unit\Fixture;
 
 use Patchlevel\Hydrator\Attribute\DataSubjectId;
-use Patchlevel\Hydrator\Attribute\PersonalData;
 
-final class PersonalDataWithStringableSubjectId
+final class ParentWithSensitiveDataDto extends ChildWithSensitiveDataDto
 {
     public function __construct(
+        #[IdNormalizer]
         #[DataSubjectId]
-        public StringableSubjectId $subjectId,
-        #[PersonalData]
-        public string $name,
+        public ProfileId $profileId,
+        Email $email,
     ) {
+        parent::__construct($email);
     }
 }

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Tests\Benchmark\Fixture;
 
 use Patchlevel\Hydrator\Attribute\DataSubjectId;
-use Patchlevel\Hydrator\Attribute\PersonalData;
+use Patchlevel\Hydrator\Attribute\SensitiveData;
 
 final class ProfileCreated
 {
@@ -14,7 +14,7 @@ final class ProfileCreated
         #[ProfileIdNormalizer]
         #[DataSubjectId]
         public ProfileId $profileId,
-        #[PersonalData(fallback: 'unknown')]
+        #[SensitiveData(fallback: 'unknown')]
         public string $name,
         public array $skills = [],
     ) {

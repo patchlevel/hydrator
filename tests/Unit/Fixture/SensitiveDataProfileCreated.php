@@ -6,9 +6,9 @@ namespace Patchlevel\Hydrator\Tests\Unit\Fixture;
 
 use Patchlevel\Hydrator\Attribute\DataSubjectId;
 use Patchlevel\Hydrator\Attribute\NormalizedName;
-use Patchlevel\Hydrator\Attribute\PersonalData;
+use Patchlevel\Hydrator\Attribute\SensitiveData;
 
-final class PersonalDataProfileCreated
+final class SensitiveDataProfileCreated
 {
     public function __construct(
         #[IdNormalizer]
@@ -16,7 +16,7 @@ final class PersonalDataProfileCreated
         #[DataSubjectId]
         public ProfileId $profileId,
         #[EmailNormalizer]
-        #[PersonalData(fallback: new Email('unknown'))]
+        #[SensitiveData(fallback: new Email('unknown'))]
         public Email $email,
     ) {
     }

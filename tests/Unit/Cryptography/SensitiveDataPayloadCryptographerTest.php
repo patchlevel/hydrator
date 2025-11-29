@@ -4,27 +4,28 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Unit\Cryptography;
 
-use Patchlevel\Hydrator\Attribute\PersonalData;
+use Patchlevel\Hydrator\Attribute\SensitiveData;
 use Patchlevel\Hydrator\Cryptography\Cipher\Cipher;
 use Patchlevel\Hydrator\Cryptography\Cipher\CipherKey;
 use Patchlevel\Hydrator\Cryptography\Cipher\CipherKeyFactory;
 use Patchlevel\Hydrator\Cryptography\Cipher\DecryptionFailed;
+use Patchlevel\Hydrator\Cryptography\CryptographyMetadataFactory;
 use Patchlevel\Hydrator\Cryptography\MissingSubjectId;
-use Patchlevel\Hydrator\Cryptography\PersonalDataPayloadCryptographer;
+use Patchlevel\Hydrator\Cryptography\SensitiveDataPayloadCryptographer;
 use Patchlevel\Hydrator\Cryptography\Store\CipherKeyNotExists;
 use Patchlevel\Hydrator\Cryptography\Store\CipherKeyStore;
 use Patchlevel\Hydrator\Cryptography\UnsupportedSubjectId;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
-use Patchlevel\Hydrator\Tests\Unit\Fixture\PersonalDataProfileCreated;
-use Patchlevel\Hydrator\Tests\Unit\Fixture\PersonalDataProfileCreatedFallbackCallback;
-use Patchlevel\Hydrator\Tests\Unit\Fixture\PersonalDataWithStringableSubjectId;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\SensitiveDataProfileCreated;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\SensitiveDataProfileCreatedFallbackCallback;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\SensitiveDataWithStringableSubjectId;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\StringableSubjectId;
 use PHPUnit\Framework\TestCase;
 
-/** @covers \Patchlevel\Hydrator\Cryptography\PersonalDataPayloadCryptographer */
-final class PersonalDataPayloadCryptographerTest extends TestCase
+/** @covers \Patchlevel\Hydrator\Cryptography\SensitiveDataPayloadCryptographer */
+final class SensitiveDataPayloadCryptographerTest extends TestCase
 {
     public function testSkipEncrypt(): void
     {
@@ -34,7 +35,7 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
         $cipherKeyFactory = $this->createMock(CipherKeyFactory::class);
         $cipher = $this->createMock(Cipher::class);
 
-        $cryptographer = new PersonalDataPayloadCryptographer(
+        $cryptographer = new SensitiveDataPayloadCryptographer(
             $cipherKeyStore,
             $cipherKeyFactory,
             $cipher,
@@ -42,7 +43,7 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
 
         $payload = ['id' => 'foo', 'email' => 'info@patchlevel.de'];
 
-        $result = $cryptographer->encrypt($this->metadata(PersonalData::class), ['id' => 'foo', 'email' => 'info@patchlevel.de']);
+        $result = $cryptographer->encrypt($this->metadata(SensitiveData::class), ['id' => 'foo', 'email' => 'info@patchlevel.de']);
 
         self::assertSame($payload, $result);
     }
@@ -66,13 +67,13 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
         $cipher->expects($this->once())->method('encrypt')->with($cipherKey, 'info@patchlevel.de')
             ->willReturn('encrypted');
 
-        $cryptographer = new PersonalDataPayloadCryptographer(
+        $cryptographer = new SensitiveDataPayloadCryptographer(
             $cipherKeyStore,
             $cipherKeyFactory,
             $cipher,
         );
 
-        $result = $cryptographer->encrypt($this->metadata(PersonalDataProfileCreated::class), ['id' => 'foo', 'email' => 'info@patchlevel.de']);
+        $result = $cryptographer->encrypt($this->metadata(SensitiveDataProfileCreated::class), ['id' => 'foo', 'email' => 'info@patchlevel.de']);
 
         self::assertEquals(['id' => 'foo', 'email' => 'encrypted'], $result);
     }
@@ -99,13 +100,13 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
         $cipher->expects($this->once())->method('encrypt')->with($cipherKey, 'info@patchlevel.de')
             ->willReturn('encrypted');
 
-        $cryptographer = new PersonalDataPayloadCryptographer(
+        $cryptographer = new SensitiveDataPayloadCryptographer(
             $cipherKeyStore,
             $cipherKeyFactory,
             $cipher,
         );
 
-        $result = $cryptographer->encrypt($this->metadata(PersonalDataProfileCreated::class), ['id' => 'foo', 'email' => 'info@patchlevel.de']);
+        $result = $cryptographer->encrypt($this->metadata(SensitiveDataProfileCreated::class), ['id' => 'foo', 'email' => 'info@patchlevel.de']);
 
         self::assertEquals(['id' => 'foo', 'email' => 'encrypted'], $result);
     }
@@ -132,14 +133,14 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
         $cipher->expects($this->once())->method('encrypt')->with($cipherKey, 'info@patchlevel.de')
             ->willReturn('encrypted');
 
-        $cryptographer = new PersonalDataPayloadCryptographer(
+        $cryptographer = new SensitiveDataPayloadCryptographer(
             $cipherKeyStore,
             $cipherKeyFactory,
             $cipher,
             true,
         );
 
-        $result = $cryptographer->encrypt($this->metadata(PersonalDataProfileCreated::class), ['id' => 'foo', 'email' => 'info@patchlevel.de']);
+        $result = $cryptographer->encrypt($this->metadata(SensitiveDataProfileCreated::class), ['id' => 'foo', 'email' => 'info@patchlevel.de']);
 
         self::assertEquals(['id' => 'foo', '!email' => 'encrypted'], $result);
     }
@@ -152,7 +153,7 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
         $cipherKeyFactory = $this->createMock(CipherKeyFactory::class);
         $cipher = $this->createMock(Cipher::class);
 
-        $cryptographer = new PersonalDataPayloadCryptographer(
+        $cryptographer = new SensitiveDataPayloadCryptographer(
             $cipherKeyStore,
             $cipherKeyFactory,
             $cipher,
@@ -160,7 +161,7 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
 
         $payload = ['id' => 'foo', 'email' => 'info@patchlevel.de'];
 
-        $result = $cryptographer->decrypt($this->metadata(PersonalData::class), ['id' => 'foo', 'email' => 'info@patchlevel.de']);
+        $result = $cryptographer->decrypt($this->metadata(SensitiveData::class), ['id' => 'foo', 'email' => 'info@patchlevel.de']);
 
         self::assertSame($payload, $result);
     }
@@ -176,13 +177,13 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
         $cipher = $this->createMock(Cipher::class);
         $cipher->expects($this->never())->method('decrypt');
 
-        $cryptographer = new PersonalDataPayloadCryptographer(
+        $cryptographer = new SensitiveDataPayloadCryptographer(
             $cipherKeyStore,
             $cipherKeyFactory,
             $cipher,
         );
 
-        $result = $cryptographer->decrypt($this->metadata(PersonalDataProfileCreated::class), ['id' => 'foo', 'email' => 'encrypted']);
+        $result = $cryptographer->decrypt($this->metadata(SensitiveDataProfileCreated::class), ['id' => 'foo', 'email' => 'encrypted']);
 
         self::assertEquals(['id' => 'foo', 'email' => new Email('unknown')], $result);
     }
@@ -209,13 +210,13 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
         $cipher->expects($this->once())->method('decrypt')->with($cipherKey, 'encrypted')
             ->willThrowException(new DecryptionFailed());
 
-        $cryptographer = new PersonalDataPayloadCryptographer(
+        $cryptographer = new SensitiveDataPayloadCryptographer(
             $cipherKeyStore,
             $cipherKeyFactory,
             $cipher,
         );
 
-        $result = $cryptographer->decrypt($this->metadata(PersonalDataProfileCreated::class), ['id' => 'foo', 'email' => 'encrypted']);
+        $result = $cryptographer->decrypt($this->metadata(SensitiveDataProfileCreated::class), ['id' => 'foo', 'email' => 'encrypted']);
 
         self::assertEquals(['id' => 'foo', 'email' => new Email('unknown')], $result);
     }
@@ -239,13 +240,13 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
         $cipher->expects($this->once())->method('decrypt')->with($cipherKey, 'encrypted')
             ->willThrowException(new DecryptionFailed());
 
-        $cryptographer = new PersonalDataPayloadCryptographer(
+        $cryptographer = new SensitiveDataPayloadCryptographer(
             $cipherKeyStore,
             $cipherKeyFactory,
             $cipher,
         );
 
-        $result = $cryptographer->decrypt($this->metadata(PersonalDataProfileCreatedFallbackCallback::class), ['id' => 'foo', 'email' => 'encrypted']);
+        $result = $cryptographer->decrypt($this->metadata(SensitiveDataProfileCreatedFallbackCallback::class), ['id' => 'foo', 'email' => 'encrypted']);
 
         self::assertEquals(['id' => 'foo', 'email' => new Email('foo@example.com')], $result);
     }
@@ -269,14 +270,14 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
         $cipher->expects($this->once())->method('decrypt')->with($cipherKey, 'encrypted')
             ->willReturn('info@patchlevel.de');
 
-        $cryptographer = new PersonalDataPayloadCryptographer(
+        $cryptographer = new SensitiveDataPayloadCryptographer(
             $cipherKeyStore,
             $cipherKeyFactory,
             $cipher,
             false,
         );
 
-        $result = $cryptographer->decrypt($this->metadata(PersonalDataProfileCreated::class), ['id' => 'foo', 'email' => 'encrypted']);
+        $result = $cryptographer->decrypt($this->metadata(SensitiveDataProfileCreated::class), ['id' => 'foo', 'email' => 'encrypted']);
 
         self::assertEquals(['id' => 'foo', 'email' => 'info@patchlevel.de'], $result);
     }
@@ -297,17 +298,20 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
         $cipherKeyFactory->expects($this->never())->method('__invoke');
 
         $cipher = $this->createMock(Cipher::class);
-        $cipher->expects($this->once())->method('decrypt')->with($cipherKey, 'encrypted')
+        $cipher
+            ->expects($this->once())
+            ->method('decrypt')
+            ->with($cipherKey, 'encrypted')
             ->willReturn('info@patchlevel.de');
 
-        $cryptographer = new PersonalDataPayloadCryptographer(
+        $cryptographer = new SensitiveDataPayloadCryptographer(
             $cipherKeyStore,
             $cipherKeyFactory,
             $cipher,
             true,
         );
 
-        $result = $cryptographer->decrypt($this->metadata(PersonalDataProfileCreated::class), ['id' => 'foo', '!email' => 'encrypted']);
+        $result = $cryptographer->decrypt($this->metadata(SensitiveDataProfileCreated::class), ['id' => 'foo', '!email' => 'encrypted']);
 
         self::assertEquals(['id' => 'foo', 'email' => 'info@patchlevel.de'], $result);
     }
@@ -329,14 +333,14 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
 
         $cipher = $this->createMock(Cipher::class);
 
-        $cryptographer = new PersonalDataPayloadCryptographer(
+        $cryptographer = new SensitiveDataPayloadCryptographer(
             $cipherKeyStore,
             $cipherKeyFactory,
             $cipher,
             true,
         );
 
-        $result = $cryptographer->decrypt($this->metadata(PersonalDataProfileCreated::class), ['id' => 'foo', 'email' => 'info@patchlevel.de']);
+        $result = $cryptographer->decrypt($this->metadata(SensitiveDataProfileCreated::class), ['id' => 'foo', 'email' => 'info@patchlevel.de']);
 
         self::assertEquals(['id' => 'foo', 'email' => 'info@patchlevel.de'], $result);
     }
@@ -360,7 +364,7 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
         $cipher->expects($this->once())->method('decrypt')->with($cipherKey, 'encrypted')
             ->willReturn('info@patchlevel.de');
 
-        $cryptographer = new PersonalDataPayloadCryptographer(
+        $cryptographer = new SensitiveDataPayloadCryptographer(
             $cipherKeyStore,
             $cipherKeyFactory,
             $cipher,
@@ -368,7 +372,7 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
             true,
         );
 
-        $result = $cryptographer->decrypt($this->metadata(PersonalDataProfileCreated::class), ['id' => 'foo', 'email' => 'encrypted']);
+        $result = $cryptographer->decrypt($this->metadata(SensitiveDataProfileCreated::class), ['id' => 'foo', 'email' => 'encrypted']);
 
         self::assertEquals(['id' => 'foo', 'email' => 'info@patchlevel.de'], $result);
     }
@@ -381,13 +385,13 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
         $cipherKeyFactory = $this->createMock(CipherKeyFactory::class);
         $cipher = $this->createMock(Cipher::class);
 
-        $cryptographer = new PersonalDataPayloadCryptographer(
+        $cryptographer = new SensitiveDataPayloadCryptographer(
             $cipherKeyStore,
             $cipherKeyFactory,
             $cipher,
         );
 
-        $cryptographer->decrypt($this->metadata(PersonalDataProfileCreated::class), ['id' => null, 'email' => 'encrypted']);
+        $cryptographer->decrypt($this->metadata(SensitiveDataProfileCreated::class), ['id' => null, 'email' => 'encrypted']);
     }
 
     public function testMissingSubjectId(): void
@@ -398,13 +402,13 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
         $cipherKeyFactory = $this->createMock(CipherKeyFactory::class);
         $cipher = $this->createMock(Cipher::class);
 
-        $cryptographer = new PersonalDataPayloadCryptographer(
+        $cryptographer = new SensitiveDataPayloadCryptographer(
             $cipherKeyStore,
             $cipherKeyFactory,
             $cipher,
         );
 
-        $cryptographer->decrypt($this->metadata(PersonalDataProfileCreated::class), ['email' => 'encrypted']);
+        $cryptographer->decrypt($this->metadata(SensitiveDataProfileCreated::class), ['email' => 'encrypted']);
     }
 
     public function testStringableSubjectId(): void
@@ -426,7 +430,7 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
         $cipher->expects($this->once())->method('encrypt')->with($cipherKey, 'John Doe')
             ->willReturn('encrypted');
 
-        $cryptographer = new PersonalDataPayloadCryptographer(
+        $cryptographer = new SensitiveDataPayloadCryptographer(
             $cipherKeyStore,
             $cipherKeyFactory,
             $cipher,
@@ -435,7 +439,7 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
         $subjectId = new StringableSubjectId('user-123');
 
         $result = $cryptographer->encrypt(
-            $this->metadata(PersonalDataWithStringableSubjectId::class),
+            $this->metadata(SensitiveDataWithStringableSubjectId::class),
             ['subjectId' => $subjectId, 'name' => 'John Doe'],
         );
 
@@ -453,15 +457,15 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
             ->method('store')
             ->with('foo', $this->isInstanceOf(CipherKey::class));
 
-        $cryptographer = PersonalDataPayloadCryptographer::createWithOpenssl($cipherKeyStore);
+        $cryptographer = SensitiveDataPayloadCryptographer::createWithOpenssl($cipherKeyStore);
 
         $data = ['id' => 'foo', 'email' => 'info@patchlevel.de'];
-        $enrcyptedData = $cryptographer->encrypt($this->metadata(PersonalDataProfileCreated::class), $data);
+        $enrcyptedData = $cryptographer->encrypt($this->metadata(SensitiveDataProfileCreated::class), $data);
 
         self::assertNotSame('info@patchlevel.de', $enrcyptedData['email']);
         self::assertSame('aUYxMzQ2bm80cUNCcE1wOUsveitUSmdGaHpYYjNoQWp1VGxTQXVITXRDVT0=', $enrcyptedData['email']);
 
-        $decryptedData = $cryptographer->decrypt($this->metadata(PersonalDataProfileCreated::class), $enrcyptedData);
+        $decryptedData = $cryptographer->decrypt($this->metadata(SensitiveDataProfileCreated::class), $enrcyptedData);
 
         self::assertSame($data, $decryptedData);
     }
@@ -469,6 +473,10 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
     /** @param class-string $class */
     private function metadata(string $class): ClassMetadata
     {
-        return (new AttributeMetadataFactory())->metadata($class);
+        $factory = new CryptographyMetadataFactory(
+            new AttributeMetadataFactory(),
+        );
+
+        return $factory->metadata($class);
     }
 }

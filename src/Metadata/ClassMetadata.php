@@ -10,10 +10,10 @@ use ReflectionClass;
  * @psalm-type serialized array{
  *     className: class-string,
  *     properties: list<PropertyMetadata>,
- *     dataSubjectIdField: string|null,
  *     postHydrateCallbacks: list<CallbackMetadata>,
  *     preExtractCallbacks: list<CallbackMetadata>,
  *     lazy: bool|null,
+ *     extras: array<string, mixed>,
  * }
  * @template T of object = object
  */
@@ -24,21 +24,16 @@ final class ClassMetadata
      * @param list<PropertyMetadata> $properties
      * @param list<CallbackMetadata> $postHydrateCallbacks
      * @param list<CallbackMetadata> $preExtractCallbacks
+     * @param array<string, mixed>   $extras
      */
     public function __construct(
-        private readonly ReflectionClass $reflection,
-        private readonly array $properties = [],
-        private readonly string|null $dataSubjectIdField = null,
-        private readonly array $postHydrateCallbacks = [],
-        private readonly array $preExtractCallbacks = [],
-        private readonly bool|null $lazy = null,
+        public readonly ReflectionClass $reflection,
+        public readonly array $properties = [],
+        public readonly array $postHydrateCallbacks = [],
+        public readonly array $preExtractCallbacks = [],
+        public readonly bool|null $lazy = null,
+        public array $extras = [],
     ) {
-    }
-
-    /** @return ReflectionClass<T> */
-    public function reflection(): ReflectionClass
-    {
-        return $this->reflection;
     }
 
     /** @return class-string<T> */
@@ -47,38 +42,10 @@ final class ClassMetadata
         return $this->reflection->getName();
     }
 
-    /** @return list<PropertyMetadata> */
-    public function properties(): array
-    {
-        return $this->properties;
-    }
-
-    /** @return list<CallbackMetadata> */
-    public function postHydrateCallbacks(): array
-    {
-        return $this->postHydrateCallbacks;
-    }
-
-    /** @return list<CallbackMetadata> */
-    public function preExtractCallbacks(): array
-    {
-        return $this->preExtractCallbacks;
-    }
-
-    public function lazy(): bool|null
-    {
-        return $this->lazy;
-    }
-
-    public function dataSubjectIdField(): string|null
-    {
-        return $this->dataSubjectIdField;
-    }
-
     public function propertyForField(string $name): PropertyMetadata
     {
         foreach ($this->properties as $property) {
-            if ($property->fieldName() === $name) {
+            if ($property->fieldName === $name) {
                 return $property;
             }
         }
@@ -98,10 +65,10 @@ final class ClassMetadata
         return [
             'className' => $this->reflection->getName(),
             'properties' => $this->properties,
-            'dataSubjectIdField' => $this->dataSubjectIdField,
             'postHydrateCallbacks' => $this->postHydrateCallbacks,
             'preExtractCallbacks' => $this->preExtractCallbacks,
             'lazy' => $this->lazy,
+            'extras' => $this->extras,
         ];
     }
 
@@ -110,9 +77,9 @@ final class ClassMetadata
     {
         $this->reflection = new ReflectionClass($data['className']);
         $this->properties = $data['properties'];
-        $this->dataSubjectIdField = $data['dataSubjectIdField'];
         $this->postHydrateCallbacks = $data['postHydrateCallbacks'];
         $this->preExtractCallbacks = $data['preExtractCallbacks'];
         $this->lazy = $data['lazy'];
+        $this->extras = $data['extras'];
     }
 }

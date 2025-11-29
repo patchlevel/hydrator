@@ -1,4 +1,4 @@
-[![Mutation testing badge](https://img.shields.io/endpoint?style=flat&url=https%3A%2F%2Fbadge-api.stryker-mutator.io%2Fgithub.com%2Fpatchlevel%2Fhydrator%2F1.13.x)](https://dashboard.stryker-mutator.io/reports/github.com/patchlevel/hydrator/1.13.x)
+[![Mutation testing badge](https://img.shields.io/endpoint?style=flat&url=https%3A%2F%2Fbadge-api.stryker-mutator.io%2Fgithub.com%2Fpatchlevel%2Fhydrator%2F2.0.x)](https://dashboard.stryker-mutator.io/reports/github.com/patchlevel/hydrator/2.0.x)
 [![Latest Stable Version](https://poser.pugx.org/patchlevel/hydrator/v)](//packagist.org/packages/patchlevel/hydrator)
 [![License](https://poser.pugx.org/patchlevel/hydrator/license)](//packagist.org/packages/patchlevel/hydrator)
 
@@ -527,7 +527,7 @@ There are two events: `PostExtract` and `PreHydrate`.
 For this functionality we use the [symfony/event-dispatcher](https://symfony.com/doc/current/components/event_dispatcher.html).
 
 ```php
-use Patchlevel\Hydrator\Cryptography\PersonalDataPayloadCryptographer;
+use Patchlevel\Hydrator\Cryptography\SensitiveDataPayloadCryptographer;
 use Patchlevel\Hydrator\Cryptography\Store\CipherKeyStore;
 use Patchlevel\Hydrator\Metadata\Event\EventMetadataFactory;
 use Patchlevel\Hydrator\MetadataHydrator;
@@ -556,8 +556,8 @@ $hydrator = new MetadataHydrator(eventDispatcher: $eventDispatcher);
 
 ### Cryptography
 
-The library also offers the possibility to encrypt and decrypt personal data.
-For this purpose, a key is created for each subject ID, which is used to encrypt the personal data.
+The library also offers the possibility to encrypt and decrypt sensitive data, e.g. personal data of customers.
+For this purpose, a key is created for each subject ID, which is used to encrypt the sensitive data.
 
 #### DataSubjectId
 
@@ -578,27 +578,47 @@ final class EmailChanged
 
 > [!WARNING]
 > The `DataSubjectId` must be a string. You can use a normalizer to convert it to a string.
-> The Subject ID cannot be personal data.
+> The Subject ID cannot be sensitive data.
 
-#### PersonalData
-
-Next, we need to specify which fields we want to encrypt.
+First we need to define what the subject id is.
 
 ```php
 use Patchlevel\Hydrator\Attribute\DataSubjectId;
-use Patchlevel\Hydrator\Attribute\PersonalData;
 
-final class DTO 
+final class EmailChanged
 {
     public function __construct(
-        #[DataSubjectId]
+        #[DataSubjectId(name: 'profile')]
         public readonly string $profileId,
-        #[PersonalData]
-        public readonly string|null $email,
     ) {
     }
 }
 ```
+
+You can also use multiple data subject id's in one event by defining the name of the subject id's.
+
+```php
+use Patchlevel\Hydrator\Attribute\DataSubjectId;
+use Patchlevel\Hydrator\Attribute\SensitiveData;
+
+final class DTO 
+{
+    public function __construct(
+        #[DataSubjectId(name: 'profile1')]
+        public readonly string $profile1Id,
+        #[SensitiveData(subjectIdName: 'profile1')]
+        public readonly string|null $email1,
+        #[DataSubjectId(name: 'profile2')]
+        public readonly string $profile2Id,
+        #[SensitiveData(subjectIdName: 'profile2')]
+        public readonly string|null $email2,
+    ) {
+    }
+}
+```
+
+> [!NOTE]
+> The default name of `DataSubjectId` is `default`.
 
 If the information could not be decrypted, then a fallback value is inserted.
 The default fallback value is `null`.
@@ -606,14 +626,14 @@ You can change this by setting the `fallback` parameter.
 In this case `unknown` is added:
 
 ```php
-use Patchlevel\Hydrator\Attribute\PersonalData;
+use Patchlevel\Hydrator\Attribute\SensitiveData;
 
 final class DTO
 {
     public function __construct(
         #[DataSubjectId]
         public readonly string $profileId,
-        #[PersonalData(fallback: 'unknown')]
+        #[SensitiveData(fallback: 'unknown')]
         public readonly string $name,
     ) {
     }
@@ -624,16 +644,16 @@ You can also use a callable as a fallback.
 
 ```php
 use Patchlevel\Hydrator\Attribute\DataSubjectId;
-use Patchlevel\Hydrator\Attribute\PersonalData;
+use Patchlevel\Hydrator\Attribute\SensitiveData;
 
 final class ProfileCreated
 {
     public function __construct(
         #[DataSubjectId]
         public readonly string $profileId,
-        #[PersonalData(fallback: 'deleted profile')]
+        #[SensitiveData(fallback: 'deleted profile')]
         public readonly string $name,
-        #[PersonalData(fallbackCallable: [self::class, 'anonymizedEmail'])]
+        #[SensitiveData(fallbackCallable: [self::class, 'anonymizedEmail'])]
         public readonly string $email,
     ) {
     }
@@ -654,13 +674,13 @@ final class ProfileCreated
 Here we show you how to configure the cryptography.
 
 ```php
-use Patchlevel\Hydrator\Cryptography\PersonalDataPayloadCryptographer;
+use Patchlevel\Hydrator\Cryptography\SensitiveDataPayloadCryptographer;
 use Patchlevel\Hydrator\Cryptography\Store\CipherKeyStore;
 use Patchlevel\Hydrator\Metadata\Event\EventMetadataFactory;
 use Patchlevel\Hydrator\MetadataHydrator;
 
 $cipherKeyStore = new InMemoryCipherKeyStore();
-$cryptographer = PersonalDataPayloadCryptographer::createWithDefaultSettings($cipherKeyStore);
+$cryptographer = SensitiveDataPayloadCryptographer::createWithDefaultSettings($cipherKeyStore);
 $hydrator = new MetadataHydrator(cryptographer: $cryptographer);
 ```
 

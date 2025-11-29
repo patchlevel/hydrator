@@ -16,7 +16,7 @@ parameters:
 			message: '#^Parameter \#2 \$data of method Patchlevel\\Hydrator\\Cryptography\\Cipher\\Cipher\:\:decrypt\(\) expects string, mixed given\.$#'
 			identifier: argument.type
 			count: 1
-			path: src/Cryptography/PersonalDataPayloadCryptographer.php
+			path: src/Cryptography/SensitiveDataPayloadCryptographer.php
 
 		-
 			message: '#^Method Patchlevel\\Hydrator\\Guesser\\BuiltInGuesser\:\:guess\(\) has parameter \$type with generic class Symfony\\Component\\TypeInfo\\Type\\ObjectType but does not specify its types\: T$#'
@@ -55,21 +55,9 @@ parameters:
 			path: src/Metadata/AttributeMetadataFactory.php
 
 		-
-			message: '#^Method Patchlevel\\Hydrator\\Metadata\\AttributeMetadataFactory\:\:getPersonalData\(\) should return array\{bool, mixed, \(callable\(string, mixed\)\: mixed\)\|null\} but returns array\{false, null\}\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Metadata/AttributeMetadataFactory.php
-
-		-
 			message: '#^Parameter \#1 \$class of method Patchlevel\\Hydrator\\Metadata\\AttributeMetadataFactory\:\:findNormalizerOnClass\(\) expects class\-string, string given\.$#'
 			identifier: argument.type
 			count: 3
-			path: src/Metadata/AttributeMetadataFactory.php
-
-		-
-			message: '#^Property Patchlevel\\Hydrator\\Metadata\\AttributeMetadataFactory\:\:\$guesser \(Patchlevel\\Hydrator\\Guesser\\Guesser\|null\) is never assigned null so it can be removed from the property type\.$#'
-			identifier: property.unusedType
-			count: 1
 			path: src/Metadata/AttributeMetadataFactory.php
 
 		-
@@ -103,10 +91,10 @@ parameters:
 			path: src/Normalizer/ObjectNormalizer.php
 
 		-
-			message: '#^Method Patchlevel\\Hydrator\\Normalizer\\ReflectionTypeUtil\:\:classStringInstanceOf\(\) should return class\-string\<T\> but returns class\-string\<T\>\|\(string&T\)\.$#'
-			identifier: return.type
+			message: '#^Property Patchlevel\\Hydrator\\Tests\\Unit\\Fixture\\ChildWithSensitiveDataWithIdentifierDto\:\:\$email is never read, only written\.$#'
+			identifier: property.onlyWritten
 			count: 1
-			path: src/Normalizer/ReflectionTypeUtil.php
+			path: tests/Unit/Fixture/ChildWithSensitiveDataWithIdentifierDto.php
 
 		-
 			message: '#^Method Patchlevel\\Hydrator\\Tests\\Unit\\Fixture\\DtoWithHooks\:\:postHydrate\(\) is unused\.$#'
@@ -121,13 +109,19 @@ parameters:
 			path: tests/Unit/Fixture/DtoWithHooks.php
 
 		-
-			message: '#^Method class@anonymous/tests/Unit/Metadata/AttributeMetadataFactoryTest\.php\:454\:\:postHydrate\(\) is unused\.$#'
+			message: '#^Property Patchlevel\\Hydrator\\Tests\\Unit\\Fixture\\IdNormalizer\:\:\$idClass \(class\-string\<Patchlevel\\Hydrator\\Tests\\Unit\\Fixture\\Id\>\|null\) does not accept string\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: tests/Unit/Fixture/IdNormalizer.php
+
+		-
+			message: '#^Method class@anonymous/tests/Unit/Metadata/AttributeMetadataFactoryTest\.php\:344\:\:postHydrate\(\) is unused\.$#'
 			identifier: method.unused
 			count: 1
 			path: tests/Unit/Metadata/AttributeMetadataFactoryTest.php
 
 		-
-			message: '#^Method class@anonymous/tests/Unit/Metadata/AttributeMetadataFactoryTest\.php\:454\:\:preExtract\(\) is unused\.$#'
+			message: '#^Method class@anonymous/tests/Unit/Metadata/AttributeMetadataFactoryTest\.php\:344\:\:preExtract\(\) is unused\.$#'
 			identifier: method.unused
 			count: 1
 			path: tests/Unit/Metadata/AttributeMetadataFactoryTest.php
@@ -139,13 +133,13 @@ parameters:
 			path: tests/Unit/Metadata/AttributeMetadataFactoryTest.php
 
 		-
-			message: '#^Static method class@anonymous/tests/Unit/Metadata/AttributeMetadataFactoryTest\.php\:482\:\:postHydrate\(\) is unused\.$#'
+			message: '#^Static method class@anonymous/tests/Unit/Metadata/AttributeMetadataFactoryTest\.php\:372\:\:postHydrate\(\) is unused\.$#'
 			identifier: method.unused
 			count: 1
 			path: tests/Unit/Metadata/AttributeMetadataFactoryTest.php
 
 		-
-			message: '#^Static method class@anonymous/tests/Unit/Metadata/AttributeMetadataFactoryTest\.php\:482\:\:preExtract\(\) is unused\.$#'
+			message: '#^Static method class@anonymous/tests/Unit/Metadata/AttributeMetadataFactoryTest\.php\:372\:\:preExtract\(\) is unused\.$#'
 			identifier: method.unused
 			count: 1
 			path: tests/Unit/Metadata/AttributeMetadataFactoryTest.php
