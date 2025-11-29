@@ -1,8 +1,16 @@
 includes:
 	- phpstan-baseline.neon
+	- vendor/phpstan/phpstan-phpunit/extension.neon
+	- vendor/phpat/phpat/extension.neon
 
 parameters:
 	level: max
 	paths:
 		- src
-	reportUnmatchedIgnoredErrors: false
+		- tests
+
+services:
+	-
+		class: Patchlevel\Hydrator\Tests\Architecture\FinalClassesTest
+		tags:
+			- phpat.test

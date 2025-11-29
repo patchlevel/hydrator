@@ -16,23 +16,21 @@ jobs:
         dependencies:
           - "locked"
         php-version:
-          - "8.4"
+          - "8.5"
         operating-system:
           - "ubuntu-latest"
 
     steps:
       - name: "Checkout"
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: "Install PHP"
-        uses: "shivammathur/setup-php@2.35.5"
+        uses: "shivammathur/setup-php@2.36.0"
         with:
-          coverage: "pcov"
           php-version: "${{ matrix.php-version }}"
           ini-values: memory_limit=-1
-          extensions: pdo_sqlite, bcmath, intl, sodium
 
       - uses: ramsey/composer-install@3.1.1
         with:

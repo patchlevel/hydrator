@@ -9,7 +9,7 @@ final class BrokenParentDto extends ChildDto
     public function __construct(
         #[IdNormalizer]
         public ProfileId $profileId,
-        private Email $email,
+        public Email $email,
     ) {
         parent::__construct($email);
     }

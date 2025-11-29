@@ -15,19 +15,11 @@ cs: vendor                                                                      
 
 .PHONY: phpstan
 phpstan: vendor                                                                 ## run phpstan static code analyser
-	vendor/bin/phpstan analyse
+	vendor/bin/phpstan analyse --memory-limit=-1
 
 .PHONY: phpstan-baseline
 phpstan-baseline: vendor                                                        ## run phpstan static code analyser
-	vendor/bin/phpstan analyse --generate-baseline
-
-.PHONY: psalm
-psalm: vendor                                                                   ## run psalm static code analyser
-	vendor/bin/psalm
-
-.PHONY: psalm-baseline
-psalm-baseline: vendor                                                          ## run psalm static code analyser
-	vendor/bin/psalm --update-baseline --set-baseline=baseline.xml
+	vendor/bin/phpstan analyse --generate-baseline --memory-limit=-1
 
 .PHONY: phpunit
 phpunit: vendor                                                                 ## run phpunit tests
@@ -35,10 +27,10 @@ phpunit: vendor                                                                 
 
 .PHONY: infection
 infection: vendor                                                               ## run infection
-	XDEBUG_MODE=coverage vendor/bin/roave-infection-static-analysis-plugin --threads=max
+	XDEBUG_MODE=coverage vendor/bin/infection --threads=3
 
 .PHONY: static
-static: psalm phpstan phpcs-check                                               ## run static analyser
+static: phpstan cs                                               				## run static analysers
 
 test: phpunit                                                                   ## run tests
 

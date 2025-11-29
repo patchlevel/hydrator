@@ -11,7 +11,7 @@ abstract class ChildWithSensitiveDataDto
     public function __construct(
         #[EmailNormalizer]
         #[SensitiveData]
-        private Email $email,
+        public Email $email,
     ) {
     }
 }

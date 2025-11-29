@@ -448,13 +448,26 @@ final class SensitiveDataPayloadCryptographerTest extends TestCase
 
     public function testCreateWithOpenssl(): void
     {
+        $cipherKey = new CipherKey('foo', 'aes128', 'baz');
+
         $cipherKeyStore = $this->createMock(CipherKeyStore::class);
+        $cipherKeyStore->method('get')->with('foo')->willReturn($cipherKey);
+        $cipherKeyStore
+            ->expects($this->never())
+            ->method('store')
+            ->with('foo', $this->isInstanceOf(CipherKey::class));
 
-        $cryptographer = SensitiveDataPayloadCryptographer::createWithOpenssl(
-            $cipherKeyStore,
-        );
+        $cryptographer = SensitiveDataPayloadCryptographer::createWithOpenssl($cipherKeyStore);
 
-        self::assertInstanceOf(SensitiveDataPayloadCryptographer::class, $cryptographer);
+        $data = ['id' => 'foo', 'email' => 'info@patchlevel.de'];
+        $enrcyptedData = $cryptographer->encrypt($this->metadata(SensitiveDataProfileCreated::class), $data);
+
+        self::assertNotSame('info@patchlevel.de', $enrcyptedData['email']);
+        self::assertSame('aUYxMzQ2bm80cUNCcE1wOUsveitUSmdGaHpYYjNoQWp1VGxTQXVITXRDVT0=', $enrcyptedData['email']);
+
+        $decryptedData = $cryptographer->decrypt($this->metadata(SensitiveDataProfileCreated::class), $enrcyptedData);
+
+        self::assertSame($data, $decryptedData);
     }
 
     /** @param class-string $class */
