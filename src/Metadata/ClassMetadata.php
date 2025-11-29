@@ -10,8 +10,6 @@ use ReflectionClass;
  * @psalm-type serialized array{
  *     className: class-string,
  *     properties: list<PropertyMetadata>,
- *     postHydrateCallbacks: list<CallbackMetadata>,
- *     preExtractCallbacks: list<CallbackMetadata>,
  *     lazy: bool|null,
  *     extras: array<string, mixed>,
  * }
@@ -19,27 +17,21 @@ use ReflectionClass;
  */
 final class ClassMetadata
 {
+    /** @var class-string<T> */
+    public readonly string $className;
+
     /**
      * @param ReflectionClass<T>     $reflection
      * @param list<PropertyMetadata> $properties
-     * @param list<CallbackMetadata> $postHydrateCallbacks
-     * @param list<CallbackMetadata> $preExtractCallbacks
      * @param array<string, mixed>   $extras
      */
     public function __construct(
         public readonly ReflectionClass $reflection,
         public readonly array $properties = [],
-        public readonly array $postHydrateCallbacks = [],
-        public readonly array $preExtractCallbacks = [],
         public readonly bool|null $lazy = null,
         public array $extras = [],
     ) {
-    }
-
-    /** @return class-string<T> */
-    public function className(): string
-    {
-        return $this->reflection->getName();
+        $this->className = $reflection->getName();
     }
 
     public function propertyForField(string $name): PropertyMetadata
@@ -63,10 +55,8 @@ final class ClassMetadata
     public function __serialize(): array
     {
         return [
-            'className' => $this->reflection->getName(),
+            'className' => $this->className,
             'properties' => $this->properties,
-            'postHydrateCallbacks' => $this->postHydrateCallbacks,
-            'preExtractCallbacks' => $this->preExtractCallbacks,
             'lazy' => $this->lazy,
             'extras' => $this->extras,
         ];
@@ -77,8 +67,6 @@ final class ClassMetadata
     {
         $this->reflection = new ReflectionClass($data['className']);
         $this->properties = $data['properties'];
-        $this->postHydrateCallbacks = $data['postHydrateCallbacks'];
-        $this->preExtractCallbacks = $data['preExtractCallbacks'];
         $this->lazy = $data['lazy'];
         $this->extras = $data['extras'];
     }

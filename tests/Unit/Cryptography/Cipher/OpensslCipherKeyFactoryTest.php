@@ -6,11 +6,12 @@ namespace Patchlevel\Hydrator\Tests\Unit\Cryptography\Cipher;
 
 use Patchlevel\Hydrator\Cryptography\Cipher\MethodNotSupported;
 use Patchlevel\Hydrator\Cryptography\Cipher\OpensslCipherKeyFactory;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 use function strlen;
 
-/** @covers \Patchlevel\Hydrator\Cryptography\Cipher\OpensslCipherKeyFactory */
+#[CoversClass(OpensslCipherKeyFactory::class)]
 final class OpensslCipherKeyFactoryTest extends TestCase
 {
     public function testCreateKey(): void

@@ -7,8 +7,6 @@ namespace Patchlevel\Hydrator\Metadata;
 use Patchlevel\Hydrator\Attribute\Ignore;
 use Patchlevel\Hydrator\Attribute\Lazy;
 use Patchlevel\Hydrator\Attribute\NormalizedName;
-use Patchlevel\Hydrator\Attribute\PostHydrate;
-use Patchlevel\Hydrator\Attribute\PreExtract;
 use Patchlevel\Hydrator\Guesser\BuiltInGuesser;
 use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\Normalizer\ArrayNormalizer;
@@ -76,8 +74,6 @@ final class AttributeMetadataFactory implements MetadataFactory
         $metadata = new ClassMetadata(
             $reflectionClass,
             $this->getPropertyMetadataList($reflectionClass),
-            $this->getPostHydrateCallbacks($reflectionClass),
-            $this->getPreExtractCallbacks($reflectionClass),
             $this->getLazy($reflectionClass),
         );
 
@@ -121,7 +117,7 @@ final class AttributeMetadataFactory implements MetadataFactory
                 throw DuplicatedFieldNameInMetadata::inClass(
                     $fieldName,
                     $reflectionClass->getName(),
-                    $properties[$fieldName]->propertyName(),
+                    $properties[$fieldName]->propertyName,
                     $reflectionProperty->getName(),
                 );
             }
@@ -134,58 +130,6 @@ final class AttributeMetadataFactory implements MetadataFactory
         }
 
         return array_values($properties);
-    }
-
-    /**
-     * @param ReflectionClass<object> $reflection
-     *
-     * @return list<CallbackMetadata>
-     */
-    private function getPostHydrateCallbacks(ReflectionClass $reflection): array
-    {
-        $methods = [];
-
-        foreach ($reflection->getMethods() as $reflectionMethod) {
-            if ($reflectionMethod->isStatic()) {
-                continue;
-            }
-
-            $attributeReflectionList = $reflectionMethod->getAttributes(PostHydrate::class);
-
-            if ($attributeReflectionList === []) {
-                continue;
-            }
-
-            $methods[] = new CallbackMetadata($reflectionMethod);
-        }
-
-        return $methods;
-    }
-
-    /**
-     * @param ReflectionClass<object> $reflection
-     *
-     * @return list<CallbackMetadata>
-     */
-    private function getPreExtractCallbacks(ReflectionClass $reflection): array
-    {
-        $methods = [];
-
-        foreach ($reflection->getMethods() as $reflectionMethod) {
-            if ($reflectionMethod->isStatic()) {
-                continue;
-            }
-
-            $attributeReflectionList = $reflectionMethod->getAttributes(PreExtract::class);
-
-            if ($attributeReflectionList === []) {
-                continue;
-            }
-
-            $methods[] = new CallbackMetadata($reflectionMethod);
-        }
-
-        return $methods;
     }
 
     /** @param ReflectionClass<object> $reflection */
@@ -235,8 +179,8 @@ final class AttributeMetadataFactory implements MetadataFactory
             if (array_key_exists($property->fieldName, $properties)) {
                 throw DuplicatedFieldNameInMetadata::byInheritance(
                     $property->fieldName,
-                    $parent->className(),
-                    $child->className(),
+                    $parent->className,
+                    $child->className,
                 );
             }
 
@@ -246,8 +190,6 @@ final class AttributeMetadataFactory implements MetadataFactory
         return new ClassMetadata(
             $parent->reflection,
             array_values($properties),
-            array_merge($parent->postHydrateCallbacks, $child->postHydrateCallbacks),
-            array_merge($parent->preExtractCallbacks, $child->preExtractCallbacks),
             $child->lazy ?? $parent->lazy,
             array_merge($parent->extras, $child->extras),
         );

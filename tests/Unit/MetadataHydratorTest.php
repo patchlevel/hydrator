@@ -9,23 +9,23 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Patchlevel\Hydrator\CircularReference;
 use Patchlevel\Hydrator\ClassNotSupported;
+use Patchlevel\Hydrator\Cryptography\CryptographyMiddleware;
 use Patchlevel\Hydrator\Cryptography\PayloadCryptographer;
 use Patchlevel\Hydrator\DenormalizationFailure;
-use Patchlevel\Hydrator\Event\PostExtract;
-use Patchlevel\Hydrator\Event\PreHydrate;
 use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
+use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\MetadataHydrator;
+use Patchlevel\Hydrator\Middleware\Middleware;
+use Patchlevel\Hydrator\Middleware\Stack;
+use Patchlevel\Hydrator\Middleware\TransformMiddleware;
 use Patchlevel\Hydrator\NormalizationFailure;
-use Patchlevel\Hydrator\NormalizationMissing;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle1Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle2Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle3Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DefaultDto;
-use Patchlevel\Hydrator\Tests\Unit\Fixture\DtoWithHooks;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
-use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerBrokenDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithIterablesDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithNullableDto;
@@ -41,20 +41,22 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\StatusWithNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer;
 use Patchlevel\Hydrator\TypeMismatch;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\RequiresPhp;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use stdClass;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\TypeInfo\Type\ObjectType;
 
+#[CoversClass(MetadataHydrator::class)]
+#[CoversClass(TransformMiddleware::class)]
 final class MetadataHydratorTest extends TestCase
 {
     private MetadataHydrator $hydrator;
 
     public function setUp(): void
     {
-        $this->hydrator = new MetadataHydrator(new AttributeMetadataFactory());
+        $this->hydrator = MetadataHydrator::create();
     }
 
     public function testExtract(): void
@@ -134,26 +136,6 @@ final class MetadataHydratorTest extends TestCase
             ],
             $result,
         );
-    }
-
-    public function testExtractWithInferNormalizerFailed(): void
-    {
-        $this->expectException(NormalizationMissing::class);
-        $this->hydrator->extract(
-            new InferNormalizerBrokenDto(
-                new ProfileCreated(
-                    ProfileId::fromString('1'),
-                    Email::fromString('info@patchlevel.de'),
-                ),
-            ),
-        );
-    }
-
-    public function testExtractWithHooks(): void
-    {
-        $data = $this->hydrator->extract(new DtoWithHooks());
-
-        self::assertEquals(['postHydrateCalled' => false, 'preExtractCalled' => true], $data);
     }
 
     public function testHydrate(): void
@@ -276,7 +258,13 @@ final class MetadataHydratorTest extends TestCase
             ->with($metadataFactory->metadata(ProfileCreated::class), $encryptedPayload)
             ->willReturn($payload);
 
-        $hydrator = new MetadataHydrator($metadataFactory, $cryptographer);
+        $hydrator = new MetadataHydrator(
+            $metadataFactory,
+            [
+                new CryptographyMiddleware($cryptographer),
+                new TransformMiddleware(),
+            ],
+        );
 
         $return = $hydrator->hydrate(ProfileCreated::class, $encryptedPayload);
 
@@ -302,76 +290,13 @@ final class MetadataHydratorTest extends TestCase
             ->with($metadataFactory->metadata(ProfileCreated::class), $payload)
             ->willReturn($encryptedPayload);
 
-        $hydrator = new MetadataHydrator($metadataFactory, $cryptographer);
-
-        $return = $hydrator->extract($object);
-
-        self::assertSame($encryptedPayload, $return);
-    }
-
-    public function testPreHydrate(): void
-    {
-        $object = new ProfileCreated(
-            ProfileId::fromString('1'),
-            Email::fromString('info@patchlevel.de'),
+        $hydrator = new MetadataHydrator(
+            $metadataFactory,
+            [
+                new CryptographyMiddleware($cryptographer),
+                new TransformMiddleware(),
+            ],
         );
-
-        $payload = ['profileId' => '1', 'email' => 'info@patchlevel.de'];
-        $encryptedPayload = ['profileId' => '1', 'email' => 'encrypted'];
-
-        $metadataFactory = new AttributeMetadataFactory();
-
-        $event = new PreHydrate(
-            $encryptedPayload,
-            $metadataFactory->metadata(ProfileCreated::class),
-        );
-
-        $eventReturn = new PreHydrate(
-            $payload,
-            $metadataFactory->metadata(ProfileCreated::class),
-        );
-
-        $eventDispatcher = $this->createMock(EventDispatcherInterface::class);
-        $eventDispatcher
-            ->expects($this->once())
-            ->method('dispatch')
-            ->with($event)
-            ->willReturn($eventReturn);
-
-        $hydrator = new MetadataHydrator($metadataFactory, eventDispatcher: $eventDispatcher);
-
-        $return = $hydrator->hydrate(ProfileCreated::class, $encryptedPayload);
-
-        self::assertEquals($object, $return);
-    }
-
-    public function testPostExtract(): void
-    {
-        $object = new ProfileCreated(
-            ProfileId::fromString('1'),
-            Email::fromString('info@patchlevel.de'),
-        );
-
-        $payload = ['profileId' => '1', 'email' => 'info@patchlevel.de'];
-        $encryptedPayload = ['profileId' => '1', 'email' => 'encrypted'];
-
-        $metadataFactory = new AttributeMetadataFactory();
-
-        $event = new PostExtract(
-            $payload,
-            $metadataFactory->metadata(ProfileCreated::class),
-        );
-
-        $eventReturn = new PostExtract(
-            $encryptedPayload,
-            $metadataFactory->metadata(ProfileCreated::class),
-        );
-
-        $eventDispatcher = $this->createMock(EventDispatcherInterface::class);
-        $eventDispatcher->expects($this->once())->method('dispatch')->with($event)
-            ->willReturn($eventReturn);
-
-        $hydrator = new MetadataHydrator($metadataFactory, eventDispatcher: $eventDispatcher);
 
         $return = $hydrator->extract($object);
 
@@ -503,25 +428,6 @@ final class MetadataHydratorTest extends TestCase
         self::assertEquals($expected, $event);
     }
 
-    public function testHydrateWithInferNormalizerFailed(): void
-    {
-        $this->expectException(TypeMismatch::class);
-        $this->hydrator->hydrate(
-            InferNormalizerBrokenDto::class,
-            [
-                'profileCreated' => ['profileId' => '1', 'email' => 'info@patchlevel.de'],
-            ],
-        );
-    }
-
-    public function testHydrateWithHooks(): void
-    {
-        $object = $this->hydrator->hydrate(DtoWithHooks::class, ['postHydrateCalled' => false, 'preExtractCalled' => false]);
-
-        self::assertEquals(true, $object->postHydrateCalled);
-        self::assertEquals(false, $object->preExtractCalled);
-    }
-
     #[RequiresPhp('>=8.4')]
     public function testLazyHydrate(): void
     {
@@ -585,7 +491,39 @@ final class MetadataHydratorTest extends TestCase
             }
         };
 
-        $hydrator = MetadataHydrator::create([$guesser]);
+        $hydrator = MetadataHydrator::create(
+            [
+                new class implements Middleware
+                {
+                    /**
+                     * @param ClassMetadata<T>     $metadata
+                     * @param array<string, mixed> $data
+                     *
+                     * @return T
+                     *
+                     * @template T of object
+                     */
+                    public function hydrate(ClassMetadata $metadata, array $data, Stack $stack): object
+                    {
+                        return $stack->next()->hydrate($metadata, $data, $stack);
+                    }
+
+                    /**
+                     * @param ClassMetadata<T> $metadata
+                     * @param T                $object
+                     *
+                     * @return array<string, mixed>
+                     *
+                     * @template T of object
+                     */
+                    public function extract(ClassMetadata $metadata, object $object, Stack $stack): array
+                    {
+                        return $stack->next()->extract($metadata, $object, $stack);
+                    }
+                },
+            ],
+            [$guesser],
+        );
 
         $hydrator->extract(new InferNormalizerDto(
             Status::Draft,

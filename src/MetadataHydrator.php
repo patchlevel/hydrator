@@ -4,10 +4,6 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator;
 
-use Patchlevel\Hydrator\Cryptography\CryptographySubscriber;
-use Patchlevel\Hydrator\Cryptography\PayloadCryptographer;
-use Patchlevel\Hydrator\Event\PostExtract;
-use Patchlevel\Hydrator\Event\PreHydrate;
 use Patchlevel\Hydrator\Guesser\BuiltInGuesser;
 use Patchlevel\Hydrator\Guesser\ChainGuesser;
 use Patchlevel\Hydrator\Guesser\Guesser;
@@ -15,46 +11,27 @@ use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Metadata\ClassNotFound;
 use Patchlevel\Hydrator\Metadata\MetadataFactory;
+use Patchlevel\Hydrator\Middleware\Middleware;
+use Patchlevel\Hydrator\Middleware\Stack;
+use Patchlevel\Hydrator\Middleware\TransformMiddleware;
 use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
 use ReflectionClass;
-use ReflectionParameter;
-use Symfony\Component\EventDispatcher\EventDispatcher;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
-use Throwable;
-use TypeError;
 
 use function array_key_exists;
-use function array_values;
-use function is_object;
-use function spl_object_id;
 
 use const PHP_VERSION_ID;
 
 final class MetadataHydrator implements Hydrator
 {
-    /** @var array<int, class-string> */
-    private array $stack = [];
-
     /** @var array<class-string, ClassMetadata> */
     private array $classMetadata = [];
 
+    /** @param list<Middleware> $middlewares */
     public function __construct(
         private readonly MetadataFactory $metadataFactory = new AttributeMetadataFactory(),
-        PayloadCryptographer|null $cryptographer = null,
-        private EventDispatcherInterface|null $eventDispatcher = null,
+        private readonly array $middlewares = [],
         private readonly bool $defaultLazy = false,
     ) {
-        if (!$cryptographer) {
-            return;
-        }
-
-        if (!$this->eventDispatcher) {
-            $this->eventDispatcher = new EventDispatcher();
-        }
-
-        $this->eventDispatcher->addSubscriber(
-            new CryptographySubscriber($cryptographer),
-        );
     }
 
     /**
@@ -74,186 +51,35 @@ final class MetadataHydrator implements Hydrator
         }
 
         if (PHP_VERSION_ID < 80400) {
-            return $this->doHydrate($metadata, $data);
+            $stack = new Stack($this->middlewares);
+
+            return $stack->next()->hydrate($metadata, $data, $stack);
         }
 
         $lazy = $metadata->lazy ?? $this->defaultLazy;
 
         if (!$lazy) {
-            return $this->doHydrate($metadata, $data);
+            $stack = new Stack($this->middlewares);
+
+            return $stack->next()->hydrate($metadata, $data, $stack);
         }
 
         return (new ReflectionClass($class))->newLazyProxy(
             function () use ($metadata, $data): object {
-                return $this->doHydrate($metadata, $data);
+                $stack = new Stack($this->middlewares);
+
+                return $stack->next()->hydrate($metadata, $data, $stack);
             },
         );
-    }
-
-    /**
-     * @param ClassMetadata<T>     $metadata
-     * @param array<string, mixed> $data
-     *
-     * @return T
-     *
-     * @template T of object
-     */
-    private function doHydrate(ClassMetadata $metadata, array $data): object
-    {
-        if ($this->eventDispatcher) {
-            $data = $this->eventDispatcher->dispatch(new PreHydrate($data, $metadata))->data;
-        }
-
-        $object = $metadata->newInstance();
-
-        $constructorParameters = null;
-
-        foreach ($metadata->properties as $propertyMetadata) {
-            if (!array_key_exists($propertyMetadata->fieldName, $data)) {
-                if (!$propertyMetadata->reflection->isPromoted()) {
-                    continue;
-                }
-
-                if ($constructorParameters === null) {
-                    $constructorParameters = $this->promotedConstructorParametersWithDefaultValue($metadata);
-                }
-
-                if (!array_key_exists($propertyMetadata->propertyName(), $constructorParameters)) {
-                    continue;
-                }
-
-                /** @psalm-suppress MixedAssignment */
-                $defaultValue = $constructorParameters[$propertyMetadata->propertyName()]->getDefaultValue();
-                $propertyMetadata->setValue($object, $defaultValue);
-
-                continue;
-            }
-
-            /** @psalm-suppress MixedAssignment */
-            $value = $data[$propertyMetadata->fieldName];
-
-            $normalizer = $propertyMetadata->normalizer;
-
-            if ($normalizer) {
-                try {
-                    /** @psalm-suppress MixedAssignment */
-                    $value = $normalizer->denormalize($value);
-                } catch (Throwable $e) {
-                    throw new DenormalizationFailure(
-                        $metadata->className(),
-                        $propertyMetadata->propertyName(),
-                        $normalizer::class,
-                        $e,
-                    );
-                }
-            }
-
-            try {
-                $propertyMetadata->setValue($object, $value);
-            } catch (TypeError $e) {
-                throw new TypeMismatch(
-                    $metadata->className(),
-                    $propertyMetadata->propertyName(),
-                    $e,
-                );
-            }
-        }
-
-        foreach ($metadata->postHydrateCallbacks as $callback) {
-            $callback->invoke($object);
-        }
-
-        return $object;
     }
 
     /** @return array<string, mixed> */
     public function extract(object $object): array
     {
-        $objectId = spl_object_id($object);
+        $metadata = $this->metadata($object::class);
+        $stack = new Stack($this->middlewares);
 
-        if (array_key_exists($objectId, $this->stack)) {
-            $references = array_values($this->stack);
-            $references[] = $object::class;
-
-            throw new CircularReference($references);
-        }
-
-        $this->stack[$objectId] = $object::class;
-
-        try {
-            $metadata = $this->metadata($object::class);
-
-            foreach ($metadata->preExtractCallbacks as $callback) {
-                $callback->invoke($object);
-            }
-
-            $data = [];
-
-            foreach ($metadata->properties as $propertyMetadata) {
-                /** @psalm-suppress MixedAssignment */
-                $value = $propertyMetadata->getValue($object);
-
-                $normalizer = $propertyMetadata->normalizer;
-
-                if ($normalizer) {
-                    try {
-                        /** @psalm-suppress MixedAssignment */
-                        $value = $normalizer->normalize($value);
-                    } catch (CircularReference $e) {
-                        throw $e;
-                    } catch (Throwable $e) {
-                        throw new NormalizationFailure(
-                            $object::class,
-                            $propertyMetadata->propertyName(),
-                            $normalizer::class,
-                            $e,
-                        );
-                    }
-                }
-
-                if (is_object($value)) {
-                    throw new NormalizationMissing($object::class, $propertyMetadata->propertyName());
-                }
-
-                /** @psalm-suppress MixedAssignment */
-                $data[$propertyMetadata->fieldName] = $value;
-            }
-
-            if ($this->eventDispatcher) {
-                return $this->eventDispatcher->dispatch(new PostExtract($data, $metadata))->data;
-            }
-
-            return $data;
-        } finally {
-            unset($this->stack[$objectId]);
-        }
-    }
-
-    /** @return array<string, ReflectionParameter> */
-    private function promotedConstructorParametersWithDefaultValue(ClassMetadata $metadata): array
-    {
-        $constructor = $metadata->reflection->getConstructor();
-
-        if (!$constructor) {
-            return [];
-        }
-
-        $parameters = $constructor->getParameters();
-        $result = [];
-
-        foreach ($parameters as $parameter) {
-            if (!$parameter->isPromoted()) {
-                continue;
-            }
-
-            if (!$parameter->isDefaultValueAvailable()) {
-                continue;
-            }
-
-            $result[$parameter->getName()] = $parameter;
-        }
-
-        return $result;
+        return $stack->next()->extract($metadata, $object, $stack);
     }
 
     /**
@@ -282,10 +108,13 @@ final class MetadataHydrator implements Hydrator
         return $metadata;
     }
 
-    /** @param iterable<Guesser> $guessers */
+    /**
+     * @param list<Middleware>  $additionalMiddleware
+     * @param iterable<Guesser> $guessers
+     */
     public static function create(
+        array $additionalMiddleware = [],
         iterable $guessers = [],
-        EventDispatcherInterface|null $eventDispatcher = null,
         bool $defaultLazy = false,
     ): self {
         $guesser = new BuiltInGuesser();
@@ -301,8 +130,7 @@ final class MetadataHydrator implements Hydrator
             new AttributeMetadataFactory(
                 guesser: $guesser,
             ),
-            null,
-            $eventDispatcher,
+            [...$additionalMiddleware, new TransformMiddleware()],
             $defaultLazy,
         );
     }

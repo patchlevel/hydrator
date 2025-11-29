@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Unit\Normalizer;
 
-use Attribute;
 use Patchlevel\Hydrator\Normalizer\EnumNormalizer;
 use Patchlevel\Hydrator\Normalizer\InvalidArgument;
 use Patchlevel\Hydrator\Normalizer\InvalidType;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\AnotherEnum;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\TypeInfo\Type;
 
-#[Attribute(Attribute::TARGET_PROPERTY)]
+#[CoversClass(EnumNormalizer::class)]
 final class EnumNormalizerTest extends TestCase
 {
     public function testNormalizeWithNull(): void

@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Tests\Unit\Cryptography\Cipher;
 
 use Patchlevel\Hydrator\Cryptography\Cipher\DecryptionFailed;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-/** @covers \Patchlevel\Hydrator\Cryptography\Cipher\DecryptionFailed */
+#[CoversClass(DecryptionFailed::class)]
 final class DecryptionFailedTest extends TestCase
 {
     public function testCreation(): void

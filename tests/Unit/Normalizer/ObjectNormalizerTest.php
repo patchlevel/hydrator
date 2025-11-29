@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Unit\Normalizer;
 
-use Attribute;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\Normalizer\InvalidArgument;
 use Patchlevel\Hydrator\Normalizer\InvalidType;
@@ -14,13 +13,14 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\AutoTypeDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\TypeInfo\Type;
 
 use function serialize;
 use function unserialize;
 
-#[Attribute(Attribute::TARGET_PROPERTY)]
+#[CoversClass(ObjectNormalizer::class)]
 final class ObjectNormalizerTest extends TestCase
 {
     public function testNormalizeMissingHydrator(): void

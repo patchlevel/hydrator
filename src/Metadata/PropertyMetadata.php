@@ -10,7 +10,7 @@ use ReflectionProperty;
 /**
  * @psalm-type serialized = array{
  *     className: class-string,
- *     property: string,
+ *     propertyName: string,
  *     fieldName: string,
  *     normalizer: Normalizer|null,
  *     extras: array<string, mixed>,
@@ -18,6 +18,8 @@ use ReflectionProperty;
  */
 final class PropertyMetadata
 {
+    public readonly string $propertyName;
+
     /** @param array<string, mixed> $extras */
     public function __construct(
         public readonly ReflectionProperty $reflection,
@@ -25,11 +27,7 @@ final class PropertyMetadata
         public readonly Normalizer|null $normalizer = null,
         public array $extras = [],
     ) {
-    }
-
-    public function propertyName(): string
-    {
-        return $this->reflection->getName();
+        $this->propertyName = $reflection->getName();
     }
 
     public function setValue(object $object, mixed $value): void
@@ -47,7 +45,7 @@ final class PropertyMetadata
     {
         return [
             'className' => $this->reflection->getDeclaringClass()->getName(),
-            'property' => $this->reflection->getName(),
+            'propertyName' => $this->propertyName,
             'fieldName' => $this->fieldName,
             'normalizer' => $this->normalizer,
             'extras' => $this->extras,
@@ -57,7 +55,8 @@ final class PropertyMetadata
     /** @param serialized $data */
     public function __unserialize(array $data): void
     {
-        $this->reflection = new ReflectionProperty($data['className'], $data['property']);
+        $this->reflection = new ReflectionProperty($data['className'], $data['propertyName']);
+        $this->propertyName = $data['propertyName'];
         $this->fieldName = $data['fieldName'];
         $this->normalizer = $data['normalizer'];
         $this->extras = $data['extras'];

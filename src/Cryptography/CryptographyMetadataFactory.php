@@ -34,9 +34,9 @@ final class CryptographyMetadataFactory implements MetadataFactory
 
                 if (array_key_exists($subjectIdIdentifier, $subjectIdMapping)) {
                     throw new DuplicateSubjectIdIdentifier(
-                        $metadata->className(),
-                        $metadata->propertyForField($subjectIdMapping[$subjectIdIdentifier])->propertyName(),
-                        $property->propertyName(),
+                        $metadata->className,
+                        $metadata->propertyForField($subjectIdMapping[$subjectIdIdentifier])->propertyName,
+                        $property->propertyName,
                         $subjectIdIdentifier,
                     );
                 }
@@ -53,7 +53,7 @@ final class CryptographyMetadataFactory implements MetadataFactory
             }
 
             if ($isSubjectId) {
-                throw new SubjectIdAndSensitiveDataConflict($metadata->className(), $property->propertyName());
+                throw new SubjectIdAndSensitiveDataConflict($metadata->className, $property->propertyName);
             }
 
             $property->extras[SensitiveDataInfo::class] = $sensitiveDataInfo;
