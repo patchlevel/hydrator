@@ -37,12 +37,13 @@ final class MetadataHydrator implements Hydrator
     /**
      * @param class-string<T>      $class
      * @param array<string, mixed> $data
+     * @param array<string, mixed> $context
      *
      * @return T
      *
      * @template T of object
      */
-    public function hydrate(string $class, array $data): object
+    public function hydrate(string $class, array $data, array $context = []): object
     {
         try {
             $metadata = $this->metadata($class);
@@ -53,7 +54,7 @@ final class MetadataHydrator implements Hydrator
         if (PHP_VERSION_ID < 80400) {
             $stack = new Stack($this->middlewares);
 
-            return $stack->next()->hydrate($metadata, $data, $stack);
+            return $stack->next()->hydrate($metadata, $data, $context, $stack);
         }
 
         $lazy = $metadata->lazy ?? $this->defaultLazy;
@@ -61,25 +62,29 @@ final class MetadataHydrator implements Hydrator
         if (!$lazy) {
             $stack = new Stack($this->middlewares);
 
-            return $stack->next()->hydrate($metadata, $data, $stack);
+            return $stack->next()->hydrate($metadata, $data, $context, $stack);
         }
 
         return (new ReflectionClass($class))->newLazyProxy(
-            function () use ($metadata, $data): object {
+            function () use ($metadata, $data, $context): object {
                 $stack = new Stack($this->middlewares);
 
-                return $stack->next()->hydrate($metadata, $data, $stack);
+                return $stack->next()->hydrate($metadata, $data, $context, $stack);
             },
         );
     }
 
-    /** @return array<string, mixed> */
-    public function extract(object $object): array
+    /**
+     * @param array<string, mixed> $context
+     *
+     * @return array<string, mixed>
+     */
+    public function extract(object $object, array $context = []): array
     {
         $metadata = $this->metadata($object::class);
         $stack = new Stack($this->middlewares);
 
-        return $stack->next()->extract($metadata, $object, $stack);
+        return $stack->next()->extract($metadata, $object, $context, $stack);
     }
 
     /**

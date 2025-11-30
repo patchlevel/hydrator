@@ -138,6 +138,41 @@ final class MetadataHydratorTest extends TestCase
         );
     }
 
+    public function testExtractWithContext(): void
+    {
+        $object = new InferNormalizerDto(
+            Status::Draft,
+            new DateTimeImmutable('2015-02-13 22:34:32+01:00'),
+            new DateTime('2015-02-13 22:34:32+01:00'),
+            new DateTimeZone('EDT'),
+            ['foo'],
+        );
+
+        $expect = [
+            'status' => 'draft',
+            'dateTimeImmutable' => '2015-02-13T22:34:32+01:00',
+            'dateTime' => '2015-02-13T22:34:32+01:00',
+            'dateTimeZone' => 'EDT',
+        ];
+
+        $middleware = $this->createMock(Middleware::class);
+        $middleware
+            ->expects($this->once())
+            ->method('extract')
+            ->with(
+                $this->isInstanceOf(ClassMetadata::class),
+                $object,
+                ['context' => '123'],
+                $this->isInstanceOf(Stack::class),
+            )->willReturn($expect);
+
+        $hydrator = MetadataHydrator::create([$middleware]);
+
+        $data = $hydrator->extract($object, ['context' => '123']);
+
+        self::assertEquals($expect, $data);
+    }
+
     public function testHydrate(): void
     {
         $expected = new ProfileCreated(
@@ -218,6 +253,41 @@ final class MetadataHydratorTest extends TestCase
             ProfileCreated::class,
             ['profileId' => null, 'email' => null],
         );
+    }
+
+    public function testHydrateWithContext(): void
+    {
+        $expect = new InferNormalizerDto(
+            Status::Draft,
+            new DateTimeImmutable('2015-02-13 22:34:32+01:00'),
+            new DateTime('2015-02-13 22:34:32+01:00'),
+            new DateTimeZone('EDT'),
+            ['foo'],
+        );
+
+        $data = [
+            'status' => 'draft',
+            'dateTimeImmutable' => '2015-02-13T22:34:32+01:00',
+            'dateTime' => '2015-02-13T22:34:32+01:00',
+            'dateTimeZone' => 'EDT',
+        ];
+
+        $middleware = $this->createMock(Middleware::class);
+        $middleware
+            ->expects($this->once())
+            ->method('hydrate')
+            ->with(
+                $this->isInstanceOf(ClassMetadata::class),
+                $data,
+                ['context' => '123'],
+                $this->isInstanceOf(Stack::class),
+            )->willReturn($expect);
+
+        $hydrator = MetadataHydrator::create([$middleware]);
+
+        $object = $hydrator->hydrate(InferNormalizerDto::class, $data, ['context' => '123']);
+
+        self::assertEquals($expect, $object);
     }
 
     public function testDenormalizationFailure(): void
@@ -498,27 +568,29 @@ final class MetadataHydratorTest extends TestCase
                     /**
                      * @param ClassMetadata<T>     $metadata
                      * @param array<string, mixed> $data
+                     * @param array<string, mixed> $context
                      *
                      * @return T
                      *
                      * @template T of object
                      */
-                    public function hydrate(ClassMetadata $metadata, array $data, Stack $stack): object
+                    public function hydrate(ClassMetadata $metadata, array $data, array $context, Stack $stack): object
                     {
-                        return $stack->next()->hydrate($metadata, $data, $stack);
+                        return $stack->next()->hydrate($metadata, $data, $context, $stack);
                     }
 
                     /**
-                     * @param ClassMetadata<T> $metadata
-                     * @param T                $object
+                     * @param ClassMetadata<T>     $metadata
+                     * @param T                    $object
+                     * @param array<string, mixed> $context
                      *
                      * @return array<string, mixed>
                      *
                      * @template T of object
                      */
-                    public function extract(ClassMetadata $metadata, object $object, Stack $stack): array
+                    public function extract(ClassMetadata $metadata, object $object, array $context, Stack $stack): array
                     {
-                        return $stack->next()->extract($metadata, $object, $stack);
+                        return $stack->next()->extract($metadata, $object, $context, $stack);
                     }
                 },
             ],

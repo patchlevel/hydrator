@@ -32,9 +32,9 @@ final class CryptographyMiddlewareTest extends TestCase
 
         $stack = new Stack([$otherMiddleware]);
 
-        $otherMiddleware->expects($this->once())->method('hydrate')->with($metadata, ['name' => 'bar'], $stack)->willReturn($object);
+        $otherMiddleware->expects($this->once())->method('hydrate')->with($metadata, ['name' => 'bar'], [], $stack)->willReturn($object);
 
-        $result = $cryptographyMiddleware->hydrate($metadata, ['name' => 'foo'], $stack);
+        $result = $cryptographyMiddleware->hydrate($metadata, ['name' => 'foo'], [], $stack);
 
         self::assertSame($object, $result);
     }
@@ -54,9 +54,9 @@ final class CryptographyMiddlewareTest extends TestCase
 
         $stack = new Stack([$otherMiddleware]);
 
-        $otherMiddleware->expects($this->once())->method('extract')->with($metadata, $object, $stack)->willReturn(['name' => 'foo']);
+        $otherMiddleware->expects($this->once())->method('extract')->with($metadata, $object, [], $stack)->willReturn(['name' => 'foo']);
 
-        $result = $cryptographyMiddleware->extract($metadata, $object, $stack);
+        $result = $cryptographyMiddleware->extract($metadata, $object, [], $stack);
 
         self::assertSame(['name' => 'bar'], $result);
     }
