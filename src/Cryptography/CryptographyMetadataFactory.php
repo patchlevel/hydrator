@@ -8,13 +8,13 @@ use Patchlevel\Hydrator\Attribute\DataSubjectId;
 use Patchlevel\Hydrator\Attribute\SensitiveData;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Metadata\MetadataFactory;
-use ReflectionProperty;
 
 use function array_key_exists;
 
 final class CryptographyMetadataFactory implements MetadataFactory
 {
     public function __construct(
+        private readonly Cryptographer $cryptographer,
         private readonly MetadataFactory $metadataFactory,
     ) {
     }
@@ -46,9 +46,9 @@ final class CryptographyMetadataFactory implements MetadataFactory
                 $isSubjectId = true;
             }
 
-            $sensitiveDataInfo = $this->sensitiveDataInfo($property->reflection);
+            $attributeReflectionList = $property->reflection->getAttributes(SensitiveData::class);
 
-            if (!$sensitiveDataInfo) {
+            if ($attributeReflectionList === []) {
                 continue;
             }
 
@@ -56,7 +56,14 @@ final class CryptographyMetadataFactory implements MetadataFactory
                 throw new SubjectIdAndSensitiveDataConflict($metadata->className, $property->propertyName);
             }
 
-            $property->extras[SensitiveDataInfo::class] = $sensitiveDataInfo;
+            $attribute = $attributeReflectionList[0]->newInstance();
+
+            $property->normalizer = new CryptoNormalizer(
+                $this->cryptographer,
+                $attribute->subjectIdName,
+                $attribute->fallbackCallable !== null ? ($attribute->fallbackCallable)(...) : $attribute->fallback,
+                $property->normalizer,
+            );
         }
 
         if ($subjectIdMapping !== []) {
@@ -64,21 +71,5 @@ final class CryptographyMetadataFactory implements MetadataFactory
         }
 
         return $metadata;
-    }
-
-    private function sensitiveDataInfo(ReflectionProperty $reflectionProperty): SensitiveDataInfo|null
-    {
-        $attributeReflectionList = $reflectionProperty->getAttributes(SensitiveData::class);
-
-        if ($attributeReflectionList === []) {
-            return null;
-        }
-
-        $attribute = $attributeReflectionList[0]->newInstance();
-
-        return new SensitiveDataInfo(
-            $attribute->subjectIdName,
-            $attribute->fallbackCallable !== null ? ($attribute->fallbackCallable)(...) : $attribute->fallback,
-        );
     }
 }

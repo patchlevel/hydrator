@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Benchmark;
 
+use Patchlevel\Hydrator\Cryptography\Cryptographer;
 use Patchlevel\Hydrator\Cryptography\CryptographyMetadataFactory;
 use Patchlevel\Hydrator\Cryptography\CryptographyMiddleware;
 use Patchlevel\Hydrator\Cryptography\Store\InMemoryCipherKeyStore;
@@ -28,9 +29,12 @@ final class HydratorWithCryptographyBench
         $this->store = new InMemoryCipherKeyStore();
 
         $this->hydrator = new MetadataHydrator(
-            new CryptographyMetadataFactory(new AttributeMetadataFactory()),
+            new CryptographyMetadataFactory(
+                Cryptographer::createWithOpenssl($this->store),
+                new AttributeMetadataFactory(),
+            ),
             [
-                CryptographyMiddleware::createWithOpenssl($this->store),
+                new CryptographyMiddleware(),
                 new TransformMiddleware(),
             ],
         );

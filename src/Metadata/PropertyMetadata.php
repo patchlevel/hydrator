@@ -24,7 +24,7 @@ final class PropertyMetadata
     public function __construct(
         public readonly ReflectionProperty $reflection,
         public readonly string $fieldName,
-        public readonly Normalizer|null $normalizer = null,
+        public Normalizer|null $normalizer = null,
         public array $extras = [],
     ) {
         $this->propertyName = $reflection->getName();
