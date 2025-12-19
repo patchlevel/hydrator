@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Cryptography\Cipher;
 
+use Patchlevel\Hydrator\HydratorException;
 use RuntimeException;
 
-final class DecryptionFailed extends RuntimeException
+final class DecryptionFailed extends RuntimeException implements HydratorException
 {
     public function __construct()
     {

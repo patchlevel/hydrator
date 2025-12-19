@@ -6,7 +6,6 @@ namespace Patchlevel\Hydrator\Tests\Benchmark;
 
 use Patchlevel\Hydrator\Cryptography\CryptographyMetadataFactory;
 use Patchlevel\Hydrator\Cryptography\CryptographyMiddleware;
-use Patchlevel\Hydrator\Cryptography\SensitiveDataPayloadCryptographer;
 use Patchlevel\Hydrator\Cryptography\Store\InMemoryCipherKeyStore;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
@@ -31,7 +30,7 @@ final class HydratorWithCryptographyBench
         $this->hydrator = new MetadataHydrator(
             new CryptographyMetadataFactory(new AttributeMetadataFactory()),
             [
-                new CryptographyMiddleware(SensitiveDataPayloadCryptographer::createWithDefaultSettings($this->store)),
+                CryptographyMiddleware::createWithOpenssl($this->store),
                 new TransformMiddleware(),
             ],
         );
