@@ -17,7 +17,8 @@ final class DateTimeNormalizer implements Normalizer
     ) {
     }
 
-    public function normalize(mixed $value): string|null
+    /** @param array<string, mixed> $context */
+    public function normalize(mixed $value, array $context): string|null
     {
         if ($value === null) {
             return null;
@@ -30,7 +31,8 @@ final class DateTimeNormalizer implements Normalizer
         return $value->format($this->format);
     }
 
-    public function denormalize(mixed $value): DateTime|null
+    /** @param array<string, mixed> $context */
+    public function denormalize(mixed $value, array $context): DateTime|null
     {
         if ($value === null) {
             return null;

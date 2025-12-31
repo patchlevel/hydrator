@@ -16,13 +16,13 @@ final class DateTimeZoneNormalizerTest extends TestCase
     public function testNormalizeWithNull(): void
     {
         $normalizer = new DateTimeZoneNormalizer();
-        $this->assertEquals(null, $normalizer->normalize(null));
+        $this->assertEquals(null, $normalizer->normalize(null, []));
     }
 
     public function testDenormalizeWithNull(): void
     {
         $normalizer = new DateTimeZoneNormalizer();
-        $this->assertEquals(null, $normalizer->denormalize(null));
+        $this->assertEquals(null, $normalizer->denormalize(null, []));
     }
 
     public function testNormalizeWithInvalidArgument(): void
@@ -31,7 +31,7 @@ final class DateTimeZoneNormalizerTest extends TestCase
         $this->expectExceptionCode(0);
 
         $normalizer = new DateTimeZoneNormalizer();
-        $normalizer->normalize(123);
+        $normalizer->normalize(123, []);
     }
 
     public function testDenormalizeWithInvalidArgument(): void
@@ -40,18 +40,18 @@ final class DateTimeZoneNormalizerTest extends TestCase
         $this->expectExceptionCode(0);
 
         $normalizer = new DateTimeZoneNormalizer();
-        $normalizer->denormalize(123);
+        $normalizer->denormalize(123, []);
     }
 
     public function testNormalizeWithValue(): void
     {
         $normalizer = new DateTimeZoneNormalizer();
-        $this->assertEquals('EDT', $normalizer->normalize(new DateTimeZone('EDT')));
+        $this->assertEquals('EDT', $normalizer->normalize(new DateTimeZone('EDT'), []));
     }
 
     public function testDenormalizeWithValue(): void
     {
         $normalizer = new DateTimeZoneNormalizer();
-        $this->assertEquals(new DateTimeZone('EDT'), $normalizer->denormalize('EDT'));
+        $this->assertEquals(new DateTimeZone('EDT'), $normalizer->denormalize('EDT', []));
     }
 }

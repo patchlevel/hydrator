@@ -21,8 +21,12 @@ final class ArrayShapeNormalizer implements Normalizer, TypeAwareNormalizer, Hyd
     ) {
     }
 
-    /** @return array<array-key, mixed>|null */
-    public function normalize(mixed $value): array|null
+    /**
+     * @param array<string, mixed> $context
+     *
+     * @return array<array-key, mixed>|null
+     */
+    public function normalize(mixed $value, array $context): array|null
     {
         if ($value === null) {
             return null;
@@ -39,14 +43,18 @@ final class ArrayShapeNormalizer implements Normalizer, TypeAwareNormalizer, Hyd
                 continue;
             }
 
-            $result[$field] = $normalizer->normalize($value[$field]);
+            $result[$field] = $normalizer->normalize($value[$field], $context);
         }
 
         return $result;
     }
 
-    /** @return array<array-key, mixed>|null */
-    public function denormalize(mixed $value): array|null
+    /**
+     * @param array<string, mixed> $context
+     *
+     * @return array<array-key, mixed>|null
+     */
+    public function denormalize(mixed $value, array $context): array|null
     {
         if ($value === null) {
             return null;
@@ -63,7 +71,7 @@ final class ArrayShapeNormalizer implements Normalizer, TypeAwareNormalizer, Hyd
                 continue;
             }
 
-            $result[$field] = $normalizer->denormalize($value[$field]);
+            $result[$field] = $normalizer->denormalize($value[$field], $context);
         }
 
         return $result;

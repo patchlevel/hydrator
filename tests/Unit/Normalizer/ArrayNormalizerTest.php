@@ -20,7 +20,7 @@ final class ArrayNormalizerTest extends TestCase
         $innerNormalizer = $this->createMock(Normalizer::class);
 
         $normalizer = new ArrayNormalizer($innerNormalizer);
-        $this->assertEquals(null, $normalizer->normalize(null));
+        $this->assertEquals(null, $normalizer->normalize(null, []));
     }
 
     public function testDenormalizeWithNull(): void
@@ -28,7 +28,7 @@ final class ArrayNormalizerTest extends TestCase
         $innerNormalizer = $this->createMock(Normalizer::class);
 
         $normalizer = new ArrayNormalizer($innerNormalizer);
-        $this->assertEquals(null, $normalizer->denormalize(null));
+        $this->assertEquals(null, $normalizer->denormalize(null, []));
     }
 
     public function testNormalizeWithInvalidArgument(): void
@@ -39,7 +39,7 @@ final class ArrayNormalizerTest extends TestCase
         $innerNormalizer = $this->createMock(Normalizer::class);
 
         $normalizer = new ArrayNormalizer($innerNormalizer);
-        $normalizer->normalize('foo');
+        $normalizer->normalize('foo', []);
     }
 
     public function testDenormalizeWithInvalidArgument(): void
@@ -50,43 +50,47 @@ final class ArrayNormalizerTest extends TestCase
         $innerNormalizer = $this->createMock(Normalizer::class);
 
         $normalizer = new ArrayNormalizer($innerNormalizer);
-        $normalizer->denormalize('foo');
+        $normalizer->denormalize('foo', []);
     }
 
     public function testNormalizeWithValue(): void
     {
         $innerNormalizer = new class implements Normalizer {
-            public function normalize(mixed $value): string
+            /** @param array<string, mixed> $context */
+            public function normalize(mixed $value, array $context): string
             {
                 return (string)$value;
             }
 
-            public function denormalize(mixed $value): int
+            /** @param array<string, mixed> $context */
+            public function denormalize(mixed $value, array $context): int
             {
                 return (int)$value;
             }
         };
 
         $normalizer = new ArrayNormalizer($innerNormalizer);
-        $this->assertEquals(['1', '2'], $normalizer->normalize([1, 2]));
+        $this->assertEquals(['1', '2'], $normalizer->normalize([1, 2], []));
     }
 
     public function testDenormalizeWithValue(): void
     {
         $innerNormalizer = new class implements Normalizer {
-            public function normalize(mixed $value): string
+            /** @param array<string, mixed> $context */
+            public function normalize(mixed $value, array $context): string
             {
                 return (string)$value;
             }
 
-            public function denormalize(mixed $value): int
+            /** @param array<string, mixed> $context */
+            public function denormalize(mixed $value, array $context): int
             {
                 return (int)$value;
             }
         };
 
         $normalizer = new ArrayNormalizer($innerNormalizer);
-        $this->assertEquals([1, 2], $normalizer->denormalize(['1', '2']));
+        $this->assertEquals([1, 2], $normalizer->denormalize(['1', '2'], []));
     }
 
     public function testPassHydrator(): void
