@@ -23,7 +23,8 @@ final class EnumNormalizer implements Normalizer, TypeAwareNormalizer
     ) {
     }
 
-    public function normalize(mixed $value): mixed
+    /** @param array<string, mixed> $context */
+    public function normalize(mixed $value, array $context): mixed
     {
         if ($value === null) {
             return null;
@@ -38,7 +39,8 @@ final class EnumNormalizer implements Normalizer, TypeAwareNormalizer
         return $value->value;
     }
 
-    public function denormalize(mixed $value): BackedEnum|null
+    /** @param array<string, mixed> $context */
+    public function denormalize(mixed $value, array $context): BackedEnum|null
     {
         if ($value === null) {
             return null;

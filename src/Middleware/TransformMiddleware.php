@@ -8,7 +8,6 @@ use Patchlevel\Hydrator\CircularReference;
 use Patchlevel\Hydrator\DenormalizationFailure;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\NormalizationFailure;
-use Patchlevel\Hydrator\Normalizer\ContextAwareNormalizer;
 use Patchlevel\Hydrator\TypeMismatch;
 use ReflectionParameter;
 use Throwable;
@@ -62,13 +61,8 @@ final class TransformMiddleware implements Middleware
 
             if ($propertyMetadata->normalizer) {
                 try {
-                    if ($propertyMetadata->normalizer instanceof ContextAwareNormalizer) {
-                        /** @psalm-suppress MixedAssignment */
-                        $value = $propertyMetadata->normalizer->denormalize($data[$propertyMetadata->fieldName], $context);
-                    } else {
-                        /** @psalm-suppress MixedAssignment */
-                        $value = $propertyMetadata->normalizer->denormalize($data[$propertyMetadata->fieldName]);
-                    }
+                    /** @psalm-suppress MixedAssignment */
+                    $value = $propertyMetadata->normalizer->denormalize($data[$propertyMetadata->fieldName], $context);
                 } catch (Throwable $e) {
                     throw new DenormalizationFailure(
                         $metadata->className,
@@ -119,18 +113,11 @@ final class TransformMiddleware implements Middleware
             foreach ($metadata->properties as $propertyMetadata) {
                 if ($propertyMetadata->normalizer) {
                     try {
-                        if ($propertyMetadata->normalizer instanceof ContextAwareNormalizer) {
-                            /** @psalm-suppress MixedAssignment */
-                            $data[$propertyMetadata->fieldName] = $propertyMetadata->normalizer->normalize(
-                                $propertyMetadata->getValue($object),
-                                $context,
-                            );
-                        } else {
-                            /** @psalm-suppress MixedAssignment */
-                            $data[$propertyMetadata->fieldName] = $propertyMetadata->normalizer->normalize(
-                                $propertyMetadata->getValue($object),
-                            );
-                        }
+                        /** @psalm-suppress MixedAssignment */
+                        $data[$propertyMetadata->fieldName] = $propertyMetadata->normalizer->normalize(
+                            $propertyMetadata->getValue($object),
+                            $context,
+                        );
                     } catch (CircularReference $e) {
                         throw $e;
                     } catch (Throwable $e) {

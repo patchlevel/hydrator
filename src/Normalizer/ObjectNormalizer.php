@@ -15,7 +15,7 @@ use Symfony\Component\TypeInfo\Type\TemplateType;
 use function is_array;
 
 #[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_CLASS)]
-final class ObjectNormalizer implements ContextAwareNormalizer, TypeAwareNormalizer, HydratorAwareNormalizer
+final class ObjectNormalizer implements Normalizer, TypeAwareNormalizer, HydratorAwareNormalizer
 {
     private Hydrator|null $hydrator = null;
 
@@ -30,7 +30,7 @@ final class ObjectNormalizer implements ContextAwareNormalizer, TypeAwareNormali
      *
      * @return array<string, mixed>|null
      */
-    public function normalize(mixed $value, array $context = []): array|null
+    public function normalize(mixed $value, array $context): array|null
     {
         if (!$this->hydrator) {
             throw new MissingHydrator();
@@ -50,7 +50,7 @@ final class ObjectNormalizer implements ContextAwareNormalizer, TypeAwareNormali
     }
 
     /** @param array<string, mixed> $context */
-    public function denormalize(mixed $value, array $context = []): object|null
+    public function denormalize(mixed $value, array $context): object|null
     {
         if (!$this->hydrator) {
             throw new MissingHydrator();

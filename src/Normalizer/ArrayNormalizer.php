@@ -20,8 +20,12 @@ final class ArrayNormalizer implements Normalizer, TypeAwareNormalizer, Hydrator
     ) {
     }
 
-    /** @return array<array-key, mixed>|null */
-    public function normalize(mixed $value): array|null
+    /**
+     * @param array<string, mixed> $context
+     *
+     * @return array<array-key, mixed>|null
+     */
+    public function normalize(mixed $value, array $context): array|null
     {
         if ($value === null) {
             return null;
@@ -32,14 +36,18 @@ final class ArrayNormalizer implements Normalizer, TypeAwareNormalizer, Hydrator
         }
 
         foreach ($value as &$item) {
-            $item = $this->normalizer->normalize($item);
+            $item = $this->normalizer->normalize($item, $context);
         }
 
         return $value;
     }
 
-    /** @return array<array-key, mixed>|null */
-    public function denormalize(mixed $value): array|null
+    /**
+     * @param array<string, mixed> $context
+     *
+     * @return array<array-key, mixed>|null
+     */
+    public function denormalize(mixed $value, array $context): array|null
     {
         if ($value === null) {
             return null;
@@ -50,7 +58,7 @@ final class ArrayNormalizer implements Normalizer, TypeAwareNormalizer, Hydrator
         }
 
         foreach ($value as &$item) {
-            $item = $this->normalizer->denormalize($item);
+            $item = $this->normalizer->denormalize($item, $context);
         }
 
         return $value;

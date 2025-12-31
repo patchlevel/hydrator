@@ -19,13 +19,13 @@ final class EnumNormalizerTest extends TestCase
     public function testNormalizeWithNull(): void
     {
         $normalizer = new EnumNormalizer(Status::class);
-        $this->assertEquals(null, $normalizer->normalize(null));
+        $this->assertEquals(null, $normalizer->normalize(null, []));
     }
 
     public function testDenormalizeWithNull(): void
     {
         $normalizer = new EnumNormalizer(Status::class);
-        $this->assertEquals(null, $normalizer->denormalize(null));
+        $this->assertEquals(null, $normalizer->denormalize(null, []));
     }
 
     public function testNormalizeWithInvalidArgument(): void
@@ -35,7 +35,7 @@ final class EnumNormalizerTest extends TestCase
         $this->expectExceptionMessage('type "Patchlevel\Hydrator\Tests\Unit\Fixture\Status|null" was expected but "string" was passed.');
 
         $normalizer = new EnumNormalizer(Status::class);
-        $normalizer->normalize('foo');
+        $normalizer->normalize('foo', []);
     }
 
     public function testDenormalizeWithInvalidArgument(): void
@@ -46,19 +46,19 @@ final class EnumNormalizerTest extends TestCase
         $this->expectExceptionMessage('Patchlevel\Hydrator\Tests\Unit\Fixture\Status');
 
         $normalizer = new EnumNormalizer(Status::class);
-        $normalizer->denormalize('foo');
+        $normalizer->denormalize('foo', []);
     }
 
     public function testNormalizeWithValue(): void
     {
         $normalizer = new EnumNormalizer(Status::class);
-        $this->assertEquals('pending', $normalizer->normalize(Status::Pending));
+        $this->assertEquals('pending', $normalizer->normalize(Status::Pending, []));
     }
 
     public function testDenormalizeWithValue(): void
     {
         $normalizer = new EnumNormalizer(Status::class);
-        $this->assertEquals(Status::Pending, $normalizer->denormalize('pending'));
+        $this->assertEquals(Status::Pending, $normalizer->denormalize('pending', []));
     }
 
     public function testAutoDetect(): void
