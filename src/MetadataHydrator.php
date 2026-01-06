@@ -122,7 +122,7 @@ final class MetadataHydrator implements Hydrator
         return $metadata;
     }
 
-    /** @param iterable<MiddlewareProvider|MetadataEnricherProvider|GuesserProvider> $extensions */
+    /** @param iterable<Extension> $extensions */
     public static function create(
         iterable $extensions = [],
         bool $defaultLazy = false,
@@ -134,28 +134,20 @@ final class MetadataHydrator implements Hydrator
         $guessers = [];
 
         foreach ($extensions as $extension) {
-            if ($extension instanceof MiddlewareProvider) {
-                foreach ($extension->middlewares() as $entry) {
-                    if ($entry instanceof Middleware) {
-                        $middlewares[0][] = $entry;
-                    } else {
-                        $middlewares[$entry[1] ?? 0][] = $entry[0];
-                    }
+            foreach ($extension->middlewares() as $entry) {
+                if ($entry instanceof Middleware) {
+                    $middlewares[0][] = $entry;
+                } else {
+                    $middlewares[$entry[1] ?? 0][] = $entry[0];
                 }
             }
 
-            if ($extension instanceof MetadataEnricherProvider) {
-                foreach ($extension->metadataEnrichers() as $entry) {
-                    if ($entry instanceof MetadataEnricher) {
-                        $enrichers[0][] = $entry;
-                    } else {
-                        $enrichers[$entry[1] ?? 0][] = $entry[0];
-                    }
+            foreach ($extension->metadataEnrichers() as $entry) {
+                if ($entry instanceof MetadataEnricher) {
+                    $enrichers[0][] = $entry;
+                } else {
+                    $enrichers[$entry[1] ?? 0][] = $entry[0];
                 }
-            }
-
-            if (!($extension instanceof GuesserProvider)) {
-                continue;
             }
 
             foreach ($extension->guesser() as $entry) {

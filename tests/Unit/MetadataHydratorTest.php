@@ -25,8 +25,8 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle1Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle2Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle3Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DefaultDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\DummyExtension;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
-use Patchlevel\Hydrator\Tests\Unit\Fixture\Extension;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithIterablesDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithNullableDto;
@@ -168,7 +168,7 @@ final class MetadataHydratorTest extends TestCase
                 $this->isInstanceOf(Stack::class),
             )->willReturn($expect);
 
-        $hydrator = MetadataHydrator::create([new Extension([$middleware])]);
+        $hydrator = MetadataHydrator::create([new DummyExtension([$middleware])]);
 
         $data = $hydrator->extract($object, ['context' => '123']);
 
@@ -286,7 +286,7 @@ final class MetadataHydratorTest extends TestCase
                 $this->isInstanceOf(Stack::class),
             )->willReturn($expect);
 
-        $hydrator = MetadataHydrator::create([new Extension([$middleware])]);
+        $hydrator = MetadataHydrator::create([new DummyExtension([$middleware])]);
 
         $object = $hydrator->hydrate(InferNormalizerDto::class, $data, ['context' => '123']);
 
@@ -556,7 +556,7 @@ final class MetadataHydratorTest extends TestCase
 
         $hydrator = MetadataHydrator::create(
             [
-                new Extension(
+                new DummyExtension(
                     [
                         new class implements Middleware {
                         /**

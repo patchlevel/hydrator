@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Cryptography;
 
+use Patchlevel\Hydrator\Extension;
 use Patchlevel\Hydrator\Metadata\MetadataEnricher;
-use Patchlevel\Hydrator\MetadataEnricherProvider;
 use Patchlevel\Hydrator\Middleware\Middleware;
-use Patchlevel\Hydrator\MiddlewareProvider;
 
-final class CryptographyExtension implements MiddlewareProvider, MetadataEnricherProvider
+final class CryptographyExtension extends Extension
 {
     public function __construct(
         private readonly PayloadCryptographer $cryptography,

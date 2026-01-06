@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Unit\Fixture;
 
+use Patchlevel\Hydrator\Extension;
 use Patchlevel\Hydrator\Guesser\Guesser;
-use Patchlevel\Hydrator\GuesserProvider;
 use Patchlevel\Hydrator\Metadata\MetadataEnricher;
-use Patchlevel\Hydrator\MetadataEnricherProvider;
 use Patchlevel\Hydrator\Middleware\Middleware;
-use Patchlevel\Hydrator\MiddlewareProvider;
 
-final class Extension implements MiddlewareProvider, MetadataEnricherProvider, GuesserProvider
+final class DummyExtension extends Extension
 {
     /**
      * @param iterable<Middleware>       $middlewares

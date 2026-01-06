@@ -4,22 +4,27 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator;
 
-use Patchlevel\Hydrator\Guesser\BuiltInGuesser;
 use Patchlevel\Hydrator\Guesser\Guesser;
+use Patchlevel\Hydrator\Metadata\MetadataEnricher;
 use Patchlevel\Hydrator\Middleware\Middleware;
-use Patchlevel\Hydrator\Middleware\TransformMiddleware;
 
-final class CoreExtension extends Extension
+abstract class Extension
 {
     /** @return iterable<Middleware|array{0: Middleware, 1?: int}> */
     public function middlewares(): iterable
     {
-        yield new TransformMiddleware();
+        return [];
+    }
+
+    /** @return iterable<MetadataEnricher|array{0: MetadataEnricher, 1?: int}> */
+    public function metadataEnrichers(): iterable
+    {
+        return [];
     }
 
     /** @return iterable<Guesser|array{0: Guesser, 1?: int}> */
     public function guesser(): iterable
     {
-        yield new BuiltInGuesser();
+        return [];
     }
 }
