@@ -4,20 +4,21 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator;
 
-use Patchlevel\Hydrator\Guesser\BuiltInGuesser;
 use Patchlevel\Hydrator\Guesser\ChainGuesser;
 use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Metadata\ClassNotFound;
+use Patchlevel\Hydrator\Metadata\MetadataEnricher;
 use Patchlevel\Hydrator\Metadata\MetadataFactory;
 use Patchlevel\Hydrator\Middleware\Middleware;
 use Patchlevel\Hydrator\Middleware\Stack;
-use Patchlevel\Hydrator\Middleware\TransformMiddleware;
 use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
 use ReflectionClass;
 
 use function array_key_exists;
+use function array_merge;
+use function krsort;
 
 use const PHP_VERSION_ID;
 
@@ -26,10 +27,14 @@ final class MetadataHydrator implements Hydrator
     /** @var array<class-string, ClassMetadata> */
     private array $classMetadata = [];
 
-    /** @param list<Middleware> $middlewares */
+    /**
+     * @param list<Middleware>       $middlewares
+     * @param list<MetadataEnricher> $metadataEnrichers
+     */
     public function __construct(
         private readonly MetadataFactory $metadataFactory = new AttributeMetadataFactory(),
         private readonly array $middlewares = [],
+        private readonly array $metadataEnrichers = [],
         private readonly bool $defaultLazy = false,
     ) {
     }
@@ -110,32 +115,68 @@ final class MetadataHydrator implements Hydrator
             $property->normalizer->setHydrator($this);
         }
 
+        foreach ($this->metadataEnrichers as $enricher) {
+            $enricher->enrich($metadata);
+        }
+
         return $metadata;
     }
 
-    /**
-     * @param list<Middleware>  $additionalMiddleware
-     * @param iterable<Guesser> $guessers
-     */
+    /** @param iterable<MiddlewareProvider|MetadataEnricherProvider|GuesserProvider> $extensions */
     public static function create(
-        array $additionalMiddleware = [],
-        iterable $guessers = [],
+        iterable $extensions = [],
         bool $defaultLazy = false,
     ): self {
-        $guesser = new BuiltInGuesser();
+        $extensions = [...$extensions, new CoreExtension()];
 
-        if ($guessers !== []) {
-            $guesser = new ChainGuesser([
-                ...$guessers,
-                $guesser,
-            ]);
+        $middlewares = [];
+        $enrichers = [];
+        $guessers = [];
+
+        foreach ($extensions as $extension) {
+            if ($extension instanceof MiddlewareProvider) {
+                foreach ($extension->middlewares() as $entry) {
+                    if ($entry instanceof Middleware) {
+                        $middlewares[0][] = $entry;
+                    } else {
+                        $middlewares[$entry[1] ?? 0][] = $entry[0];
+                    }
+                }
+            }
+
+            if ($extension instanceof MetadataEnricherProvider) {
+                foreach ($extension->metadataEnrichers() as $entry) {
+                    if ($entry instanceof MetadataEnricher) {
+                        $enrichers[0][] = $entry;
+                    } else {
+                        $enrichers[$entry[1] ?? 0][] = $entry[0];
+                    }
+                }
+            }
+
+            if (!($extension instanceof GuesserProvider)) {
+                continue;
+            }
+
+            foreach ($extension->guesser() as $entry) {
+                if ($entry instanceof Guesser) {
+                    $guessers[0][] = $entry;
+                } else {
+                    $guessers[$entry[1] ?? 0][] = $entry[0];
+                }
+            }
         }
+
+        krsort($middlewares);
+        krsort($enrichers);
+        krsort($guessers);
 
         return new self(
             new AttributeMetadataFactory(
-                guesser: $guesser,
+                guesser: new ChainGuesser([...array_merge(...$guessers)]),
             ),
-            [...$additionalMiddleware, new TransformMiddleware()],
+            [...array_merge(...$middlewares)],
+            [...array_merge(...$enrichers)],
             $defaultLazy,
         );
     }
