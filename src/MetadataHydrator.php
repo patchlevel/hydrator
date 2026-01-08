@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator;
 
-use Patchlevel\Hydrator\Guesser\ChainGuesser;
-use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Metadata\ClassNotFound;
@@ -17,8 +15,6 @@ use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
 use ReflectionClass;
 
 use function array_key_exists;
-use function array_merge;
-use function krsort;
 
 use const PHP_VERSION_ID;
 
@@ -120,56 +116,5 @@ final class MetadataHydrator implements Hydrator
         }
 
         return $metadata;
-    }
-
-    /** @param iterable<Extension> $extensions */
-    public static function create(
-        iterable $extensions = [],
-        bool $defaultLazy = false,
-    ): self {
-        $extensions = [...$extensions, new CoreExtension()];
-
-        $middlewares = [];
-        $enrichers = [];
-        $guessers = [];
-
-        foreach ($extensions as $extension) {
-            foreach ($extension->middlewares() as $entry) {
-                if ($entry instanceof Middleware) {
-                    $middlewares[0][] = $entry;
-                } else {
-                    $middlewares[$entry[1] ?? 0][] = $entry[0];
-                }
-            }
-
-            foreach ($extension->metadataEnrichers() as $entry) {
-                if ($entry instanceof MetadataEnricher) {
-                    $enrichers[0][] = $entry;
-                } else {
-                    $enrichers[$entry[1] ?? 0][] = $entry[0];
-                }
-            }
-
-            foreach ($extension->guesser() as $entry) {
-                if ($entry instanceof Guesser) {
-                    $guessers[0][] = $entry;
-                } else {
-                    $guessers[$entry[1] ?? 0][] = $entry[0];
-                }
-            }
-        }
-
-        krsort($middlewares);
-        krsort($enrichers);
-        krsort($guessers);
-
-        return new self(
-            new AttributeMetadataFactory(
-                guesser: new ChainGuesser([...array_merge(...$guessers)]),
-            ),
-            [...array_merge(...$middlewares)],
-            [...array_merge(...$enrichers)],
-            $defaultLazy,
-        );
     }
 }
