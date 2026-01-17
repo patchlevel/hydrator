@@ -72,10 +72,10 @@ final class HydratorBuilder
 
         return new MetadataHydrator(
             new AttributeMetadataFactory(
-                guesser: new ChainGuesser([...array_merge(...$this->guessers)]),
+                guesser: new ChainGuesser(array_merge(...$this->guessers)),
             ),
-            [...array_merge(...$this->middlewares)],
-            [...array_merge(...$this->metadataEnrichers)],
+            array_merge(...$this->middlewares),
+            array_merge(...$this->metadataEnrichers),
             $this->defaultLazy,
         );
     }
