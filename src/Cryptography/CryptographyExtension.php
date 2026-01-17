@@ -10,7 +10,7 @@ use Patchlevel\Hydrator\HydratorBuilder;
 final class CryptographyExtension implements Extension
 {
     public function __construct(
-        private readonly PayloadCryptographer $cryptography,
+        private readonly Cryptographer $cryptography,
     ) {
     }
 

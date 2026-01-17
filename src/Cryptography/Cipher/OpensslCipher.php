@@ -17,6 +17,7 @@ use const JSON_THROW_ON_ERROR;
 
 final class OpensslCipher implements Cipher
 {
+    /** @return non-empty-string */
     public function encrypt(CipherKey $key, mixed $data): string
     {
         $encryptedData = @openssl_encrypt(

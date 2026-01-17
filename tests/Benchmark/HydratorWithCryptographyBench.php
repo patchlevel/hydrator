@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Tests\Benchmark;
 
 use Patchlevel\Hydrator\CoreExtension;
+use Patchlevel\Hydrator\Cryptography\BaseCryptographer;
 use Patchlevel\Hydrator\Cryptography\CryptographyExtension;
-use Patchlevel\Hydrator\Cryptography\SensitiveDataPayloadCryptographer;
 use Patchlevel\Hydrator\Cryptography\Store\InMemoryCipherKeyStore;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\HydratorBuilder;
@@ -28,7 +28,7 @@ final class HydratorWithCryptographyBench
 
         $this->hydrator = (new HydratorBuilder())
             ->useExtension(new CoreExtension())
-            ->useExtension(new CryptographyExtension(SensitiveDataPayloadCryptographer::createWithDefaultSettings($this->store)))
+            ->useExtension(new CryptographyExtension(BaseCryptographer::createWithOpenssl($this->store)))
             ->build();
     }
 

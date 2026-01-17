@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Cryptography\Store;
 
+use Patchlevel\Hydrator\HydratorException;
 use RuntimeException;
 
 use function sprintf;
 
-final class CipherKeyNotExists extends RuntimeException
+final class CipherKeyNotExists extends RuntimeException implements HydratorException
 {
     public function __construct(string $id)
     {

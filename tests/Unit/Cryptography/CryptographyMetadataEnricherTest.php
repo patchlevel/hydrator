@@ -46,11 +46,7 @@ final class CryptographyMetadataEnricherTest extends TestCase
         $property = $metadata->propertyForField('_name');
 
         self::assertArrayHasKey(SensitiveDataInfo::class, $property->extras);
-        $sensitiveDataInfo = $property->extras[SensitiveDataInfo::class];
-        self::assertInstanceOf(SensitiveDataInfo::class, $sensitiveDataInfo);
-
-        self::assertSame('default', $sensitiveDataInfo->subjectIdName);
-        self::assertSame('fallback', $sensitiveDataInfo->fallback);
+        self::assertEquals(new SensitiveDataInfo('default', 'fallback'), $property->extras[SensitiveDataInfo::class]);
     }
 
     public function testSubjectIdAndSensitiveDataConflict(): void
@@ -116,20 +112,12 @@ final class CryptographyMetadataEnricherTest extends TestCase
         $property = $metadata->propertyForField('_fooName');
 
         self::assertArrayHasKey(SensitiveDataInfo::class, $property->extras);
-        $sensitiveDataInfo = $property->extras[SensitiveDataInfo::class];
-        self::assertInstanceOf(SensitiveDataInfo::class, $sensitiveDataInfo);
-
-        self::assertSame('foo', $sensitiveDataInfo->subjectIdName);
-        self::assertSame('fallback', $sensitiveDataInfo->fallback);
+        self::assertEquals(new SensitiveDataInfo('foo', 'fallback'), $property->extras[SensitiveDataInfo::class]);
 
         $property = $metadata->propertyForField('_barName');
 
         self::assertArrayHasKey(SensitiveDataInfo::class, $property->extras);
-        $sensitiveDataInfo = $property->extras[SensitiveDataInfo::class];
-        self::assertInstanceOf(SensitiveDataInfo::class, $sensitiveDataInfo);
-
-        self::assertSame('bar', $sensitiveDataInfo->subjectIdName);
-        self::assertSame('fallback', $sensitiveDataInfo->fallback);
+        self::assertEquals(new SensitiveDataInfo('bar', 'fallback'), $property->extras[SensitiveDataInfo::class]);
     }
 
     public function testDuplicateSubjectIdIdentifiers(): void
@@ -172,11 +160,7 @@ final class CryptographyMetadataEnricherTest extends TestCase
         $property = $metadata->propertyForField('email');
 
         self::assertArrayHasKey(SensitiveDataInfo::class, $property->extras);
-        $sensitiveDataInfo = $property->extras[SensitiveDataInfo::class];
-        self::assertInstanceOf(SensitiveDataInfo::class, $sensitiveDataInfo);
-
-        self::assertSame('default', $sensitiveDataInfo->subjectIdName);
-        self::assertSame(null, $sensitiveDataInfo->fallback);
+        self::assertEquals(new SensitiveDataInfo('default', null), $property->extras[SensitiveDataInfo::class]);
     }
 
     public function testExtendsWithSensitiveDataWithName(): void
@@ -193,11 +177,7 @@ final class CryptographyMetadataEnricherTest extends TestCase
         $property = $metadata->propertyForField('email');
 
         self::assertArrayHasKey(SensitiveDataInfo::class, $property->extras);
-        $sensitiveDataInfo = $property->extras[SensitiveDataInfo::class];
-        self::assertInstanceOf(SensitiveDataInfo::class, $sensitiveDataInfo);
-
-        self::assertSame('profile', $sensitiveDataInfo->subjectIdName);
-        self::assertSame(null, $sensitiveDataInfo->fallback);
+        self::assertEquals(new SensitiveDataInfo('profile', null), $property->extras[SensitiveDataInfo::class]);
     }
 
     /** @param class-string $class */
