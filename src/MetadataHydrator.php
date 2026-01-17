@@ -4,16 +4,13 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator;
 
-use Patchlevel\Hydrator\Guesser\BuiltInGuesser;
-use Patchlevel\Hydrator\Guesser\ChainGuesser;
-use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Metadata\ClassNotFound;
+use Patchlevel\Hydrator\Metadata\MetadataEnricher;
 use Patchlevel\Hydrator\Metadata\MetadataFactory;
 use Patchlevel\Hydrator\Middleware\Middleware;
 use Patchlevel\Hydrator\Middleware\Stack;
-use Patchlevel\Hydrator\Middleware\TransformMiddleware;
 use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
 use ReflectionClass;
 
@@ -26,10 +23,14 @@ final class MetadataHydrator implements Hydrator
     /** @var array<class-string, ClassMetadata> */
     private array $classMetadata = [];
 
-    /** @param list<Middleware> $middlewares */
+    /**
+     * @param list<Middleware>       $middlewares
+     * @param list<MetadataEnricher> $metadataEnrichers
+     */
     public function __construct(
         private readonly MetadataFactory $metadataFactory = new AttributeMetadataFactory(),
         private readonly array $middlewares = [],
+        private readonly array $metadataEnrichers = [],
         private readonly bool $defaultLazy = false,
     ) {
     }
@@ -110,33 +111,10 @@ final class MetadataHydrator implements Hydrator
             $property->normalizer->setHydrator($this);
         }
 
-        return $metadata;
-    }
-
-    /**
-     * @param list<Middleware>  $additionalMiddleware
-     * @param iterable<Guesser> $guessers
-     */
-    public static function create(
-        array $additionalMiddleware = [],
-        iterable $guessers = [],
-        bool $defaultLazy = false,
-    ): self {
-        $guesser = new BuiltInGuesser();
-
-        if ($guessers !== []) {
-            $guesser = new ChainGuesser([
-                ...$guessers,
-                $guesser,
-            ]);
+        foreach ($this->metadataEnrichers as $enricher) {
+            $enricher->enrich($metadata);
         }
 
-        return new self(
-            new AttributeMetadataFactory(
-                guesser: $guesser,
-            ),
-            [...$additionalMiddleware, new TransformMiddleware()],
-            $defaultLazy,
-        );
+        return $metadata;
     }
 }

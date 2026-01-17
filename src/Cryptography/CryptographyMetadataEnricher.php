@@ -7,25 +7,18 @@ namespace Patchlevel\Hydrator\Cryptography;
 use Patchlevel\Hydrator\Attribute\DataSubjectId;
 use Patchlevel\Hydrator\Attribute\SensitiveData;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
-use Patchlevel\Hydrator\Metadata\MetadataFactory;
+use Patchlevel\Hydrator\Metadata\MetadataEnricher;
 use ReflectionProperty;
 
 use function array_key_exists;
 
-final class CryptographyMetadataFactory implements MetadataFactory
+final class CryptographyMetadataEnricher implements MetadataEnricher
 {
-    public function __construct(
-        private readonly MetadataFactory $metadataFactory,
-    ) {
-    }
-
-    public function metadata(string $class): ClassMetadata
+    public function enrich(ClassMetadata $classMetadata): void
     {
-        $metadata = $this->metadataFactory->metadata($class);
-
         $subjectIdMapping = [];
 
-        foreach ($metadata->properties as $property) {
+        foreach ($classMetadata->properties as $property) {
             $isSubjectId = false;
             $attributeReflectionList = $property->reflection->getAttributes(DataSubjectId::class);
 
@@ -34,8 +27,8 @@ final class CryptographyMetadataFactory implements MetadataFactory
 
                 if (array_key_exists($subjectIdIdentifier, $subjectIdMapping)) {
                     throw new DuplicateSubjectIdIdentifier(
-                        $metadata->className,
-                        $metadata->propertyForField($subjectIdMapping[$subjectIdIdentifier])->propertyName,
+                        $classMetadata->className,
+                        $classMetadata->propertyForField($subjectIdMapping[$subjectIdIdentifier])->propertyName,
                         $property->propertyName,
                         $subjectIdIdentifier,
                     );
@@ -53,17 +46,17 @@ final class CryptographyMetadataFactory implements MetadataFactory
             }
 
             if ($isSubjectId) {
-                throw new SubjectIdAndSensitiveDataConflict($metadata->className, $property->propertyName);
+                throw new SubjectIdAndSensitiveDataConflict($classMetadata->className, $property->propertyName);
             }
 
             $property->extras[SensitiveDataInfo::class] = $sensitiveDataInfo;
         }
 
-        if ($subjectIdMapping !== []) {
-            $metadata->extras[SubjectIdFieldMapping::class] = new SubjectIdFieldMapping($subjectIdMapping);
+        if ($subjectIdMapping === []) {
+            return;
         }
 
-        return $metadata;
+        $classMetadata->extras[SubjectIdFieldMapping::class] = new SubjectIdFieldMapping($subjectIdMapping);
     }
 
     private function sensitiveDataInfo(ReflectionProperty $reflectionProperty): SensitiveDataInfo|null

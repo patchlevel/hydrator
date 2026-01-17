@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Benchmark;
 
-use Patchlevel\Hydrator\Cryptography\CryptographyMetadataFactory;
-use Patchlevel\Hydrator\Cryptography\CryptographyMiddleware;
+use Patchlevel\Hydrator\CoreExtension;
+use Patchlevel\Hydrator\Cryptography\CryptographyExtension;
 use Patchlevel\Hydrator\Cryptography\SensitiveDataPayloadCryptographer;
 use Patchlevel\Hydrator\Cryptography\Store\InMemoryCipherKeyStore;
 use Patchlevel\Hydrator\Hydrator;
-use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
-use Patchlevel\Hydrator\MetadataHydrator;
-use Patchlevel\Hydrator\Middleware\TransformMiddleware;
+use Patchlevel\Hydrator\HydratorBuilder;
 use Patchlevel\Hydrator\Tests\Benchmark\Fixture\ProfileCreated;
 use Patchlevel\Hydrator\Tests\Benchmark\Fixture\ProfileId;
 use Patchlevel\Hydrator\Tests\Benchmark\Fixture\Skill;
@@ -28,13 +26,10 @@ final class HydratorWithCryptographyBench
     {
         $this->store = new InMemoryCipherKeyStore();
 
-        $this->hydrator = new MetadataHydrator(
-            new CryptographyMetadataFactory(new AttributeMetadataFactory()),
-            [
-                new CryptographyMiddleware(SensitiveDataPayloadCryptographer::createWithDefaultSettings($this->store)),
-                new TransformMiddleware(),
-            ],
-        );
+        $this->hydrator = (new HydratorBuilder())
+            ->useExtension(new CoreExtension())
+            ->useExtension(new CryptographyExtension(SensitiveDataPayloadCryptographer::createWithDefaultSettings($this->store)))
+            ->build();
     }
 
     public function setUp(): void

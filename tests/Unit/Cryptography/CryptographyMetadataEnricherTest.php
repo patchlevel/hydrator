@@ -7,19 +7,20 @@ namespace Patchlevel\Hydrator\Tests\Unit\Cryptography;
 use Patchlevel\Hydrator\Attribute\DataSubjectId;
 use Patchlevel\Hydrator\Attribute\NormalizedName;
 use Patchlevel\Hydrator\Attribute\SensitiveData;
-use Patchlevel\Hydrator\Cryptography\CryptographyMetadataFactory;
+use Patchlevel\Hydrator\Cryptography\CryptographyMetadataEnricher;
 use Patchlevel\Hydrator\Cryptography\DuplicateSubjectIdIdentifier;
 use Patchlevel\Hydrator\Cryptography\SensitiveDataInfo;
 use Patchlevel\Hydrator\Cryptography\SubjectIdAndSensitiveDataConflict;
 use Patchlevel\Hydrator\Cryptography\SubjectIdFieldMapping;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
+use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentWithSensitiveDataDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentWithSensitiveDataWithIdentifierDto;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-#[CoversClass(CryptographyMetadataFactory::class)]
-final class CryptographyMetadataFactoryTest extends TestCase
+#[CoversClass(CryptographyMetadataEnricher::class)]
+final class CryptographyMetadataEnricherTest extends TestCase
 {
     public function testSensitiveData(): void
     {
@@ -35,8 +36,7 @@ final class CryptographyMetadataFactoryTest extends TestCase
             }
         };
 
-        $metadataFactory = new CryptographyMetadataFactory(new AttributeMetadataFactory());
-        $metadata = $metadataFactory->metadata($event::class);
+        $metadata = $this->metadata($event::class);
 
         self::assertArrayHasKey(SubjectIdFieldMapping::class, $metadata->extras);
         $subjectIdFieldMapping = $metadata->extras[SubjectIdFieldMapping::class];
@@ -66,8 +66,7 @@ final class CryptographyMetadataFactoryTest extends TestCase
 
         $this->expectException(SubjectIdAndSensitiveDataConflict::class);
 
-        $metadataFactory = new CryptographyMetadataFactory(new AttributeMetadataFactory());
-        $metadataFactory->metadata($event::class);
+        $this->metadata($event::class);
     }
 
     public function testMultipleDataSubjectIdWithSameIdentifier(): void
@@ -84,8 +83,7 @@ final class CryptographyMetadataFactoryTest extends TestCase
 
         $this->expectException(DuplicateSubjectIdIdentifier::class);
 
-        $metadataFactory = new CryptographyMetadataFactory(new AttributeMetadataFactory());
-        $metadataFactory->metadata($event::class);
+        $this->metadata($event::class);
     }
 
     public function testSensitiveDataWithMultipleDataSubjectIdWithDifferentNames(): void
@@ -108,8 +106,7 @@ final class CryptographyMetadataFactoryTest extends TestCase
             }
         };
 
-        $metadataFactory = new CryptographyMetadataFactory(new AttributeMetadataFactory());
-        $metadata = $metadataFactory->metadata($event::class);
+        $metadata = $this->metadata($event::class);
 
         self::assertArrayHasKey(SubjectIdFieldMapping::class, $metadata->extras);
         $subjectIdFieldMapping = $metadata->extras[SubjectIdFieldMapping::class];
@@ -155,17 +152,15 @@ final class CryptographyMetadataFactoryTest extends TestCase
             }
         };
 
-        $metadataFactory = new CryptographyMetadataFactory(new AttributeMetadataFactory());
-
         $this->expectException(DuplicateSubjectIdIdentifier::class);
         $this->expectExceptionMessageMatches('/Duplicate subject id identifier found\. Used foo for .*::fooId and .*::barId\./');
-        $metadataFactory->metadata($event::class);
+
+        $this->metadata($event::class);
     }
 
     public function testExtendsWithSensitiveData(): void
     {
-        $metadataFactory = new CryptographyMetadataFactory(new AttributeMetadataFactory());
-        $metadata = $metadataFactory->metadata(ParentWithSensitiveDataDto::class);
+        $metadata = $this->metadata(ParentWithSensitiveDataDto::class);
 
         self::assertCount(2, $metadata->properties);
 
@@ -186,8 +181,7 @@ final class CryptographyMetadataFactoryTest extends TestCase
 
     public function testExtendsWithSensitiveDataWithName(): void
     {
-        $metadataFactory = new CryptographyMetadataFactory(new AttributeMetadataFactory());
-        $metadata = $metadataFactory->metadata(ParentWithSensitiveDataWithIdentifierDto::class);
+        $metadata = $this->metadata(ParentWithSensitiveDataWithIdentifierDto::class);
 
         self::assertCount(2, $metadata->properties);
 
@@ -204,5 +198,14 @@ final class CryptographyMetadataFactoryTest extends TestCase
 
         self::assertSame('profile', $sensitiveDataInfo->subjectIdName);
         self::assertSame(null, $sensitiveDataInfo->fallback);
+    }
+
+    /** @param class-string $class */
+    private function metadata(string $class): ClassMetadata
+    {
+        $metadata = (new AttributeMetadataFactory())->metadata($class);
+        (new CryptographyMetadataEnricher())->enrich($metadata);
+
+        return $metadata;
     }
 }

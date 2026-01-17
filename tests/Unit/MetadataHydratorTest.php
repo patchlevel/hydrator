@@ -9,10 +9,12 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Patchlevel\Hydrator\CircularReference;
 use Patchlevel\Hydrator\ClassNotSupported;
-use Patchlevel\Hydrator\Cryptography\CryptographyMiddleware;
+use Patchlevel\Hydrator\CoreExtension;
+use Patchlevel\Hydrator\Cryptography\CryptographyExtension;
 use Patchlevel\Hydrator\Cryptography\PayloadCryptographer;
 use Patchlevel\Hydrator\DenormalizationFailure;
-use Patchlevel\Hydrator\Guesser\Guesser;
+use Patchlevel\Hydrator\Hydrator;
+use Patchlevel\Hydrator\HydratorBuilder;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\MetadataHydrator;
@@ -20,7 +22,6 @@ use Patchlevel\Hydrator\Middleware\Middleware;
 use Patchlevel\Hydrator\Middleware\Stack;
 use Patchlevel\Hydrator\Middleware\TransformMiddleware;
 use Patchlevel\Hydrator\NormalizationFailure;
-use Patchlevel\Hydrator\Normalizer\Normalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle1Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle2Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle3Dto;
@@ -45,18 +46,16 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\RequiresPhp;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
-use stdClass;
-use Symfony\Component\TypeInfo\Type\ObjectType;
 
 #[CoversClass(MetadataHydrator::class)]
 #[CoversClass(TransformMiddleware::class)]
 final class MetadataHydratorTest extends TestCase
 {
-    private MetadataHydrator $hydrator;
+    private Hydrator $hydrator;
 
     public function setUp(): void
     {
-        $this->hydrator = MetadataHydrator::create();
+        $this->hydrator = (new HydratorBuilder())->useExtension(new CoreExtension())->build();
     }
 
     public function testExtract(): void
@@ -153,6 +152,7 @@ final class MetadataHydratorTest extends TestCase
             'dateTimeImmutable' => '2015-02-13T22:34:32+01:00',
             'dateTime' => '2015-02-13T22:34:32+01:00',
             'dateTimeZone' => 'EDT',
+            'array' => ['foo'],
         ];
 
         $middleware = $this->createMock(Middleware::class);
@@ -166,7 +166,10 @@ final class MetadataHydratorTest extends TestCase
                 $this->isInstanceOf(Stack::class),
             )->willReturn($expect);
 
-        $hydrator = MetadataHydrator::create([$middleware]);
+        $hydrator = (new HydratorBuilder())
+            ->useExtension(new CoreExtension())
+            ->addMiddleware($middleware)
+            ->build();
 
         $data = $hydrator->extract($object, ['context' => '123']);
 
@@ -270,6 +273,7 @@ final class MetadataHydratorTest extends TestCase
             'dateTimeImmutable' => '2015-02-13T22:34:32+01:00',
             'dateTime' => '2015-02-13T22:34:32+01:00',
             'dateTimeZone' => 'EDT',
+            'array' => ['foo'],
         ];
 
         $middleware = $this->createMock(Middleware::class);
@@ -283,7 +287,10 @@ final class MetadataHydratorTest extends TestCase
                 $this->isInstanceOf(Stack::class),
             )->willReturn($expect);
 
-        $hydrator = MetadataHydrator::create([$middleware]);
+        $hydrator = (new HydratorBuilder())
+            ->useExtension(new CoreExtension())
+            ->addMiddleware($middleware)
+            ->build();
 
         $object = $hydrator->hydrate(InferNormalizerDto::class, $data, ['context' => '123']);
 
@@ -328,13 +335,10 @@ final class MetadataHydratorTest extends TestCase
             ->with($metadataFactory->metadata(ProfileCreated::class), $encryptedPayload)
             ->willReturn($payload);
 
-        $hydrator = new MetadataHydrator(
-            $metadataFactory,
-            [
-                new CryptographyMiddleware($cryptographer),
-                new TransformMiddleware(),
-            ],
-        );
+        $hydrator = (new HydratorBuilder())
+            ->useExtension(new CoreExtension())
+            ->useExtension(new CryptographyExtension($cryptographer))
+            ->build();
 
         $return = $hydrator->hydrate(ProfileCreated::class, $encryptedPayload);
 
@@ -360,13 +364,10 @@ final class MetadataHydratorTest extends TestCase
             ->with($metadataFactory->metadata(ProfileCreated::class), $payload)
             ->willReturn($encryptedPayload);
 
-        $hydrator = new MetadataHydrator(
-            $metadataFactory,
-            [
-                new CryptographyMiddleware($cryptographer),
-                new TransformMiddleware(),
-            ],
-        );
+        $hydrator = (new HydratorBuilder())
+            ->useExtension(new CoreExtension())
+            ->useExtension(new CryptographyExtension($cryptographer))
+            ->build();
 
         $return = $hydrator->extract($object);
 
@@ -545,66 +546,5 @@ final class MetadataHydratorTest extends TestCase
         $data = $this->hydrator->extract($event);
 
         self::assertEquals(['profileId' => '1', 'email' => 'info@patchlevel.de'], $data);
-    }
-
-    public function testCreate(): void
-    {
-        $guesser = new class implements Guesser {
-            public int $count = 0;
-
-            /** @param ObjectType<stdClass> $type */
-            public function guess(ObjectType $type): Normalizer|null
-            {
-                $this->count++;
-
-                return null;
-            }
-        };
-
-        $hydrator = MetadataHydrator::create(
-            [
-                new class implements Middleware
-                {
-                    /**
-                     * @param ClassMetadata<T>     $metadata
-                     * @param array<string, mixed> $data
-                     * @param array<string, mixed> $context
-                     *
-                     * @return T
-                     *
-                     * @template T of object
-                     */
-                    public function hydrate(ClassMetadata $metadata, array $data, array $context, Stack $stack): object
-                    {
-                        return $stack->next()->hydrate($metadata, $data, $context, $stack);
-                    }
-
-                    /**
-                     * @param ClassMetadata<T>     $metadata
-                     * @param T                    $object
-                     * @param array<string, mixed> $context
-                     *
-                     * @return array<string, mixed>
-                     *
-                     * @template T of object
-                     */
-                    public function extract(ClassMetadata $metadata, object $object, array $context, Stack $stack): array
-                    {
-                        return $stack->next()->extract($metadata, $object, $context, $stack);
-                    }
-                },
-            ],
-            [$guesser],
-        );
-
-        $hydrator->extract(new InferNormalizerDto(
-            Status::Draft,
-            new DateTimeImmutable('2015-02-13 22:34:32+01:00'),
-            new DateTime('2015-02-13 22:34:32+01:00'),
-            new DateTimeZone('EDT'),
-            ['foo'],
-        ));
-
-        self::assertSame(4, $guesser->count);
     }
 }
