@@ -13,6 +13,7 @@ use Patchlevel\Hydrator\CoreExtension;
 use Patchlevel\Hydrator\Cryptography\CryptographyExtension;
 use Patchlevel\Hydrator\Cryptography\PayloadCryptographer;
 use Patchlevel\Hydrator\DenormalizationFailure;
+use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\HydratorBuilder;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
@@ -50,7 +51,7 @@ use ReflectionClass;
 #[CoversClass(TransformMiddleware::class)]
 final class MetadataHydratorTest extends TestCase
 {
-    private MetadataHydrator $hydrator;
+    private Hydrator $hydrator;
 
     public function setUp(): void
     {
