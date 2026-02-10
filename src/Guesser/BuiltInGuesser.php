@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Guesser;
 
+use DateInterval;
 use DateTime;
 use DateTimeImmutable;
 use DateTimeZone;
+use Patchlevel\Hydrator\Normalizer\DateIntervalNormalizer;
 use Patchlevel\Hydrator\Normalizer\DateTimeImmutableNormalizer;
 use Patchlevel\Hydrator\Normalizer\DateTimeNormalizer;
 use Patchlevel\Hydrator\Normalizer\DateTimeZoneNormalizer;
@@ -16,10 +18,10 @@ use Patchlevel\Hydrator\Normalizer\ObjectNormalizer;
 use Symfony\Component\TypeInfo\Type\BackedEnumType;
 use Symfony\Component\TypeInfo\Type\ObjectType;
 
-final class BuiltInGuesser implements Guesser
+final readonly class BuiltInGuesser implements Guesser
 {
     public function __construct(
-        private readonly bool $fallbackObjectNormalizer = true,
+        private bool $fallbackObjectNormalizer = true,
     ) {
     }
 
@@ -30,6 +32,7 @@ final class BuiltInGuesser implements Guesser
         }
 
         return match ($type->getClassName()) {
+            DateInterval::class => new DateIntervalNormalizer(),
             DateTimeImmutable::class => new DateTimeImmutableNormalizer(),
             DateTime::class => new DateTimeNormalizer(),
             DateTimeZone::class => new DateTimeZoneNormalizer(),
