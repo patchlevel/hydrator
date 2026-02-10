@@ -13,10 +13,10 @@ use Symfony\Component\TypeInfo\Type\NullableType;
 use function is_array;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
-final class ArrayNormalizer implements Normalizer, TypeAwareNormalizer, HydratorAwareNormalizer
+final readonly class ArrayNormalizer implements Normalizer, TypeAwareNormalizer, HydratorAwareNormalizer
 {
     public function __construct(
-        private readonly Normalizer $normalizer,
+        private Normalizer $normalizer,
     ) {
     }
 

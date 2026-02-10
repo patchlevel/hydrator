@@ -16,10 +16,10 @@ use Patchlevel\Hydrator\Normalizer\ObjectNormalizer;
 use Symfony\Component\TypeInfo\Type\BackedEnumType;
 use Symfony\Component\TypeInfo\Type\ObjectType;
 
-final class BuiltInGuesser implements Guesser
+final readonly class BuiltInGuesser implements Guesser
 {
     public function __construct(
-        private readonly bool $fallbackObjectNormalizer = true,
+        private bool $fallbackObjectNormalizer = true,
     ) {
     }
 
