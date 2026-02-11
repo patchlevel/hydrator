@@ -67,12 +67,6 @@ parameters:
 			path: src/Metadata/AttributeMetadataFactory.php
 
 		-
-			message: '#^Property Patchlevel\\Hydrator\\Metadata\\AttributeMetadataFactory\:\:\$guesser \(Patchlevel\\Hydrator\\Guesser\\Guesser\|null\) is never assigned null so it can be removed from the property type\.$#'
-			identifier: property.unusedType
-			count: 1
-			path: src/Metadata/AttributeMetadataFactory.php
-
-		-
 			message: '#^Property Patchlevel\\Hydrator\\Metadata\\ClassMetadata\<T of object \= object\>\:\:\$reflection \(ReflectionClass\<T of object \= object\>\) does not accept ReflectionClass\<object\>\.$#'
 			identifier: assign.propertyType
 			count: 1

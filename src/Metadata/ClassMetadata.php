@@ -17,7 +17,7 @@ use ReflectionClass;
  * }
  * @template T of object = object
  */
-final class ClassMetadata
+final readonly class ClassMetadata
 {
     /**
      * @param ReflectionClass<T>     $reflection
@@ -26,12 +26,12 @@ final class ClassMetadata
      * @param list<CallbackMetadata> $preExtractCallbacks
      */
     public function __construct(
-        private readonly ReflectionClass $reflection,
-        private readonly array $properties = [],
-        private readonly string|null $dataSubjectIdField = null,
-        private readonly array $postHydrateCallbacks = [],
-        private readonly array $preExtractCallbacks = [],
-        private readonly bool|null $lazy = null,
+        private ReflectionClass $reflection,
+        private array $properties = [],
+        private string|null $dataSubjectIdField = null,
+        private array $postHydrateCallbacks = [],
+        private array $preExtractCallbacks = [],
+        private bool|null $lazy = null,
     ) {
     }
 

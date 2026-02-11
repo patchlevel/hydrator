@@ -6,11 +6,11 @@ namespace Patchlevel\Hydrator\Metadata;
 
 use Psr\SimpleCache\CacheInterface;
 
-final class Psr16MetadataFactory implements MetadataFactory
+final readonly class Psr16MetadataFactory implements MetadataFactory
 {
     public function __construct(
-        private readonly MetadataFactory $metadataFactory,
-        private readonly CacheInterface $cache,
+        private MetadataFactory $metadataFactory,
+        private CacheInterface $cache,
     ) {
     }
 

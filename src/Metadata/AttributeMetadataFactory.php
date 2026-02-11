@@ -42,7 +42,7 @@ final class AttributeMetadataFactory implements MetadataFactory
 
     private readonly TypeResolver $typeResolver;
 
-    private readonly Guesser|null $guesser;
+    private readonly Guesser $guesser;
 
     public function __construct(
         TypeResolver|null $typeResolver = null,
@@ -375,6 +375,7 @@ final class AttributeMetadataFactory implements MetadataFactory
 
     private function findNormalizerOnProperty(ReflectionProperty $reflectionProperty): Normalizer|null
     {
+        /** @var list<ReflectionAttribute<Normalizer>> $attributeReflectionList */
         $attributeReflectionList = $reflectionProperty->getAttributes(
             Normalizer::class,
             ReflectionAttribute::IS_INSTANCEOF,
@@ -479,6 +480,7 @@ final class AttributeMetadataFactory implements MetadataFactory
     {
         $reflectionClass = new ReflectionClass($class);
 
+        /** @var list<ReflectionAttribute<Normalizer>> $attributes */
         $attributes = $reflectionClass->getAttributes(
             Normalizer::class,
             ReflectionAttribute::IS_INSTANCEOF,

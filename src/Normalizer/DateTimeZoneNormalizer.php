@@ -10,7 +10,7 @@ use DateTimeZone;
 use function is_string;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
-final class DateTimeZoneNormalizer implements Normalizer
+final readonly class DateTimeZoneNormalizer implements Normalizer
 {
     public function normalize(mixed $value): string|null
     {

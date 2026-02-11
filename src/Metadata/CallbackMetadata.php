@@ -12,10 +12,10 @@ use ReflectionMethod;
  *     method: string,
  * }
  */
-final class CallbackMetadata
+final readonly class CallbackMetadata
 {
     public function __construct(
-        private readonly ReflectionMethod $reflection,
+        private ReflectionMethod $reflection,
     ) {
     }
 

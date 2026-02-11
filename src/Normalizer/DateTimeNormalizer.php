@@ -10,10 +10,10 @@ use DateTime;
 use function is_string;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
-final class DateTimeNormalizer implements Normalizer
+final readonly class DateTimeNormalizer implements Normalizer
 {
     public function __construct(
-        private readonly string $format = DateTime::ATOM,
+        private string $format = DateTime::ATOM,
     ) {
     }
 
