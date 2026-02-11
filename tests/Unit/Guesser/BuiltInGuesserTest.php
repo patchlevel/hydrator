@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Unit\Guesser;
 
+use DateInterval;
 use DateTime;
 use DateTimeImmutable;
 use DateTimeZone;
 use Patchlevel\Hydrator\Guesser\BuiltInGuesser;
+use Patchlevel\Hydrator\Normalizer\DateIntervalNormalizer;
 use Patchlevel\Hydrator\Normalizer\DateTimeImmutableNormalizer;
 use Patchlevel\Hydrator\Normalizer\DateTimeNormalizer;
 use Patchlevel\Hydrator\Normalizer\DateTimeZoneNormalizer;
@@ -61,6 +63,15 @@ final class BuiltInGuesserTest extends TestCase
         self::assertInstanceOf(
             DateTimeZoneNormalizer::class,
             $guesser->guess(Type::object(DateTimeZone::class)),
+        );
+    }
+
+    public function testDateInterval(): void
+    {
+        $guesser = new BuiltInGuesser();
+        self::assertInstanceOf(
+            DateIntervalNormalizer::class,
+            $guesser->guess(Type::object(DateInterval::class)),
         );
     }
 

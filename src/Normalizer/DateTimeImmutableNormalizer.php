@@ -10,10 +10,10 @@ use DateTimeImmutable;
 use function is_string;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
-final class DateTimeImmutableNormalizer implements Normalizer
+final readonly class DateTimeImmutableNormalizer implements Normalizer
 {
     public function __construct(
-        private readonly string $format = DateTimeImmutable::ATOM,
+        private string $format = DateTimeImmutable::ATOM,
     ) {
     }
 

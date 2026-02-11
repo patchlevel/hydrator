@@ -7,11 +7,11 @@ namespace Patchlevel\Hydrator\Guesser;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
 use Symfony\Component\TypeInfo\Type\ObjectType;
 
-final class ChainGuesser implements Guesser
+final readonly class ChainGuesser implements Guesser
 {
     /** @param iterable<Guesser> $guessers */
     public function __construct(
-        private readonly iterable $guessers,
+        private iterable $guessers,
     ) {
     }
 
