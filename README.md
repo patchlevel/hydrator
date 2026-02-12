@@ -694,3 +694,11 @@ To remove personal data, you need only remove the key from the store.
 ```php
 $cipherKeyStore->remove('foo-id');
 ```
+
+
+## Contributing
+
+We are open to contributions as long as they are in line with
+our [BC-Policy](https://event-sourcing.patchlevel.io/latest/our-backward-compatibility-promise/).
+
+Also note that the `composer.lock` is always generated with the newest supported PHP version as this is the version our tools run in the CI.
