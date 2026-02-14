@@ -34,12 +34,14 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\LazyProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\NormalizerInBaseClassDefinedDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWithInlineNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWithNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWrapper;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Skill;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\StatusWithNormalizer;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\ValueObject;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer;
 use Patchlevel\Hydrator\TypeMismatch;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -115,7 +117,7 @@ final class MetadataHydratorTest extends TestCase
         $this->hydrator->extract($dto1);
     }
 
-    public function testExtractWithInferNormalizer2(): void
+    public function testExtractWithInferNormalizer(): void
     {
         $result = $this->hydrator->extract(
             new InferNormalizerWithNullableDto(
@@ -174,6 +176,20 @@ final class MetadataHydratorTest extends TestCase
         $data = $hydrator->extract($object, ['context' => '123']);
 
         self::assertEquals($expect, $data);
+    }
+
+    #[RequiresPhp('>=8.5')]
+    public function testExtractWithInlineNormalizer(): void
+    {
+        $event = new ProfileCreatedWithInlineNormalizer(
+            ProfileId::fromString('1'),
+            ValueObject::fromString('foo'),
+        );
+
+        self::assertEquals(
+            ['profileId' => '1', 'valueObject' => 'foo'],
+            $this->hydrator->extract($event),
+        );
     }
 
     public function testHydrate(): void
@@ -295,6 +311,22 @@ final class MetadataHydratorTest extends TestCase
         $object = $hydrator->hydrate(InferNormalizerDto::class, $data, ['context' => '123']);
 
         self::assertEquals($expect, $object);
+    }
+
+    #[RequiresPhp('>=8.5')]
+    public function testHydrateWithInlineNormalizer(): void
+    {
+        $expected = new ProfileCreatedWithInlineNormalizer(
+            ProfileId::fromString('1'),
+            ValueObject::fromString('foo'),
+        );
+
+        $event = $this->hydrator->hydrate(
+            ProfileCreatedWithInlineNormalizer::class,
+            ['profileId' => '1', 'valueObject' => 'foo'],
+        );
+
+        self::assertEquals($expected, $event);
     }
 
     public function testDenormalizationFailure(): void

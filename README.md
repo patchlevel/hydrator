@@ -308,6 +308,42 @@ final class AnotherDto
 > [!WARNING]
 > Circular references are not supported and will result in an exception.
 
+#### Inline
+
+The `InlineNormalizer` allows you to define normalization and denormalization logic directly via closures.
+This is useful for simple value objects or when you don't want to create a separate normalizer class.
+
+```php
+use Patchlevel\Hydrator\Normalizer\InlineNormalizer;
+
+#[InlineNormalizer(
+    normalize: static function (self $object): string {
+        return $object->toString();
+    },
+    denormalize: static function (string $value): self {
+        return new self($value);
+    },
+)]
+final class Email
+{
+    public function __construct(
+        private string $value
+    ) {}
+
+    public function toString(): string
+    {
+        return $this->value;
+    }
+}
+```
+
+> [!NOTE] 
+> Closures in attributes can only be used since PHP 8.5, therefore this normalizer can only be used with PHP 8.5.
+
+> [!TIP]
+> If you want to handle `null` values within your closures, you can set the `passNull` option to `true`.
+> By default, `null` values are not passed to the closures and are returned as `null` directly.
+
 ### Custom Normalizer
 
 Since we only offer normalizers for PHP native things,
@@ -714,3 +750,11 @@ To remove personal data, you need only remove the key from the store.
 ```php
 $cipherKeyStore->remove('foo-id');
 ```
+
+
+## Contributing
+
+We are open to contributions as long as they are in line with
+our [BC-Policy](https://event-sourcing.patchlevel.io/latest/our-backward-compatibility-promise/).
+
+Also note that the `composer.lock` is always generated with the newest supported PHP version as this is the version our tools run in the CI.
