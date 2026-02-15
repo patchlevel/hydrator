@@ -140,7 +140,7 @@ final class CryptographyMiddleware implements Middleware
         foreach ($mapping->nameToField as $name => $fieldName) {
             if (is_array($data)) {
                 if (!array_key_exists($fieldName, $data)) {
-                    throw new MissingSubjectIdField($metadata->className, $fieldName);
+                    throw new MissingSubjectIdForField($metadata->className, $fieldName);
                 }
 
                 $subjectId = $data[$fieldName];

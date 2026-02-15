@@ -9,7 +9,7 @@ use RuntimeException;
 
 use function sprintf;
 
-final class MissingSubjectIdField extends RuntimeException implements HydratorException
+final class MissingSubjectIdForField extends RuntimeException implements HydratorException
 {
     /** @param class-string $class */
     public function __construct(string $class, string $fieldName)

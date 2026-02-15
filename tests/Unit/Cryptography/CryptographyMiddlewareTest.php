@@ -8,7 +8,7 @@ use Patchlevel\Hydrator\Cryptography\Cipher\DecryptionFailed;
 use Patchlevel\Hydrator\Cryptography\Cryptographer;
 use Patchlevel\Hydrator\Cryptography\CryptographyMetadataEnricher;
 use Patchlevel\Hydrator\Cryptography\CryptographyMiddleware;
-use Patchlevel\Hydrator\Cryptography\MissingSubjectIdField;
+use Patchlevel\Hydrator\Cryptography\MissingSubjectIdForField;
 use Patchlevel\Hydrator\Cryptography\Store\CipherKeyNotExists;
 use Patchlevel\Hydrator\Cryptography\SubjectIds;
 use Patchlevel\Hydrator\Cryptography\UnsupportedSubjectId;
@@ -46,7 +46,7 @@ final class CryptographyMiddlewareTest extends TestCase
 
     public function testMissingSubjectId(): void
     {
-        $this->expectException(MissingSubjectIdField::class);
+        $this->expectException(MissingSubjectIdForField::class);
 
         $middleware = new CryptographyMiddleware(
             $this->createMock(Cryptographer::class),
