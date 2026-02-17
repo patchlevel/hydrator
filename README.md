@@ -308,19 +308,29 @@ final class AnotherDto
 > [!WARNING]
 > Circular references are not supported and will result in an exception.
 
-#### Union Object
+#### ObjectMap
 
-If you have a union type from multiple classes, then you can use the `UnionObjectNormalizer` normalizer
+You can also use the `ObjectMapNormalizer` if you have either inheritance or a union type.
 
 ```php
-use Patchlevel\Hydrator\Normalizer\UnionObjectNormalizer;
+use Patchlevel\Hydrator\Normalizer\ObjectMapNormalizer;
 
-#[UnionObjectNormalizer([
-  ContentBlock::class => 'content',
-  CodeBlock::class => 'code'
+// inheritance
+#[ObjectMapNormalizer([
+    ContentBlock::class => 'content',
+    CodeBlock::class => 'code'
 ])]
 interface Block
 {
+}
+
+// union type
+class ContentBlock implements Block {
+    #[ObjectMapNormalizer([
+       ContentA::class => 'content',
+       ContentB::class => 'code'
+    ])]
+    public ContentA|ContentB $content;
 }
 ```
 

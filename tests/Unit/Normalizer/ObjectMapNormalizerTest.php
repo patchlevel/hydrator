@@ -7,7 +7,7 @@ namespace Patchlevel\Hydrator\Tests\Unit\Normalizer;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\Normalizer\InvalidArgument;
 use Patchlevel\Hydrator\Normalizer\MissingHydrator;
-use Patchlevel\Hydrator\Normalizer\UnionObjectNormalizer;
+use Patchlevel\Hydrator\Normalizer\ObjectMapNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
@@ -17,14 +17,14 @@ use PHPUnit\Framework\TestCase;
 use function serialize;
 use function unserialize;
 
-#[CoversClass(UnionObjectNormalizer::class)]
-final class UnionObjectNormalizerTest extends TestCase
+#[CoversClass(ObjectMapNormalizer::class)]
+final class ObjectMapNormalizerTest extends TestCase
 {
     public function testNormalizeMissingHydrator(): void
     {
         $this->expectException(MissingHydrator::class);
 
-        $normalizer = new UnionObjectNormalizer([ProfileCreated::class => 'created']);
+        $normalizer = new ObjectMapNormalizer([ProfileCreated::class => 'created']);
         $this->assertEquals(null, $normalizer->normalize(null));
     }
 
@@ -32,7 +32,7 @@ final class UnionObjectNormalizerTest extends TestCase
     {
         $this->expectException(MissingHydrator::class);
 
-        $normalizer = new UnionObjectNormalizer([ProfileCreated::class => 'created']);
+        $normalizer = new ObjectMapNormalizer([ProfileCreated::class => 'created']);
         $this->assertEquals(null, $normalizer->denormalize(null));
     }
 
@@ -40,7 +40,7 @@ final class UnionObjectNormalizerTest extends TestCase
     {
         $hydrator = $this->createStub(Hydrator::class);
 
-        $normalizer = new UnionObjectNormalizer([ProfileCreated::class => 'created']);
+        $normalizer = new ObjectMapNormalizer([ProfileCreated::class => 'created']);
         $normalizer->setHydrator($hydrator);
 
         $this->assertEquals(null, $normalizer->normalize(null));
@@ -50,7 +50,7 @@ final class UnionObjectNormalizerTest extends TestCase
     {
         $hydrator = $this->createStub(Hydrator::class);
 
-        $normalizer = new UnionObjectNormalizer([ProfileCreated::class => 'created']);
+        $normalizer = new ObjectMapNormalizer([ProfileCreated::class => 'created']);
         $normalizer->setHydrator($hydrator);
 
         $this->assertEquals(null, $normalizer->denormalize(null));
@@ -63,7 +63,7 @@ final class UnionObjectNormalizerTest extends TestCase
 
         $hydrator = $this->createStub(Hydrator::class);
 
-        $normalizer = new UnionObjectNormalizer([ProfileCreated::class => 'created']);
+        $normalizer = new ObjectMapNormalizer([ProfileCreated::class => 'created']);
         $normalizer->setHydrator($hydrator);
         $normalizer->normalize('foo');
     }
@@ -75,7 +75,7 @@ final class UnionObjectNormalizerTest extends TestCase
 
         $hydrator = $this->createStub(Hydrator::class);
 
-        $normalizer = new UnionObjectNormalizer([ProfileCreated::class => 'created']);
+        $normalizer = new ObjectMapNormalizer([ProfileCreated::class => 'created']);
         $normalizer->setHydrator($hydrator);
         $normalizer->denormalize('foo');
     }
@@ -95,7 +95,7 @@ final class UnionObjectNormalizerTest extends TestCase
             ->with($event)
             ->willReturn(['profileId' => '1', 'email' => 'info@patchlevel.de']);
 
-        $normalizer = new UnionObjectNormalizer([ProfileCreated::class => 'created']);
+        $normalizer = new ObjectMapNormalizer([ProfileCreated::class => 'created']);
         $normalizer->setHydrator($hydrator);
 
         self::assertEquals(
@@ -119,7 +119,7 @@ final class UnionObjectNormalizerTest extends TestCase
             ->with(ProfileCreated::class, ['profileId' => '1', 'email' => 'info@patchlevel.de'])
             ->willReturn($expected);
 
-        $normalizer = new UnionObjectNormalizer([ProfileCreated::class => 'created']);
+        $normalizer = new ObjectMapNormalizer([ProfileCreated::class => 'created']);
         $normalizer->setHydrator($hydrator);
 
         $this->assertEquals(
@@ -132,13 +132,13 @@ final class UnionObjectNormalizerTest extends TestCase
     {
         $hydrator = $this->createStub(Hydrator::class);
 
-        $normalizer = new UnionObjectNormalizer([ProfileCreated::class => 'created']);
+        $normalizer = new ObjectMapNormalizer([ProfileCreated::class => 'created']);
         $normalizer->setHydrator($hydrator);
 
         $serialized = serialize($normalizer);
         $normalizer2 = unserialize($serialized);
 
-        self::assertInstanceOf(UnionObjectNormalizer::class, $normalizer2);
-        self::assertEquals(new UnionObjectNormalizer([ProfileCreated::class => 'created']), $normalizer2);
+        self::assertInstanceOf(ObjectMapNormalizer::class, $normalizer2);
+        self::assertEquals(new ObjectMapNormalizer([ProfileCreated::class => 'created']), $normalizer2);
     }
 }
