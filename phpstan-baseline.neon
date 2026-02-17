@@ -103,6 +103,12 @@ parameters:
 			path: src/Normalizer/ReflectionTypeUtil.php
 
 		-
+			message: '#^Parameter \#2 \$data of method Patchlevel\\Hydrator\\Hydrator\:\:hydrate\(\) expects array\<string, mixed\>, array given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Normalizer/UnionObjectNormalizer.php
+
+		-
 			message: '#^Method Patchlevel\\Hydrator\\Tests\\Unit\\Fixture\\DtoWithHooks\:\:postHydrate\(\) is unused\.$#'
 			identifier: method.unused
 			count: 1
