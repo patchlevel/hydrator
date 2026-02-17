@@ -85,6 +85,12 @@ parameters:
 			path: src/Normalizer/EnumNormalizer.php
 
 		-
+			message: '#^Parameter \#2 \$data of method Patchlevel\\Hydrator\\Hydrator\:\:hydrate\(\) expects array\<string, mixed\>, array given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Normalizer/ObjectMapNormalizer.php
+
+		-
 			message: '#^Parameter \#2 \$data of method Patchlevel\\Hydrator\\Hydrator\:\:hydrate\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
 			identifier: argument.type
 			count: 1
@@ -101,12 +107,6 @@ parameters:
 			identifier: return.type
 			count: 1
 			path: src/Normalizer/ReflectionTypeUtil.php
-
-		-
-			message: '#^Parameter \#2 \$data of method Patchlevel\\Hydrator\\Hydrator\:\:hydrate\(\) expects array\<string, mixed\>, array given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Normalizer/UnionObjectNormalizer.php
 
 		-
 			message: '#^Method Patchlevel\\Hydrator\\Tests\\Unit\\Fixture\\DtoWithHooks\:\:postHydrate\(\) is unused\.$#'

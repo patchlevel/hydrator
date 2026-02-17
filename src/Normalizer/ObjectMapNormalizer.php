@@ -17,7 +17,7 @@ use function is_string;
 use function sprintf;
 
 #[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_CLASS)]
-final class UnionObjectNormalizer implements Normalizer, HydratorAwareNormalizer
+final class ObjectMapNormalizer implements Normalizer, HydratorAwareNormalizer
 {
     private Hydrator|null $hydrator = null;
 
