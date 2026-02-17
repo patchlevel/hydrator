@@ -8,3 +8,5 @@ infection.log
 infection.html
 .phpbench/
 docs_php/
+var
+stub
