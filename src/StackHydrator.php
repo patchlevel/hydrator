@@ -9,6 +9,7 @@ use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Metadata\ClassNotFound;
 use Patchlevel\Hydrator\Metadata\MetadataFactory;
 use Patchlevel\Hydrator\Middleware\AllMiddlewaresSkipped;
+use Patchlevel\Hydrator\Middleware\HydratorAwareMiddleware;
 use Patchlevel\Hydrator\Middleware\Middleware;
 use Patchlevel\Hydrator\Middleware\Skip;
 use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
@@ -22,7 +23,8 @@ use function is_array;
 
 use const PHP_VERSION_ID;
 
-final class StackHydrator implements Hydrator
+/** @final this is only not final anymore because of bc reasons for the generated hydrator. DONT extend this class! */
+class StackHydrator implements Hydrator
 {
     /** @var array<class-string, ClassMetadata> */
     private array $classMetadata = [];
@@ -53,9 +55,13 @@ final class StackHydrator implements Hydrator
         foreach ($middlewares as $middleware) {
             if ($middleware instanceof SkippableMiddleware) {
                 $hasSkippableMiddlewares = true;
-
-                break;
             }
+
+            if (!$middleware instanceof HydratorAwareMiddleware) {
+                continue;
+            }
+
+            $middleware->setHydrator($this);
         }
 
         $this->hasSkippableMiddlewares = $hasSkippableMiddlewares;
@@ -76,6 +82,17 @@ final class StackHydrator implements Hydrator
         }
     }
 
+    /** @return list<Middleware> */
+    public function middlewares(): array
+    {
+        return $this->middlewares;
+    }
+
+    public function defaultLazy(): bool
+    {
+        return $this->defaultLazy;
+    }
+
     /**
      * @param class-string<T>      $class
      * @param array<string, mixed> $context
@@ -87,7 +104,8 @@ final class StackHydrator implements Hydrator
     public function hydrate(string $class, mixed $data, array $context = []): object
     {
         try {
-            $metadata = $this->metadata($class);
+            /** @var ClassMetadata<T> $metadata */
+            $metadata = $this->classMetadata[$class] ?? $this->metadata($class);
         } catch (ClassNotFound $e) {
             throw new ClassNotSupported($class, $e);
         }
@@ -107,24 +125,24 @@ final class StackHydrator implements Hydrator
         }
 
         if (PHP_VERSION_ID < 80400) {
-            $stack = new Stack($this->middlewaresFor($metadata, Skip::Hydrate));
+            $middlewares = $this->middlewaresFor($metadata, Skip::Hydrate);
 
-            return $stack->next()->hydrate($metadata, $data, $context, $stack);
+            return $middlewares[0]->hydrate($metadata, $data, $context, new Stack($middlewares, 1));
         }
 
         $lazy = $metadata->lazy ?? $this->defaultLazy;
 
         if (!$lazy) {
-            $stack = new Stack($this->middlewaresFor($metadata, Skip::Hydrate));
+            $middlewares = $this->middlewaresFor($metadata, Skip::Hydrate);
 
-            return $stack->next()->hydrate($metadata, $data, $context, $stack);
+            return $middlewares[0]->hydrate($metadata, $data, $context, new Stack($middlewares, 1));
         }
 
         return (new ReflectionClass($class))->newLazyProxy(
             function () use ($metadata, $data, $context): object {
-                $stack = new Stack($this->middlewaresFor($metadata, Skip::Hydrate));
+                $middlewares = $this->middlewaresFor($metadata, Skip::Hydrate);
 
-                return $stack->next()->hydrate($metadata, $data, $context, $stack);
+                return $middlewares[0]->hydrate($metadata, $data, $context, new Stack($middlewares, 1));
             },
         );
     }
@@ -136,15 +154,15 @@ final class StackHydrator implements Hydrator
      */
     public function extract(object $object, array $context = []): mixed
     {
-        $metadata = $this->metadata($object::class);
+        $metadata = $this->classMetadata[$object::class] ?? $this->metadata($object::class);
 
         if ($metadata->normalizer) {
             return $metadata->normalizer->normalize($object, $context);
         }
 
-        $stack = new Stack($this->middlewaresFor($metadata, Skip::Extract));
+        $middlewares = $this->middlewaresFor($metadata, Skip::Extract);
 
-        return $stack->next()->extract($metadata, $object, $context, $stack);
+        return $middlewares[0]->extract($metadata, $object, $context, new Stack($middlewares, 1));
     }
 
     /**

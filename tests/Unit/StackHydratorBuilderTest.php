@@ -10,9 +10,11 @@ use Patchlevel\Hydrator\Guesser\ChainGuesser;
 use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\HydratorDecorator;
+use Patchlevel\Hydrator\HydratorFactoryAlreadySet;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\EnrichingMetadataFactory;
 use Patchlevel\Hydrator\Metadata\MetadataEnricher;
+use Patchlevel\Hydrator\Metadata\MetadataFactory;
 use Patchlevel\Hydrator\Metadata\Psr16MetadataFactory;
 use Patchlevel\Hydrator\Metadata\Psr6MetadataFactory;
 use Patchlevel\Hydrator\Middleware\Middleware;
@@ -129,6 +131,37 @@ final class StackHydratorBuilderTest extends TestCase
             ->with($builder);
 
         $builder->useExtension($extension);
+    }
+
+    public function testHydratorFactory(): void
+    {
+        $subclass = new class (new AttributeMetadataFactory(), [$this->createMock(Middleware::class)]) extends StackHydrator {
+        };
+
+        $builder = new StackHydratorBuilder();
+        $builder->setHydratorFactory(
+            static function (MetadataFactory $metadataFactory, array $middlewares, bool $defaultLazy) use ($subclass): StackHydrator {
+                self::assertInstanceOf(EnrichingMetadataFactory::class, $metadataFactory);
+                self::assertCount(1, $middlewares);
+                self::assertTrue($defaultLazy);
+
+                return $subclass;
+            },
+        );
+        $builder->addMiddleware($this->createMock(Middleware::class));
+        $builder->enableDefaultLazy();
+
+        self::assertSame($subclass, $builder->build());
+    }
+
+    public function testHydratorFactoryCanOnlyBeSetOnce(): void
+    {
+        $builder = new StackHydratorBuilder();
+        $builder->setHydratorFactory(static fn (MetadataFactory $metadataFactory, array $middlewares, bool $defaultLazy): StackHydrator => new StackHydrator($metadataFactory, $middlewares, $defaultLazy));
+
+        $this->expectException(HydratorFactoryAlreadySet::class);
+
+        $builder->setHydratorFactory(static fn (MetadataFactory $metadataFactory, array $middlewares, bool $defaultLazy): StackHydrator => new StackHydrator($metadataFactory, $middlewares, $defaultLazy));
     }
 
     public function testCachePsr6(): void
