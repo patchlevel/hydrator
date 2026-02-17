@@ -308,6 +308,35 @@ final class AnotherDto
 > [!WARNING]
 > Circular references are not supported and will result in an exception.
 
+#### ObjectMap
+
+You can also use the `ObjectMapNormalizer` if you have either inheritance or a union type.
+
+```php
+use Patchlevel\Hydrator\Normalizer\ObjectMapNormalizer;
+
+// inheritance
+#[ObjectMapNormalizer([
+    ContentBlock::class => 'content',
+    CodeBlock::class => 'code'
+])]
+interface Block
+{
+}
+
+// union type
+class ContentBlock implements Block {
+    #[ObjectMapNormalizer([
+       ContentA::class => 'content',
+       ContentB::class => 'code'
+    ])]
+    public ContentA|ContentB $content;
+}
+```
+
+> [!NOTE]
+> Auto detection of the type is not possible. You have to specify the type yourself.
+
 #### Inline
 
 The `InlineNormalizer` allows you to define normalization and denormalization logic directly via closures.
