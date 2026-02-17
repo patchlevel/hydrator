@@ -8,6 +8,8 @@ use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Metadata\ClassNotFound;
 use Patchlevel\Hydrator\Metadata\MetadataFactory;
+use Patchlevel\Hydrator\Middleware\AllMiddlewaresSkipped;
+use Patchlevel\Hydrator\Middleware\HydratorAwareMiddleware;
 use Patchlevel\Hydrator\Middleware\Middleware;
 use Patchlevel\Hydrator\Middleware\Next;
 use Patchlevel\Hydrator\Middleware\Skip;
@@ -23,7 +25,8 @@ use function is_array;
 
 use const PHP_VERSION_ID;
 
-final class StackHydrator implements Hydrator
+/** @final this is only not final anymore because of bc reasons for the generated hydrator. DONT extend this class! */
+class StackHydrator implements Hydrator
 {
     /** @var array<class-string, ClassMetadata> */
     private array $classMetadata = [];
@@ -54,12 +57,27 @@ final class StackHydrator implements Hydrator
         foreach ($middlewares as $middleware) {
             if ($middleware instanceof SkippableMiddleware) {
                 $hasSkippableMiddlewares = true;
-
-                break;
             }
+
+            if (!$middleware instanceof HydratorAwareMiddleware) {
+                continue;
+            }
+
+            $middleware->setHydrator($this);
         }
 
         $this->hasSkippableMiddlewares = $hasSkippableMiddlewares;
+    }
+
+    /** @return list<Middleware> */
+    public function middlewares(): array
+    {
+        return $this->middlewares;
+    }
+
+    public function defaultLazy(): bool
+    {
+        return $this->defaultLazy;
     }
 
     /**
@@ -75,7 +93,8 @@ final class StackHydrator implements Hydrator
         $context[self::HYDRATOR] ??= $this;
 
         try {
-            $metadata = $this->metadata($class);
+            /** @var ClassMetadata<T> $metadata */
+            $metadata = $this->classMetadata[$class] ?? $this->metadata($class);
         } catch (ClassNotFound $e) {
             throw new ClassNotSupported($class, $e);
         }

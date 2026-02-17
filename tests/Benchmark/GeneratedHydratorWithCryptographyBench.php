@@ -7,6 +7,7 @@ namespace Patchlevel\Hydrator\Tests\Benchmark;
 use Patchlevel\Hydrator\Extension\Cryptography\BaseCryptographer;
 use Patchlevel\Hydrator\Extension\Cryptography\CryptographyExtension;
 use Patchlevel\Hydrator\Extension\Cryptography\Store\InMemoryCipherKeyStore;
+use Patchlevel\Hydrator\Extension\Generated\GeneratedMiddlewareExtension;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\StackHydratorBuilder;
 use Patchlevel\Hydrator\Tests\Benchmark\Fixture\ProfileCreated;
@@ -15,7 +16,7 @@ use Patchlevel\Hydrator\Tests\Benchmark\Fixture\Skill;
 use PhpBench\Attributes as Bench;
 
 #[Bench\BeforeMethods('setUp')]
-final class HydratorWithCryptographyBench
+final class GeneratedHydratorWithCryptographyBench
 {
     private InMemoryCipherKeyStore $store;
 
@@ -26,6 +27,7 @@ final class HydratorWithCryptographyBench
         $this->store = new InMemoryCipherKeyStore();
 
         $this->hydrator = (new StackHydratorBuilder())
+            ->useExtension(new GeneratedMiddlewareExtension(__DIR__ . '/../../var/cache', [ProfileCreated::class, Skill::class], debug: true))
             ->useExtension(new CryptographyExtension(BaseCryptographer::createWithOpenssl($this->store)))
             ->build();
     }
@@ -49,7 +51,7 @@ final class HydratorWithCryptographyBench
         $this->hydrator->extract($object);
     }
 
-    #[Bench\Revs(5)]
+    #[Bench\Revs(1000)]
     public function benchHydrate1Object(): void
     {
         $this->hydrator->hydrate(
@@ -65,7 +67,7 @@ final class HydratorWithCryptographyBench
         );
     }
 
-    #[Bench\Revs(5)]
+    #[Bench\Revs(1000)]
     public function benchExtract1Object(): void
     {
         $object = new ProfileCreated(
@@ -111,41 +113,6 @@ final class HydratorWithCryptographyBench
         );
 
         for ($i = 0; $i < 1_000; $i++) {
-            $this->hydrator->extract($object);
-        }
-    }
-
-    #[Bench\Revs(3)]
-    public function benchHydrate1000000Objects(): void
-    {
-        for ($i = 0; $i < 1_000_000; $i++) {
-            $this->hydrator->hydrate(
-                ProfileCreated::class,
-                [
-                    'profileId' => '1',
-                    'name' => 'foo',
-                    'skills' => [
-                        ['name' => 'php'],
-                        ['name' => 'symfony'],
-                    ],
-                ],
-            );
-        }
-    }
-
-    #[Bench\Revs(3)]
-    public function benchExtract1000000Objects(): void
-    {
-        $object = new ProfileCreated(
-            ProfileId::fromString('1'),
-            'foo',
-            [
-                new Skill('php'),
-                new Skill('symfony'),
-            ],
-        );
-
-        for ($i = 0; $i < 1_000_000; $i++) {
             $this->hydrator->extract($object);
         }
     }

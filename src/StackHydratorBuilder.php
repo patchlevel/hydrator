@@ -10,6 +10,7 @@ use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\EnrichingMetadataFactory;
 use Patchlevel\Hydrator\Metadata\MetadataEnricher;
+use Patchlevel\Hydrator\Metadata\MetadataFactory;
 use Patchlevel\Hydrator\Metadata\Psr16MetadataFactory;
 use Patchlevel\Hydrator\Metadata\Psr6MetadataFactory;
 use Patchlevel\Hydrator\Middleware\Middleware;
@@ -39,6 +40,9 @@ final class StackHydratorBuilder
     private array $transformerFactories = [];
 
     private CacheItemPoolInterface|CacheInterface|null $cache = null;
+
+    /** @var (Closure(MetadataFactory, list<Middleware>, bool): StackHydrator)|null */
+    private Closure|null $hydratorFactory = null;
 
     /** @return $this */
     public function addMiddleware(Middleware $middleware, int $priority = Extension::PRIORITY_BEFORE_TRANSFORM): static
