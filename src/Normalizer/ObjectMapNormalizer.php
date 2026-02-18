@@ -37,7 +37,12 @@ final class ObjectMapNormalizer implements Normalizer, HydratorAwareNormalizer
         $this->hydrator = $hydrator;
     }
 
-    public function normalize(mixed $value): mixed
+    /**
+     * @param array<string, mixed> $context
+     *
+     * @throws InvalidArgument
+     */
+    public function normalize(mixed $value, array $context): mixed
     {
         if (!$this->hydrator) {
             throw new MissingHydrator();
@@ -67,7 +72,12 @@ final class ObjectMapNormalizer implements Normalizer, HydratorAwareNormalizer
         return $data;
     }
 
-    public function denormalize(mixed $value): mixed
+    /**
+     * @param array<string, mixed> $context
+     *
+     * @throws InvalidArgument
+     */
+    public function denormalize(mixed $value, array $context): mixed
     {
         if (!$this->hydrator) {
             throw new MissingHydrator();

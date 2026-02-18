@@ -25,7 +25,7 @@ final class ObjectMapNormalizerTest extends TestCase
         $this->expectException(MissingHydrator::class);
 
         $normalizer = new ObjectMapNormalizer([ProfileCreated::class => 'created']);
-        $this->assertEquals(null, $normalizer->normalize(null));
+        $this->assertEquals(null, $normalizer->normalize(null, []));
     }
 
     public function testDenormalizeMissingHydrator(): void
@@ -33,7 +33,7 @@ final class ObjectMapNormalizerTest extends TestCase
         $this->expectException(MissingHydrator::class);
 
         $normalizer = new ObjectMapNormalizer([ProfileCreated::class => 'created']);
-        $this->assertEquals(null, $normalizer->denormalize(null));
+        $this->assertEquals(null, $normalizer->denormalize(null, []));
     }
 
     public function testNormalizeWithNull(): void
@@ -43,7 +43,7 @@ final class ObjectMapNormalizerTest extends TestCase
         $normalizer = new ObjectMapNormalizer([ProfileCreated::class => 'created']);
         $normalizer->setHydrator($hydrator);
 
-        $this->assertEquals(null, $normalizer->normalize(null));
+        $this->assertEquals(null, $normalizer->normalize(null, []));
     }
 
     public function testDenormalizeWithNull(): void
@@ -53,7 +53,7 @@ final class ObjectMapNormalizerTest extends TestCase
         $normalizer = new ObjectMapNormalizer([ProfileCreated::class => 'created']);
         $normalizer->setHydrator($hydrator);
 
-        $this->assertEquals(null, $normalizer->denormalize(null));
+        $this->assertEquals(null, $normalizer->denormalize(null, []));
     }
 
     public function testNormalizeWithInvalidArgument(): void
@@ -65,7 +65,7 @@ final class ObjectMapNormalizerTest extends TestCase
 
         $normalizer = new ObjectMapNormalizer([ProfileCreated::class => 'created']);
         $normalizer->setHydrator($hydrator);
-        $normalizer->normalize('foo');
+        $normalizer->normalize('foo', []);
     }
 
     public function testDenormalizeWithInvalidArgument(): void
@@ -77,7 +77,7 @@ final class ObjectMapNormalizerTest extends TestCase
 
         $normalizer = new ObjectMapNormalizer([ProfileCreated::class => 'created']);
         $normalizer->setHydrator($hydrator);
-        $normalizer->denormalize('foo');
+        $normalizer->denormalize('foo', []);
     }
 
     public function testNormalizeWithValue(): void
@@ -99,7 +99,7 @@ final class ObjectMapNormalizerTest extends TestCase
         $normalizer->setHydrator($hydrator);
 
         self::assertEquals(
-            $normalizer->normalize($event),
+            $normalizer->normalize($event, []),
             ['profileId' => '1', 'email' => 'info@patchlevel.de', '_type' => 'created'],
         );
     }
@@ -124,7 +124,7 @@ final class ObjectMapNormalizerTest extends TestCase
 
         $this->assertEquals(
             $expected,
-            $normalizer->denormalize(['profileId' => '1', 'email' => 'info@patchlevel.de', '_type' => 'created']),
+            $normalizer->denormalize(['profileId' => '1', 'email' => 'info@patchlevel.de', '_type' => 'created'], []),
         );
     }
 
