@@ -6,7 +6,11 @@ namespace Patchlevel\Hydrator\Cryptography\Cipher;
 
 interface Cipher
 {
-    /** @throws EncryptionFailed */
+    /**
+     * @return non-empty-string
+     *
+     * @throws EncryptionFailed
+     */
     public function encrypt(CipherKey $key, mixed $data): string;
 
     /** @throws DecryptionFailed */

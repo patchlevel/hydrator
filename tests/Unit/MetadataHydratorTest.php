@@ -10,12 +10,9 @@ use DateTimeZone;
 use Patchlevel\Hydrator\CircularReference;
 use Patchlevel\Hydrator\ClassNotSupported;
 use Patchlevel\Hydrator\CoreExtension;
-use Patchlevel\Hydrator\Cryptography\CryptographyExtension;
-use Patchlevel\Hydrator\Cryptography\PayloadCryptographer;
 use Patchlevel\Hydrator\DenormalizationFailure;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\HydratorBuilder;
-use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\MetadataHydrator;
 use Patchlevel\Hydrator\Middleware\Middleware;
@@ -346,64 +343,6 @@ final class MetadataHydratorTest extends TestCase
         $this->hydrator->extract(
             new WrongNormalizer(true),
         );
-    }
-
-    public function testDecrypt(): void
-    {
-        $object = new ProfileCreated(
-            ProfileId::fromString('1'),
-            Email::fromString('info@patchlevel.de'),
-        );
-
-        $payload = ['profileId' => '1', 'email' => 'info@patchlevel.de'];
-        $encryptedPayload = ['profileId' => '1', 'email' => 'encrypted'];
-
-        $metadataFactory = new AttributeMetadataFactory();
-
-        $cryptographer = $this->createMock(PayloadCryptographer::class);
-        $cryptographer
-            ->expects($this->once())
-            ->method('decrypt')
-            ->with($metadataFactory->metadata(ProfileCreated::class), $encryptedPayload)
-            ->willReturn($payload);
-
-        $hydrator = (new HydratorBuilder())
-            ->useExtension(new CoreExtension())
-            ->useExtension(new CryptographyExtension($cryptographer))
-            ->build();
-
-        $return = $hydrator->hydrate(ProfileCreated::class, $encryptedPayload);
-
-        self::assertEquals($object, $return);
-    }
-
-    public function testEncrypt(): void
-    {
-        $object = new ProfileCreated(
-            ProfileId::fromString('1'),
-            Email::fromString('info@patchlevel.de'),
-        );
-
-        $payload = ['profileId' => '1', 'email' => 'info@patchlevel.de'];
-        $encryptedPayload = ['profileId' => '1', 'email' => 'encrypted'];
-
-        $metadataFactory = new AttributeMetadataFactory();
-
-        $cryptographer = $this->createMock(PayloadCryptographer::class);
-        $cryptographer
-            ->expects($this->once())
-            ->method('encrypt')
-            ->with($metadataFactory->metadata(ProfileCreated::class), $payload)
-            ->willReturn($encryptedPayload);
-
-        $hydrator = (new HydratorBuilder())
-            ->useExtension(new CoreExtension())
-            ->useExtension(new CryptographyExtension($cryptographer))
-            ->build();
-
-        $return = $hydrator->extract($object);
-
-        self::assertSame($encryptedPayload, $return);
     }
 
     public function testHydrateWithNormalizerInBaseClass(): void

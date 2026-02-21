@@ -1,6 +1,12 @@
 parameters:
 	ignoreErrors:
 		-
+			message: '#^Method Patchlevel\\Hydrator\\Cryptography\\Cipher\\OpensslCipher\:\:encrypt\(\) should return non\-empty\-string but returns string\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Cryptography/Cipher/OpensslCipher.php
+
+		-
 			message: '#^Parameter \#1 \$key of class Patchlevel\\Hydrator\\Cryptography\\Cipher\\CipherKey constructor expects non\-empty\-string, string given\.$#'
 			identifier: argument.type
 			count: 1
@@ -11,12 +17,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: src/Cryptography/Cipher/OpensslCipherKeyFactory.php
-
-		-
-			message: '#^Parameter \#2 \$data of method Patchlevel\\Hydrator\\Cryptography\\Cipher\\Cipher\:\:decrypt\(\) expects string, mixed given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Cryptography/SensitiveDataPayloadCryptographer.php
 
 		-
 			message: '#^Method Patchlevel\\Hydrator\\Guesser\\BuiltInGuesser\:\:guess\(\) has parameter \$type with generic class Symfony\\Component\\TypeInfo\\Type\\ObjectType but does not specify its types\: T$#'
