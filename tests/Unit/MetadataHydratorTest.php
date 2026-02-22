@@ -11,7 +11,6 @@ use Patchlevel\Hydrator\CircularReference;
 use Patchlevel\Hydrator\ClassNotSupported;
 use Patchlevel\Hydrator\CoreExtension;
 use Patchlevel\Hydrator\DenormalizationFailure;
-use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\HydratorBuilder;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\MetadataHydrator;
@@ -19,6 +18,7 @@ use Patchlevel\Hydrator\Middleware\Middleware;
 use Patchlevel\Hydrator\Middleware\Stack;
 use Patchlevel\Hydrator\Middleware\TransformMiddleware;
 use Patchlevel\Hydrator\NormalizationFailure;
+use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle1Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle2Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle3Dto;
@@ -45,16 +45,17 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\RequiresPhp;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionProperty;
 
 #[CoversClass(MetadataHydrator::class)]
 #[CoversClass(TransformMiddleware::class)]
 final class MetadataHydratorTest extends TestCase
 {
-    private Hydrator $hydrator;
+    private MetadataHydrator $hydrator;
 
     public function setUp(): void
     {
-        $this->hydrator = (new HydratorBuilder())->useExtension(new CoreExtension())->build();
+        $this->hydrator = new MetadataHydrator();
     }
 
     public function testExtract(): void
@@ -517,5 +518,28 @@ final class MetadataHydratorTest extends TestCase
         $data = $this->hydrator->extract($event);
 
         self::assertEquals(['profileId' => '1', 'email' => 'info@patchlevel.de'], $data);
+    }
+
+    public function testMetadata(): void
+    {
+        $metadata = $this->hydrator->metadata(ProfileCreated::class);
+
+        self::assertSame(ProfileCreated::class, $metadata->className);
+
+        $metadata2 = $this->hydrator->metadata(ProfileCreated::class);
+        self::assertSame($metadata, $metadata2);
+    }
+
+    public function testMetadataWithHydratorAwareNormalizer(): void
+    {
+        $metadata = $this->hydrator->metadata(ProfileCreatedWrapper::class);
+
+        $propertyMetadata = $metadata->propertyForField('event');
+        $normalizer = $propertyMetadata->normalizer;
+
+        self::assertInstanceOf(HydratorAwareNormalizer::class, $normalizer);
+
+        $reflection = new ReflectionProperty($normalizer, 'hydrator');
+        self::assertSame($this->hydrator, $reflection->getValue($normalizer));
     }
 }

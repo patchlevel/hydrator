@@ -109,7 +109,7 @@ parameters:
 			path: tests/Unit/Metadata/AttributeMetadataFactoryTest.php
 
 		-
-			message: '#^Parameter \#1 \$class of method Patchlevel\\Hydrator\\Hydrator\:\:hydrate\(\) expects class\-string\<Unknown\>, string given\.$#'
+			message: '#^Parameter \#1 \$class of method Patchlevel\\Hydrator\\MetadataHydrator\:\:hydrate\(\) expects class\-string\<Unknown\>, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: tests/Unit/MetadataHydratorTest.php

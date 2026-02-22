@@ -9,11 +9,16 @@ use Patchlevel\Hydrator\Guesser\ChainGuesser;
 use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\HydratorBuilder;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
+use Patchlevel\Hydrator\Metadata\EnrichingMetadataFactory;
 use Patchlevel\Hydrator\Metadata\MetadataEnricher;
+use Patchlevel\Hydrator\Metadata\Psr16MetadataFactory;
+use Patchlevel\Hydrator\Metadata\Psr6MetadataFactory;
 use Patchlevel\Hydrator\MetadataHydrator;
 use Patchlevel\Hydrator\Middleware\Middleware;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Psr\Cache\CacheItemPoolInterface;
+use Psr\SimpleCache\CacheInterface;
 use ReflectionProperty;
 
 #[CoversClass(HydratorBuilder::class)]
@@ -54,8 +59,13 @@ final class HydratorBuilderTest extends TestCase
 
         $hydrator = $builder->build();
 
-        $reflection = new ReflectionProperty(MetadataHydrator::class, 'metadataEnrichers');
-        $enrichers = $reflection->getValue($hydrator);
+        $reflection = new ReflectionProperty(MetadataHydrator::class, 'metadataFactory');
+        $enrichingMetadataFactory = $reflection->getValue($hydrator);
+
+        self::assertInstanceOf(EnrichingMetadataFactory::class, $enrichingMetadataFactory);
+
+        $reflection = new ReflectionProperty(EnrichingMetadataFactory::class, 'enrichers');
+        $enrichers = $reflection->getValue($enrichingMetadataFactory);
 
         self::assertSame([$enricher2, $enricher1], $enrichers);
     }
@@ -72,7 +82,12 @@ final class HydratorBuilderTest extends TestCase
         $hydrator = $builder->build();
 
         $reflection = new ReflectionProperty(MetadataHydrator::class, 'metadataFactory');
-        $metadataFactory = $reflection->getValue($hydrator);
+        $enrichingMetadataFactory = $reflection->getValue($hydrator);
+
+        self::assertInstanceOf(EnrichingMetadataFactory::class, $enrichingMetadataFactory);
+
+        $reflection = new ReflectionProperty(EnrichingMetadataFactory::class, 'factory');
+        $metadataFactory = $reflection->getValue($enrichingMetadataFactory);
 
         self::assertInstanceOf(AttributeMetadataFactory::class, $metadataFactory);
 
@@ -108,5 +123,35 @@ final class HydratorBuilderTest extends TestCase
             ->with($builder);
 
         $builder->useExtension($extension);
+    }
+
+    public function testCachePsr6(): void
+    {
+        $cache = $this->createMock(CacheItemPoolInterface::class);
+
+        $builder = new HydratorBuilder();
+        $builder->setCache($cache);
+
+        $hydrator = $builder->build();
+
+        $reflection = new ReflectionProperty(MetadataHydrator::class, 'metadataFactory');
+        $factory = $reflection->getValue($hydrator);
+
+        self::assertInstanceOf(Psr6MetadataFactory::class, $factory);
+    }
+
+    public function testCachePsr16(): void
+    {
+        $cache = $this->createMock(CacheInterface::class);
+
+        $builder = new HydratorBuilder();
+        $builder->setCache($cache);
+
+        $hydrator = $builder->build();
+
+        $reflection = new ReflectionProperty(MetadataHydrator::class, 'metadataFactory');
+        $factory = $reflection->getValue($hydrator);
+
+        self::assertInstanceOf(Psr16MetadataFactory::class, $factory);
     }
 }
