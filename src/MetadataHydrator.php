@@ -7,10 +7,10 @@ namespace Patchlevel\Hydrator;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Metadata\ClassNotFound;
-use Patchlevel\Hydrator\Metadata\MetadataEnricher;
 use Patchlevel\Hydrator\Metadata\MetadataFactory;
 use Patchlevel\Hydrator\Middleware\Middleware;
 use Patchlevel\Hydrator\Middleware\Stack;
+use Patchlevel\Hydrator\Middleware\TransformMiddleware;
 use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
 use ReflectionClass;
 
@@ -23,14 +23,10 @@ final class MetadataHydrator implements Hydrator
     /** @var array<class-string, ClassMetadata> */
     private array $classMetadata = [];
 
-    /**
-     * @param list<Middleware>       $middlewares
-     * @param list<MetadataEnricher> $metadataEnrichers
-     */
+    /** @param list<Middleware> $middlewares */
     public function __construct(
         private readonly MetadataFactory $metadataFactory = new AttributeMetadataFactory(),
-        private readonly array $middlewares = [],
-        private readonly array $metadataEnrichers = [],
+        private readonly array $middlewares = [new TransformMiddleware()],
         private readonly bool $defaultLazy = false,
     ) {
     }
@@ -95,7 +91,7 @@ final class MetadataHydrator implements Hydrator
      *
      * @template T of object
      */
-    private function metadata(string $class): ClassMetadata
+    public function metadata(string $class): ClassMetadata
     {
         if (array_key_exists($class, $this->classMetadata)) {
             return $this->classMetadata[$class];
@@ -109,10 +105,6 @@ final class MetadataHydrator implements Hydrator
             }
 
             $property->normalizer->setHydrator($this);
-        }
-
-        foreach ($this->metadataEnrichers as $enricher) {
-            $enricher->enrich($metadata);
         }
 
         return $metadata;

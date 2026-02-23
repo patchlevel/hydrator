@@ -8,7 +8,7 @@ use Patchlevel\Hydrator\Normalizer\Normalizer;
 use ReflectionProperty;
 
 /**
- * @psalm-type serialized = array{
+ * @phpstan-type serialized = array{
  *     className: class-string,
  *     propertyName: string,
  *     fieldName: string,
@@ -23,7 +23,7 @@ final class PropertyMetadata
     /** @param array<string, mixed> $extras */
     public function __construct(
         public readonly ReflectionProperty $reflection,
-        public readonly string $fieldName,
+        public string $fieldName,
         public Normalizer|null $normalizer = null,
         public array $extras = [],
     ) {

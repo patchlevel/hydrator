@@ -7,9 +7,9 @@ namespace Patchlevel\Hydrator\Metadata;
 use ReflectionClass;
 
 /**
- * @psalm-type serialized array{
+ * @phpstan-type serialized array{
  *     className: class-string,
- *     properties: list<PropertyMetadata>,
+ *     properties: array<string, PropertyMetadata>,
  *     lazy: bool|null,
  *     extras: array<string, mixed>,
  * }
@@ -20,6 +20,9 @@ final class ClassMetadata
     /** @var class-string<T> */
     public readonly string $className;
 
+    /** @var array<string, PropertyMetadata> */
+    public readonly array $properties;
+
     /**
      * @param ReflectionClass<T>     $reflection
      * @param list<PropertyMetadata> $properties
@@ -27,11 +30,19 @@ final class ClassMetadata
      */
     public function __construct(
         public readonly ReflectionClass $reflection,
-        public readonly array $properties = [],
-        public readonly bool|null $lazy = null,
+        array $properties = [],
+        public bool|null $lazy = null,
         public array $extras = [],
     ) {
         $this->className = $reflection->getName();
+
+        $map = [];
+
+        foreach ($properties as $property) {
+            $map[$property->propertyName] = $property;
+        }
+
+        $this->properties = $map;
     }
 
     public function propertyForField(string $name): PropertyMetadata

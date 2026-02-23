@@ -7,8 +7,13 @@ namespace Patchlevel\Hydrator;
 use Patchlevel\Hydrator\Guesser\ChainGuesser;
 use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
+use Patchlevel\Hydrator\Metadata\EnrichingMetadataFactory;
 use Patchlevel\Hydrator\Metadata\MetadataEnricher;
+use Patchlevel\Hydrator\Metadata\Psr16MetadataFactory;
+use Patchlevel\Hydrator\Metadata\Psr6MetadataFactory;
 use Patchlevel\Hydrator\Middleware\Middleware;
+use Psr\Cache\CacheItemPoolInterface;
+use Psr\SimpleCache\CacheInterface;
 
 use function array_merge;
 use function krsort;
@@ -25,6 +30,8 @@ final class HydratorBuilder
 
     /** @var array<int, list<Guesser>> */
     private array $guessers = [];
+
+    private CacheItemPoolInterface|CacheInterface|null $cache = null;
 
     /** @return $this */
     public function addMiddleware(Middleware $middleware, int $priority = 0): static
@@ -64,18 +71,37 @@ final class HydratorBuilder
         return $this;
     }
 
+    public function setCache(CacheItemPoolInterface|CacheInterface|null $cache): static
+    {
+        $this->cache = $cache;
+
+        return $this;
+    }
+
     public function build(): Hydrator
     {
-        krsort($this->middlewares);
-        krsort($this->metadataEnrichers);
         krsort($this->guessers);
+        krsort($this->metadataEnrichers);
+        krsort($this->middlewares);
 
-        return new MetadataHydrator(
+        $metadataFactory = new EnrichingMetadataFactory(
             new AttributeMetadataFactory(
                 guesser: new ChainGuesser(array_merge(...$this->guessers)),
             ),
-            array_merge(...$this->middlewares),
             array_merge(...$this->metadataEnrichers),
+        );
+
+        if ($this->cache instanceof CacheItemPoolInterface) {
+            $metadataFactory = new Psr6MetadataFactory($metadataFactory, $this->cache);
+        }
+
+        if ($this->cache instanceof CacheInterface) {
+            $metadataFactory = new Psr16MetadataFactory($metadataFactory, $this->cache);
+        }
+
+        return new MetadataHydrator(
+            $metadataFactory,
+            array_merge(...$this->middlewares),
             $this->defaultLazy,
         );
     }
