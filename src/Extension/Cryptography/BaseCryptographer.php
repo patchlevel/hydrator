@@ -15,6 +15,8 @@ use Patchlevel\Hydrator\Extension\Cryptography\Store\CipherKeyNotExists;
 use Patchlevel\Hydrator\Extension\Cryptography\Store\CipherKeyStore;
 
 use function array_key_exists;
+use function base64_decode;
+use function base64_encode;
 use function is_array;
 
 /**
@@ -52,7 +54,7 @@ final class BaseCryptographer implements Cryptographer
             '__enc' => 'v1',
             'data' => $this->cipher->encrypt($cipherKey, $value),
             'method' => $cipherKey->method,
-            'iv' => $cipherKey->iv,
+            'iv' => base64_encode($cipherKey->iv),
         ];
     }
 
@@ -70,7 +72,7 @@ final class BaseCryptographer implements Cryptographer
             new CipherKey(
                 $cipherKey->key,
                 $encryptedData['method'] ?? $cipherKey->method,
-                $encryptedData['iv'] ?? $cipherKey->iv,
+                isset($encryptedData['iv']) ? base64_decode($encryptedData['iv']) : $cipherKey->iv,
             ),
             $encryptedData['data'],
         );
