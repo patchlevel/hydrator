@@ -35,8 +35,10 @@ final readonly class ArrayNormalizer implements Normalizer, TypeAwareNormalizer,
             throw InvalidArgument::withWrongType('array|null', $value);
         }
 
+        $normalizer = $this->normalizer;
+
         foreach ($value as &$item) {
-            $item = $this->normalizer->normalize($item, $context);
+            $item = $normalizer->normalize($item, $context);
         }
 
         return $value;
@@ -57,8 +59,10 @@ final readonly class ArrayNormalizer implements Normalizer, TypeAwareNormalizer,
             throw InvalidArgument::withWrongType('array|null', $value);
         }
 
+        $normalizer = $this->normalizer;
+
         foreach ($value as &$item) {
-            $item = $this->normalizer->denormalize($item, $context);
+            $item = $normalizer->denormalize($item, $context);
         }
 
         return $value;

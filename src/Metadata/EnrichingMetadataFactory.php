@@ -17,8 +17,14 @@ final readonly class EnrichingMetadataFactory implements MetadataFactory
     {
         $metadata = $this->factory->metadata($class);
 
+        $enriched = false;
         foreach ($this->enrichers as $enricher) {
             $enricher->enrich($metadata);
+            $enriched = true;
+        }
+
+        if ($enriched) {
+            $metadata->updateProperties(array_values($metadata->properties));
         }
 
         return $metadata;

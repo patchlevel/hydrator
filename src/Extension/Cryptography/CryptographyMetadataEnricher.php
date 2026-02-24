@@ -17,12 +17,14 @@ final class CryptographyMetadataEnricher implements MetadataEnricher
     public function enrich(ClassMetadata $classMetadata): void
     {
         $subjectIdMapping = [];
+        $subjectIdProperties = [];
+        $sensitiveProperties = [];
 
         foreach ($classMetadata->properties as $property) {
             $isSubjectId = false;
             $attributeReflectionList = $property->reflection->getAttributes(DataSubjectId::class);
 
-            if ($attributeReflectionList) {
+            if ($attributeReflectionList !== []) {
                 $subjectIdIdentifier = $attributeReflectionList[0]->newInstance()->name;
 
                 if (array_key_exists($subjectIdIdentifier, $subjectIdMapping)) {
@@ -35,6 +37,7 @@ final class CryptographyMetadataEnricher implements MetadataEnricher
                 }
 
                 $subjectIdMapping[$subjectIdIdentifier] = $property->fieldName;
+                $subjectIdProperties[$subjectIdIdentifier] = $property;
 
                 $isSubjectId = true;
             }
@@ -50,13 +53,17 @@ final class CryptographyMetadataEnricher implements MetadataEnricher
             }
 
             $property->extras[SensitiveDataInfo::class] = $sensitiveDataInfo;
+            $sensitiveProperties[] = $property;
         }
 
-        if ($subjectIdMapping === []) {
-            return;
+        if ($sensitiveProperties !== []) {
+            $classMetadata->extras[SensitiveDataInfo::class . '::properties'] = $sensitiveProperties;
         }
 
-        $classMetadata->extras[SubjectIdFieldMapping::class] = new SubjectIdFieldMapping($subjectIdMapping);
+        if ($subjectIdMapping !== []) {
+            $classMetadata->extras[SubjectIdFieldMapping::class] = new SubjectIdFieldMapping($subjectIdMapping);
+            $classMetadata->extras[SubjectIdFieldMapping::class . '::properties'] = $subjectIdProperties;
+        }
     }
 
     private function sensitiveDataInfo(ReflectionProperty $reflectionProperty): SensitiveDataInfo|null

@@ -36,39 +36,48 @@ final class CryptographyMiddleware implements Middleware
      */
     public function hydrate(ClassMetadata $metadata, array $data, array $context, Stack $stack): object
     {
+        /** @var list<PropertyMetadata>|null $properties */
+        $properties = $metadata->extras[SensitiveDataInfo::class . '::properties'] ?? null;
+
+        if ($properties === null) {
+            return $stack->next()->hydrate($metadata, $data, $context, $stack);
+        }
+
         $context[SubjectIds::class] = $subjectIds = $this->resolveSubjectIds($metadata, $data, $context);
+        $cryptographer = $this->cryptographer;
 
-        foreach ($metadata->properties as $propertyMetadata) {
-            $info = $propertyMetadata->extras[SensitiveDataInfo::class] ?? null;
+        foreach ($properties as $propertyMetadata) {
+            $fieldName = $propertyMetadata->fieldName;
 
-            if (!$info instanceof SensitiveDataInfo) {
+            if (!isset($data[$fieldName])) {
                 continue;
             }
 
-            $value = $data[$propertyMetadata->fieldName] ?? null;
+            $value = $data[$fieldName];
 
-            if ($value === null) {
+            if (!$cryptographer->supports($value)) {
                 continue;
             }
 
-            if (!$this->cryptographer->supports($value)) {
-                continue;
-            }
+            $info = $propertyMetadata->extras[SensitiveDataInfo::class];
+            assert($info instanceof SensitiveDataInfo);
 
             $subjectId = $subjectIds->get($info->subjectIdName);
 
             try {
-                $data[$propertyMetadata->fieldName] = $this->cryptographer->decrypt($subjectId, $value);
+                $data[$fieldName] = $cryptographer->decrypt($subjectId, $value);
             } catch (DecryptionFailed | CipherKeyNotExists) {
                 $fallback = $info->fallback instanceof Closure
                     ? ($info->fallback)($subjectId)
                     : $info->fallback;
 
-                if ($propertyMetadata->normalizer) {
-                    $fallback = $propertyMetadata->normalizer->normalize($fallback, $context);
+                $normalizer = $propertyMetadata->normalizer;
+
+                if ($normalizer !== null) {
+                    $fallback = $normalizer->normalize($fallback, $context);
                 }
 
-                $data[$propertyMetadata->fieldName] = $fallback;
+                $data[$fieldName] = $fallback;
             }
         }
 

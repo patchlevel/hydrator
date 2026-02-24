@@ -23,12 +23,15 @@ final class MetadataHydrator implements Hydrator
     /** @var array<class-string, ClassMetadata> */
     private array $classMetadata = [];
 
+    private readonly Stack $stack;
+
     /** @param list<Middleware> $middlewares */
     public function __construct(
         private readonly MetadataFactory $metadataFactory = new AttributeMetadataFactory(),
         private readonly array $middlewares = [new TransformMiddleware()],
         private readonly bool $defaultLazy = false,
     ) {
+        $this->stack = new Stack($this->middlewares);
     }
 
     /**
@@ -48,23 +51,21 @@ final class MetadataHydrator implements Hydrator
             throw new ClassNotSupported($class, $e);
         }
 
-        if (PHP_VERSION_ID < 80400) {
-            $stack = new Stack($this->middlewares);
+        $stack = clone $this->stack;
 
+        if (PHP_VERSION_ID < 80400) {
             return $stack->next()->hydrate($metadata, $data, $context, $stack);
         }
 
         $lazy = $metadata->lazy ?? $this->defaultLazy;
 
         if (!$lazy) {
-            $stack = new Stack($this->middlewares);
-
             return $stack->next()->hydrate($metadata, $data, $context, $stack);
         }
 
         return (new ReflectionClass($class))->newLazyProxy(
             function () use ($metadata, $data, $context): object {
-                $stack = new Stack($this->middlewares);
+                $stack = clone $this->stack;
 
                 return $stack->next()->hydrate($metadata, $data, $context, $stack);
             },
@@ -79,7 +80,7 @@ final class MetadataHydrator implements Hydrator
     public function extract(object $object, array $context = []): array
     {
         $metadata = $this->metadata($object::class);
-        $stack = new Stack($this->middlewares);
+        $stack = clone $this->stack;
 
         return $stack->next()->extract($metadata, $object, $context, $stack);
     }
@@ -93,18 +94,18 @@ final class MetadataHydrator implements Hydrator
      */
     public function metadata(string $class): ClassMetadata
     {
-        if (array_key_exists($class, $this->classMetadata)) {
+        if (isset($this->classMetadata[$class])) {
             return $this->classMetadata[$class];
         }
 
         $this->classMetadata[$class] = $metadata = $this->metadataFactory->metadata($class);
 
         foreach ($metadata->properties as $property) {
-            if (!($property->normalizer instanceof HydratorAwareNormalizer)) {
-                continue;
-            }
+            $normalizer = $property->normalizer;
 
-            $property->normalizer->setHydrator($this);
+            if ($normalizer instanceof HydratorAwareNormalizer) {
+                $normalizer->setHydrator($this);
+            }
         }
 
         return $metadata;

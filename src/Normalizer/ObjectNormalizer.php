@@ -32,41 +32,53 @@ final class ObjectNormalizer implements Normalizer, TypeAwareNormalizer, Hydrato
      */
     public function normalize(mixed $value, array $context): array|null
     {
-        if (!$this->hydrator) {
-            throw new MissingHydrator();
-        }
-
         if ($value === null) {
             return null;
         }
 
-        $className = $this->getClassName();
+        $hydrator = $this->hydrator;
+
+        if ($hydrator === null) {
+            throw new MissingHydrator();
+        }
+
+        $className = $this->className;
+
+        if ($className === null) {
+            throw InvalidType::missingType();
+        }
 
         if (!$value instanceof $className) {
             throw InvalidArgument::withWrongType($className . '|null', $value);
         }
 
-        return $this->hydrator->extract($value, $context);
+        return $hydrator->extract($value, $context);
     }
 
     /** @param array<string, mixed> $context */
     public function denormalize(mixed $value, array $context): object|null
     {
-        if (!$this->hydrator) {
-            throw new MissingHydrator();
-        }
-
         if ($value === null) {
             return null;
+        }
+
+        $hydrator = $this->hydrator;
+
+        if ($hydrator === null) {
+            throw new MissingHydrator();
         }
 
         if (!is_array($value)) {
             throw InvalidArgument::withWrongType('array<string, mixed>|null', $value);
         }
 
-        $className = $this->getClassName();
+        $className = $this->className;
 
-        return $this->hydrator->hydrate($className, $value, $context);
+        if ($className === null) {
+            throw InvalidType::missingType();
+        }
+
+        return $hydrator->hydrate($className, $value, $context);
     }
 
     public function setHydrator(Hydrator $hydrator): void

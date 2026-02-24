@@ -22,7 +22,13 @@ final class ClassMetadata
     public readonly string $className;
 
     /** @var array<string, PropertyMetadata> */
-    public readonly array $properties;
+    public array $properties;
+
+    /** @var list<PropertyMetadata> */
+    public array $propertiesWithNormalizer;
+
+    /** @var list<PropertyMetadata> */
+    public array $propertiesWithoutNormalizer;
 
     /** @var array<string, ReflectionParameter>|null */
     private array|null $promotedConstructorDefaults = null;
@@ -40,13 +46,29 @@ final class ClassMetadata
     ) {
         $this->className = $reflection->getName();
 
+        $this->updateProperties($properties);
+    }
+
+    /** @param list<PropertyMetadata> $properties */
+    public function updateProperties(array $properties): void
+    {
         $map = [];
+        $withNormalizer = [];
+        $withoutNormalizer = [];
 
         foreach ($properties as $property) {
             $map[$property->propertyName] = $property;
+
+            if ($property->normalizer !== null) {
+                $withNormalizer[] = $property;
+            } else {
+                $withoutNormalizer[] = $property;
+            }
         }
 
         $this->properties = $map;
+        $this->propertiesWithNormalizer = $withNormalizer;
+        $this->propertiesWithoutNormalizer = $withoutNormalizer;
     }
 
     public function propertyForField(string $name): PropertyMetadata
@@ -97,7 +119,7 @@ final class ClassMetadata
     {
         return [
             'className' => $this->className,
-            'properties' => $this->properties,
+            'properties' => array_values($this->properties),
             'lazy' => $this->lazy,
             'extras' => $this->extras,
         ];
@@ -107,7 +129,25 @@ final class ClassMetadata
     public function __unserialize(array $data): void
     {
         $this->reflection = new ReflectionClass($data['className']);
-        $this->properties = $data['properties'];
+
+        $map = [];
+        $withNormalizer = [];
+        $withoutNormalizer = [];
+
+        foreach ($data['properties'] as $property) {
+            $map[$property->propertyName] = $property;
+
+            if ($property->normalizer !== null) {
+                $withNormalizer[] = $property;
+            } else {
+                $withoutNormalizer[] = $property;
+            }
+        }
+
+        $this->className = $data['className'];
+        $this->properties = $map;
+        $this->propertiesWithNormalizer = $withNormalizer;
+        $this->propertiesWithoutNormalizer = $withoutNormalizer;
         $this->lazy = $data['lazy'];
         $this->extras = $data['extras'];
     }

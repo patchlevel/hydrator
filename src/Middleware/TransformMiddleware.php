@@ -34,46 +34,30 @@ final class TransformMiddleware implements Middleware
     {
         $object = $metadata->newInstance();
 
-        $constructorParameters = null;
+        foreach ($metadata->propertiesWithoutNormalizer as $propertyMetadata) {
+            $fieldName = $propertyMetadata->fieldName;
 
-        foreach ($metadata->properties as $propertyMetadata) {
-            if (!array_key_exists($propertyMetadata->fieldName, $data)) {
+            if (!isset($data[$fieldName]) && !array_key_exists($fieldName, $data)) {
                 if (!$propertyMetadata->reflection->isPromoted()) {
-                    continue;
+                    goto next_without_normalizer;
                 }
 
-                $constructorParameters ??= $metadata->promotedConstructorDefaults();
+                $constructorParameters = $metadata->promotedConstructorDefaults();
 
-                if (!array_key_exists($propertyMetadata->propertyName, $constructorParameters)) {
-                    continue;
+                if (!isset($constructorParameters[$propertyMetadata->propertyName])) {
+                    goto next_without_normalizer;
                 }
 
-                $propertyMetadata->setValue(
+                $propertyMetadata->reflection->setValue(
                     $object,
                     $constructorParameters[$propertyMetadata->propertyName]->getDefaultValue(),
                 );
 
-                continue;
-            }
-
-            if ($propertyMetadata->normalizer) {
-                try {
-                    /** @psalm-suppress MixedAssignment */
-                    $value = $propertyMetadata->normalizer->denormalize($data[$propertyMetadata->fieldName], $context);
-                } catch (Throwable $e) {
-                    throw new DenormalizationFailure(
-                        $metadata->className,
-                        $propertyMetadata->propertyName,
-                        $propertyMetadata->normalizer::class,
-                        $e,
-                    );
-                }
-            } else {
-                $value = $data[$propertyMetadata->fieldName];
+                goto next_without_normalizer;
             }
 
             try {
-                $propertyMetadata->setValue($object, $value);
+                $propertyMetadata->reflection->setValue($object, $data[$fieldName]);
             } catch (TypeError $e) {
                 throw new TypeMismatch(
                     $metadata->className,
@@ -81,6 +65,57 @@ final class TransformMiddleware implements Middleware
                     $e,
                 );
             }
+
+            next_without_normalizer:
+        }
+
+        foreach ($metadata->propertiesWithNormalizer as $propertyMetadata) {
+            $fieldName = $propertyMetadata->fieldName;
+
+            if (!isset($data[$fieldName]) && !array_key_exists($fieldName, $data)) {
+                if (!$propertyMetadata->reflection->isPromoted()) {
+                    goto next_with_normalizer;
+                }
+
+                $constructorParameters = $metadata->promotedConstructorDefaults();
+
+                if (!isset($constructorParameters[$propertyMetadata->propertyName])) {
+                    goto next_with_normalizer;
+                }
+
+                $propertyMetadata->reflection->setValue(
+                    $object,
+                    $constructorParameters[$propertyMetadata->propertyName]->getDefaultValue(),
+                );
+
+                goto next_with_normalizer;
+            }
+
+            $normalizer = $propertyMetadata->normalizer;
+
+            try {
+                /** @psalm-suppress MixedAssignment */
+                $value = $normalizer->denormalize($data[$fieldName], $context);
+            } catch (Throwable $e) {
+                throw new DenormalizationFailure(
+                    $metadata->className,
+                    $propertyMetadata->propertyName,
+                    $normalizer::class,
+                    $e,
+                );
+            }
+
+            try {
+                $propertyMetadata->reflection->setValue($object, $value);
+            } catch (TypeError $e) {
+                throw new TypeMismatch(
+                    $metadata->className,
+                    $propertyMetadata->propertyName,
+                    $e,
+                );
+            }
+
+            next_with_normalizer:
         }
 
         return $object;
@@ -95,7 +130,7 @@ final class TransformMiddleware implements Middleware
     {
         $objectId = spl_object_id($object);
 
-        if (array_key_exists($objectId, $this->callStack)) {
+        if (isset($this->callStack[$objectId])) {
             $references = array_values($this->callStack);
             $references[] = $object::class;
 
@@ -107,26 +142,30 @@ final class TransformMiddleware implements Middleware
         try {
             $data = [];
 
-            foreach ($metadata->properties as $propertyMetadata) {
-                if ($propertyMetadata->normalizer) {
-                    try {
-                        /** @psalm-suppress MixedAssignment */
-                        $data[$propertyMetadata->fieldName] = $propertyMetadata->normalizer->normalize(
-                            $propertyMetadata->getValue($object),
-                            $context,
-                        );
-                    } catch (CircularReference $e) {
+            foreach ($metadata->propertiesWithoutNormalizer as $propertyMetadata) {
+                $data[$propertyMetadata->fieldName] = $propertyMetadata->reflection->getValue($object);
+            }
+
+            foreach ($metadata->propertiesWithNormalizer as $propertyMetadata) {
+                $normalizer = $propertyMetadata->normalizer;
+
+                try {
+                    /** @psalm-suppress MixedAssignment */
+                    $data[$propertyMetadata->fieldName] = $normalizer->normalize(
+                        $propertyMetadata->reflection->getValue($object),
+                        $context,
+                    );
+                } catch (Throwable $e) {
+                    if ($e instanceof CircularReference) {
                         throw $e;
-                    } catch (Throwable $e) {
-                        throw new NormalizationFailure(
-                            $object::class,
-                            $propertyMetadata->propertyName,
-                            $propertyMetadata->normalizer::class,
-                            $e,
-                        );
                     }
-                } else {
-                    $data[$propertyMetadata->fieldName] = $propertyMetadata->getValue($object);
+
+                    throw new NormalizationFailure(
+                        $object::class,
+                        $propertyMetadata->propertyName,
+                        $normalizer::class,
+                        $e,
+                    );
                 }
             }
         } finally {
