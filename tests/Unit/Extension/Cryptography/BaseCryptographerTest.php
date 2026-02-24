@@ -46,7 +46,7 @@ final class BaseCryptographerTest extends TestCase
             '__enc' => 'v1',
             'data' => 'encrypted',
             'method' => 'methodA',
-            'iv' => 'random',
+            'iv' => 'cmFuZG9t',
         ];
 
         self::assertEquals($expected, $cryptographer->encrypt('foo', 'info@patchlevel.de'));
@@ -81,7 +81,7 @@ final class BaseCryptographerTest extends TestCase
             '__enc' => 'v1',
             'data' => 'encrypted',
             'method' => 'methodA',
-            'iv' => 'random',
+            'iv' => 'cmFuZG9t',
         ];
 
         self::assertEquals($expected, $cryptographer->encrypt('foo', 'info@patchlevel.de'));
@@ -115,7 +115,7 @@ final class BaseCryptographerTest extends TestCase
                     '__enc' => 'v1',
                     'data' => 'encrypted',
                     'method' => 'methodA',
-                    'iv' => 'random',
+                    'iv' => 'cmFuZG9t',
                 ],
             ),
         );
