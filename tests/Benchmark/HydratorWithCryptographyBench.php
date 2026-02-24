@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Tests\Benchmark;
 
 use Patchlevel\Hydrator\CoreExtension;
-use Patchlevel\Hydrator\Cryptography\BaseCryptographer;
-use Patchlevel\Hydrator\Cryptography\CryptographyExtension;
-use Patchlevel\Hydrator\Cryptography\Store\InMemoryCipherKeyStore;
+use Patchlevel\Hydrator\Extension\Cryptography\BaseCryptographer;
+use Patchlevel\Hydrator\Extension\Cryptography\CryptographyExtension;
+use Patchlevel\Hydrator\Extension\Cryptography\Store\InMemoryCipherKeyStore;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\HydratorBuilder;
 use Patchlevel\Hydrator\Tests\Benchmark\Fixture\ProfileCreated;

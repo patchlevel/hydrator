@@ -1,22 +1,22 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Method Patchlevel\\Hydrator\\Cryptography\\Cipher\\OpensslCipher\:\:encrypt\(\) should return non\-empty\-string but returns string\.$#'
+			message: '#^Method Patchlevel\\Hydrator\\Extension\\Cryptography\\Cipher\\OpensslCipher\:\:encrypt\(\) should return non\-empty\-string but returns string\.$#'
 			identifier: return.type
 			count: 1
-			path: src/Cryptography/Cipher/OpensslCipher.php
+			path: src/Extension/Cryptography/Cipher/OpensslCipher.php
 
 		-
-			message: '#^Parameter \#1 \$key of class Patchlevel\\Hydrator\\Cryptography\\Cipher\\CipherKey constructor expects non\-empty\-string, string given\.$#'
+			message: '#^Parameter \#1 \$key of class Patchlevel\\Hydrator\\Extension\\Cryptography\\Cipher\\CipherKey constructor expects non\-empty\-string, string given\.$#'
 			identifier: argument.type
 			count: 1
-			path: src/Cryptography/Cipher/OpensslCipherKeyFactory.php
+			path: src/Extension/Cryptography/Cipher/OpensslCipherKeyFactory.php
 
 		-
-			message: '#^Parameter \#3 \$iv of class Patchlevel\\Hydrator\\Cryptography\\Cipher\\CipherKey constructor expects non\-empty\-string, string given\.$#'
+			message: '#^Parameter \#3 \$iv of class Patchlevel\\Hydrator\\Extension\\Cryptography\\Cipher\\CipherKey constructor expects non\-empty\-string, string given\.$#'
 			identifier: argument.type
 			count: 1
-			path: src/Cryptography/Cipher/OpensslCipherKeyFactory.php
+			path: src/Extension/Cryptography/Cipher/OpensslCipherKeyFactory.php
 
 		-
 			message: '#^Method Patchlevel\\Hydrator\\Guesser\\BuiltInGuesser\:\:guess\(\) has parameter \$type with generic class Symfony\\Component\\TypeInfo\\Type\\ObjectType but does not specify its types\: T$#'
@@ -91,10 +91,46 @@ parameters:
 			path: src/Normalizer/ObjectNormalizer.php
 
 		-
-			message: '#^Property Patchlevel\\Hydrator\\Tests\\Unit\\Fixture\\ChildWithSensitiveDataWithIdentifierDto\:\:\$email is never read, only written\.$#'
+			message: '#^Call to method clear\(\) on an unknown class Patchlevel\\Hydrator\\Cryptography\\Store\\InMemoryCipherKeyStore\.$#'
+			identifier: class.notFound
+			count: 1
+			path: tests/Benchmark/HydratorWithCryptographyBench.php
+
+		-
+			message: '#^Call to static method createWithOpenssl\(\) on an unknown class Patchlevel\\Hydrator\\Cryptography\\BaseCryptographer\.$#'
+			identifier: class.notFound
+			count: 1
+			path: tests/Benchmark/HydratorWithCryptographyBench.php
+
+		-
+			message: '#^Instantiated class Patchlevel\\Hydrator\\Cryptography\\CryptographyExtension not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: tests/Benchmark/HydratorWithCryptographyBench.php
+
+		-
+			message: '#^Instantiated class Patchlevel\\Hydrator\\Cryptography\\Store\\InMemoryCipherKeyStore not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: tests/Benchmark/HydratorWithCryptographyBench.php
+
+		-
+			message: '#^Parameter \#1 \$extension of method Patchlevel\\Hydrator\\HydratorBuilder\:\:useExtension\(\) expects Patchlevel\\Hydrator\\Extension, Patchlevel\\Hydrator\\Cryptography\\CryptographyExtension given\.$#'
+			identifier: argument.type
+			count: 1
+			path: tests/Benchmark/HydratorWithCryptographyBench.php
+
+		-
+			message: '#^Property Patchlevel\\Hydrator\\Tests\\Benchmark\\HydratorWithCryptographyBench\:\:\$store has unknown class Patchlevel\\Hydrator\\Cryptography\\Store\\InMemoryCipherKeyStore as its type\.$#'
+			identifier: class.notFound
+			count: 1
+			path: tests/Benchmark/HydratorWithCryptographyBench.php
+
+		-
+			message: '#^Property Patchlevel\\Hydrator\\Tests\\Unit\\Extension\\Cryptography\\Fixture\\ChildWithSensitiveDataWithIdentifierDto\:\:\$email is never read, only written\.$#'
 			identifier: property.onlyWritten
 			count: 1
-			path: tests/Unit/Fixture/ChildWithSensitiveDataWithIdentifierDto.php
+			path: tests/Unit/Extension/Cryptography/Fixture/ChildWithSensitiveDataWithIdentifierDto.php
 
 		-
 			message: '#^Property Patchlevel\\Hydrator\\Tests\\Unit\\Fixture\\IdNormalizer\:\:\$idClass \(class\-string\<Patchlevel\\Hydrator\\Tests\\Unit\\Fixture\\Id\>\|null\) does not accept string\.$#'

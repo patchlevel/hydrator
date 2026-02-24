@@ -2,21 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Patchlevel\Hydrator\Tests\Benchmark\Fixture;
+namespace Patchlevel\Hydrator\Tests\Unit\Extension\Cryptography\Fixture;
 
 use Patchlevel\Hydrator\Extension\Cryptography\Attribute\DataSubjectId;
 use Patchlevel\Hydrator\Extension\Cryptography\Attribute\SensitiveData;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\StringableSubjectId;
 
-final class ProfileCreated
+final class SensitiveDataWithStringableSubjectId
 {
-    /** @param list<Skill> $skills */
     public function __construct(
-        #[ProfileIdNormalizer]
         #[DataSubjectId]
-        public ProfileId $profileId,
-        #[SensitiveData(fallback: 'unknown')]
+        public StringableSubjectId $subjectId,
+        #[SensitiveData]
         public string $name,
-        public array $skills = [],
     ) {
     }
 }
