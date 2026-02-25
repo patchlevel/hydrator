@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Metadata;
 
+use Patchlevel\Hydrator\Normalizer\Normalizer;
 use ReflectionClass;
 
 /**
  * @phpstan-type serialized array{
  *     className: class-string,
+ *     normalizer: Normalizer|null,
  *     properties: array<string, PropertyMetadata>,
  *     lazy: bool|null,
  *     extras: array<string, mixed>,
@@ -30,6 +32,7 @@ final class ClassMetadata
      */
     public function __construct(
         public readonly ReflectionClass $reflection,
+        public Normalizer|null $normalizer = null,
         array $properties = [],
         public bool|null $lazy = null,
         public array $extras = [],
@@ -67,6 +70,7 @@ final class ClassMetadata
     {
         return [
             'className' => $this->className,
+            'normalizer' => $this->normalizer,
             'properties' => $this->properties,
             'lazy' => $this->lazy,
             'extras' => $this->extras,
@@ -77,6 +81,7 @@ final class ClassMetadata
     public function __unserialize(array $data): void
     {
         $this->reflection = new ReflectionClass($data['className']);
+        $this->normalizer = $data['normalizer'];
         $this->properties = $data['properties'];
         $this->lazy = $data['lazy'];
         $this->extras = $data['extras'];

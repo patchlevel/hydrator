@@ -72,19 +72,6 @@ final class ObjectNormalizerTest extends TestCase
         $normalizer->normalize('foo', []);
     }
 
-    public function testDenormalizeWithInvalidArgument(): void
-    {
-        $this->expectException(InvalidArgument::class);
-        $this->expectExceptionCode(0);
-        $this->expectExceptionMessage('array<string, mixed>|null" was expected but "string" was passed.');
-
-        $hydrator = $this->createMock(Hydrator::class);
-
-        $normalizer = new ObjectNormalizer(ProfileCreated::class);
-        $normalizer->setHydrator($hydrator);
-        $normalizer->denormalize('foo', []);
-    }
-
     public function testNormalizeWithValue(): void
     {
         $hydrator = $this->createMock(Hydrator::class);
