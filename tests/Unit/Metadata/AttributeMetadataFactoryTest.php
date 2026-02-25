@@ -359,4 +359,12 @@ final class AttributeMetadataFactoryTest extends TestCase
 
         self::assertTrue($metadata->lazy);
     }
+
+    public function testClassMetadataWithNormalizer(): void
+    {
+        $metadataFactory = new AttributeMetadataFactory();
+        $metadata = $metadataFactory->metadata(ProfileId::class);
+
+        self::assertInstanceOf(IdNormalizer::class, $metadata->normalizer);
+    }
 }

@@ -7,6 +7,7 @@ namespace Patchlevel\Hydrator\Tests\Unit;
 use DateTime;
 use DateTimeImmutable;
 use DateTimeZone;
+use Patchlevel\Hydrator\ArrayDataRequired;
 use Patchlevel\Hydrator\CircularReference;
 use Patchlevel\Hydrator\ClassNotSupported;
 use Patchlevel\Hydrator\CoreExtension;
@@ -190,6 +191,15 @@ final class MetadataHydratorTest extends TestCase
         );
     }
 
+    public function testExtractWithClassNormalizer(): void
+    {
+        $data = $this->hydrator->extract(
+            ProfileId::fromString('id'),
+        );
+
+        self::assertEquals('id', $data);
+    }
+
     public function testHydrate(): void
     {
         $expected = new ProfileCreated(
@@ -213,6 +223,17 @@ final class MetadataHydratorTest extends TestCase
         $this->hydrator->hydrate(
             'Unknown',
             ['profileId' => '1', 'email' => 'info@patchlevel.de'],
+        );
+    }
+
+    public function testHydrateWithArrayDataRequired(): void
+    {
+        $this->expectException(ArrayDataRequired::class);
+        $this->expectExceptionMessage('The data for the class "Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated" must be an array. If you want to use another data type, you need to add a normalizer to the class.');
+
+        $this->hydrator->hydrate(
+            ProfileCreated::class,
+            'foo',
         );
     }
 
@@ -469,6 +490,16 @@ final class MetadataHydratorTest extends TestCase
         );
 
         self::assertEquals($expected, $event);
+    }
+
+    public function testHydrateWithClassNormalizer(): void
+    {
+        $object = $this->hydrator->hydrate(
+            ProfileId::class,
+            'id',
+        );
+
+        self::assertEquals(ProfileId::fromString('id'), $object);
     }
 
     #[RequiresPhp('>=8.4')]

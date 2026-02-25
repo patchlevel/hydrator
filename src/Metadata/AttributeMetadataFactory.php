@@ -12,6 +12,7 @@ use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\Normalizer\ArrayNormalizer;
 use Patchlevel\Hydrator\Normalizer\ArrayShapeNormalizer;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
+use Patchlevel\Hydrator\Normalizer\ObjectNormalizer;
 use Patchlevel\Hydrator\Normalizer\TypeAwareNormalizer;
 use ReflectionAttribute;
 use ReflectionClass;
@@ -73,6 +74,7 @@ final class AttributeMetadataFactory implements MetadataFactory
     {
         $metadata = new ClassMetadata(
             $reflectionClass,
+            $this->getNormalizerOnClass($reflectionClass),
             $this->getPropertyMetadataList($reflectionClass),
             $this->getLazy($reflectionClass),
         );
@@ -189,6 +191,7 @@ final class AttributeMetadataFactory implements MetadataFactory
 
         return new ClassMetadata(
             $parent->reflection,
+            $child->normalizer ?? $parent->normalizer,
             array_values($properties),
             $child->lazy ?? $parent->lazy,
             array_merge($parent->extras, $child->extras),
@@ -207,6 +210,23 @@ final class AttributeMetadataFactory implements MetadataFactory
 
         if ($normalizer instanceof TypeAwareNormalizer) {
             $normalizer->handleType($type ?? $this->typeResolver->resolve($reflectionProperty));
+        }
+
+        return $normalizer;
+    }
+
+    /** @param ReflectionClass<object> $reflectionClass */
+    private function getNormalizerOnClass(ReflectionClass $reflectionClass): Normalizer|null
+    {
+        $type = Type::object($reflectionClass->getName());
+        $normalizer = $this->inferNormalizerByType($type);
+
+        if ($normalizer instanceof ObjectNormalizer) {
+            return null;
+        }
+
+        if ($normalizer instanceof TypeAwareNormalizer) {
+            $normalizer->handleType($type);
         }
 
         return $normalizer;

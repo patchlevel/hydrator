@@ -67,6 +67,11 @@ final class ObjectMapNormalizer implements Normalizer, HydratorAwareNormalizer
         }
 
         $data = $this->hydrator->extract($value);
+
+        if (!is_array($data)) {
+            throw InvalidArgument::withWrongType('array<string, mixed>', $data);
+        }
+
         $data[$this->typeFieldName] = $this->classToTypeMap[$value::class];
 
         return $data;

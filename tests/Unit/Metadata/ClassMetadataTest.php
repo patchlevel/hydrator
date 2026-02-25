@@ -30,6 +30,7 @@ final class ClassMetadataTest extends TestCase
 
         $classMetadata = new ClassMetadata(
             $reflection,
+            null,
             [$fooMetadata, $barMetadata],
         );
 
