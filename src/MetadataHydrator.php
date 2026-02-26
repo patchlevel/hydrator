@@ -24,12 +24,15 @@ final class MetadataHydrator implements Hydrator
     /** @var array<class-string, ClassMetadata> */
     private array $classMetadata = [];
 
+    private readonly Stack $stack;
+
     /** @param list<Middleware> $middlewares */
     public function __construct(
         private readonly MetadataFactory $metadataFactory = new AttributeMetadataFactory(),
         private readonly array $middlewares = [new TransformMiddleware()],
         private readonly bool $defaultLazy = false,
     ) {
+        $this->stack = new Stack($this->middlewares);
     }
 
     /**
@@ -63,7 +66,7 @@ final class MetadataHydrator implements Hydrator
         }
 
         if (PHP_VERSION_ID < 80400) {
-            $stack = new Stack($this->middlewares);
+            $stack = clone $this->stack;
 
             return $stack->next()->hydrate($metadata, $data, $context, $stack);
         }
@@ -71,14 +74,14 @@ final class MetadataHydrator implements Hydrator
         $lazy = $metadata->lazy ?? $this->defaultLazy;
 
         if (!$lazy) {
-            $stack = new Stack($this->middlewares);
+            $stack = clone $this->stack;
 
             return $stack->next()->hydrate($metadata, $data, $context, $stack);
         }
 
         return (new ReflectionClass($class))->newLazyProxy(
             function () use ($metadata, $data, $context): object {
-                $stack = new Stack($this->middlewares);
+                $stack = clone $this->stack;
 
                 return $stack->next()->hydrate($metadata, $data, $context, $stack);
             },
@@ -94,7 +97,7 @@ final class MetadataHydrator implements Hydrator
             return $metadata->normalizer->normalize($object, $context);
         }
 
-        $stack = new Stack($this->middlewares);
+        $stack = clone $this->stack;
 
         return $stack->next()->extract($metadata, $object, $context, $stack);
     }
