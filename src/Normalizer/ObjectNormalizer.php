@@ -6,6 +6,7 @@ namespace Patchlevel\Hydrator\Normalizer;
 
 use Attribute;
 use Patchlevel\Hydrator\Hydrator;
+use RuntimeException;
 use Symfony\Component\TypeInfo\Type;
 use Symfony\Component\TypeInfo\Type\GenericType;
 use Symfony\Component\TypeInfo\Type\NullableType;
@@ -34,12 +35,6 @@ final class ObjectNormalizer implements Normalizer, TypeAwareNormalizer, Hydrato
             throw new MissingHydrator();
         }
 
-        $className = $this->getClassName();
-
-        if (!$value instanceof $className) {
-            throw InvalidArgument::withWrongType($className . '|null', $value);
-        }
-
         return $this->hydrator->extract($value, $context);
     }
 
@@ -54,9 +49,11 @@ final class ObjectNormalizer implements Normalizer, TypeAwareNormalizer, Hydrato
             throw new MissingHydrator();
         }
 
-        $className = $this->getClassName();
+        if ($this->className === null) {
+            throw InvalidType::missingType();
+        }
 
-        return $this->hydrator->hydrate($className, $value, $context);
+        return $this->hydrator->hydrate($this->className, $value, $context);
     }
 
     public function setHydrator(Hydrator $hydrator): void
@@ -66,7 +63,7 @@ final class ObjectNormalizer implements Normalizer, TypeAwareNormalizer, Hydrato
 
     public function handleType(Type|null $type): void
     {
-        if ($type === null || $this->className !== null) {
+        if ($type === null) {
             return;
         }
 
@@ -83,10 +80,18 @@ final class ObjectNormalizer implements Normalizer, TypeAwareNormalizer, Hydrato
         }
 
         if (!$type instanceof ObjectType) {
+            throw new RuntimeException();
+        }
+
+        if ($this->className === null) {
+            $this->className = $type->getClassName();
+
             return;
         }
 
-        $this->className = $type->getClassName();
+        if (!$type->isIdentifiedBy($this->className)) {
+            throw new RuntimeException();
+        }
     }
 
     /** @return class-string */

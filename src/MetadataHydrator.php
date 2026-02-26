@@ -14,7 +14,6 @@ use Patchlevel\Hydrator\Middleware\TransformMiddleware;
 use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
 use ReflectionClass;
 
-use function array_key_exists;
 use function is_array;
 
 use const PHP_VERSION_ID;

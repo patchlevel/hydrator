@@ -6,6 +6,7 @@ namespace Patchlevel\Hydrator\Normalizer;
 
 use Attribute;
 use BackedEnum;
+use RuntimeException;
 use Symfony\Component\TypeInfo\Type;
 use Symfony\Component\TypeInfo\Type\BackedEnumType;
 use Symfony\Component\TypeInfo\Type\NullableType;
@@ -30,12 +31,6 @@ final class EnumNormalizer implements Normalizer, TypeAwareNormalizer
             return null;
         }
 
-        $enum = $this->getEnum();
-
-        if (!$value instanceof $enum) {
-            throw InvalidArgument::withWrongType($enum . '|null', $value);
-        }
-
         return $value->value;
     }
 
@@ -50,10 +45,12 @@ final class EnumNormalizer implements Normalizer, TypeAwareNormalizer
             throw InvalidArgument::withWrongType('string|int|null', $value);
         }
 
-        $enum = $this->getEnum();
+        if ($this->enum === null) {
+            throw InvalidType::missingType();
+        }
 
         try {
-            return $enum::from($value);
+            return $this->enum::from($value);
         } catch (Throwable $error) {
             throw InvalidArgument::fromThrowable($error);
         }
@@ -61,7 +58,7 @@ final class EnumNormalizer implements Normalizer, TypeAwareNormalizer
 
     public function handleType(Type|null $type): void
     {
-        if ($this->enum !== null || $type === null) {
+        if ($type === null) {
             return;
         }
 
@@ -70,10 +67,18 @@ final class EnumNormalizer implements Normalizer, TypeAwareNormalizer
         }
 
         if (!$type instanceof BackedEnumType) {
+            throw new RuntimeException();
+        }
+
+        if ($this->enum === null) {
+            $this->enum = $type->getClassName();
+
             return;
         }
 
-        $this->enum = $type->getClassName();
+        if (!$type->isIdentifiedBy($this->enum)) {
+            throw new RuntimeException();
+        }
     }
 
     /** @return class-string<BackedEnum> */

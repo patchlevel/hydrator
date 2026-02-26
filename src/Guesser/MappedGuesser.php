@@ -7,8 +7,6 @@ namespace Patchlevel\Hydrator\Guesser;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
 use Symfony\Component\TypeInfo\Type\ObjectType;
 
-use function array_key_exists;
-
 final readonly class MappedGuesser implements Guesser
 {
     /** @param array<class-string, class-string<Normalizer>> $map */
