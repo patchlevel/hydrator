@@ -14,11 +14,14 @@ use ReflectionProperty;
  *     fieldName: string,
  *     normalizer: Normalizer|null,
  *     extras: array<string, mixed>,
+ *     directAccess: bool,
  * }
  */
 final class PropertyMetadata
 {
     public readonly string $propertyName;
+
+    private bool $directAccess;
 
     /** @param array<string, mixed> $extras */
     public function __construct(
@@ -28,16 +31,23 @@ final class PropertyMetadata
         public array $extras = [],
     ) {
         $this->propertyName = $reflection->getName();
+        $this->directAccess = $reflection->isPublic();
     }
 
     public function setValue(object $object, mixed $value): void
     {
+        if ($this->directAccess) {
+            $object->{$this->propertyName} = $value;
+
+            return;
+        }
+
         $this->reflection->setValue($object, $value);
     }
 
     public function getValue(object $object): mixed
     {
-        return $this->reflection->getValue($object);
+        return $this->directAccess ? $object->{$this->propertyName} : $this->reflection->getValue($object);
     }
 
     /** @return serialized */
@@ -49,6 +59,7 @@ final class PropertyMetadata
             'fieldName' => $this->fieldName,
             'normalizer' => $this->normalizer,
             'extras' => $this->extras,
+            'directAccess' => $this->directAccess,
         ];
     }
 
@@ -60,5 +71,6 @@ final class PropertyMetadata
         $this->fieldName = $data['fieldName'];
         $this->normalizer = $data['normalizer'];
         $this->extras = $data['extras'];
+        $this->directAccess = $data['directAccess'];
     }
 }
