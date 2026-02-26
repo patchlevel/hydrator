@@ -6,6 +6,7 @@ namespace Patchlevel\Hydrator\Metadata;
 
 use Patchlevel\Hydrator\Normalizer\Normalizer;
 use ReflectionClass;
+use ReflectionParameter;
 
 /**
  * @phpstan-type serialized array{
@@ -24,6 +25,9 @@ final class ClassMetadata
 
     /** @var array<string, PropertyMetadata> */
     public readonly array $properties;
+
+    /** @var array<string, ReflectionParameter>|null */
+    private array|null $promotedConstructorDefaults = null;
 
     /**
      * @param ReflectionClass<T>     $reflection
@@ -63,6 +67,32 @@ final class ClassMetadata
     public function newInstance(): object
     {
         return $this->reflection->newInstanceWithoutConstructor();
+    }
+
+    /** @return array<string, ReflectionParameter> */
+    public function promotedConstructorDefaults(): array
+    {
+        if ($this->promotedConstructorDefaults !== null) {
+            return $this->promotedConstructorDefaults;
+        }
+
+        $constructor = $this->reflection->getConstructor();
+
+        if (!$constructor) {
+            return $this->promotedConstructorDefaults = [];
+        }
+
+        $result = [];
+
+        foreach ($constructor->getParameters() as $parameter) {
+            if (!$parameter->isPromoted() || !$parameter->isDefaultValueAvailable()) {
+                continue;
+            }
+
+            $result[$parameter->getName()] = $parameter;
+        }
+
+        return $this->promotedConstructorDefaults = $result;
     }
 
     /** @return serialized */

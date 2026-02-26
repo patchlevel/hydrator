@@ -9,7 +9,6 @@ use Patchlevel\Hydrator\DenormalizationFailure;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\NormalizationFailure;
 use Patchlevel\Hydrator\TypeMismatch;
-use ReflectionParameter;
 use Throwable;
 use TypeError;
 
@@ -43,9 +42,7 @@ final class TransformMiddleware implements Middleware
                     continue;
                 }
 
-                if ($constructorParameters === null) {
-                    $constructorParameters = $this->promotedConstructorParametersWithDefaultValue($metadata);
-                }
+                $constructorParameters ??= $metadata->promotedConstructorDefaults();
 
                 if (!array_key_exists($propertyMetadata->propertyName, $constructorParameters)) {
                     continue;
@@ -137,32 +134,5 @@ final class TransformMiddleware implements Middleware
         }
 
         return $data;
-    }
-
-    /** @return array<string, ReflectionParameter> */
-    private function promotedConstructorParametersWithDefaultValue(ClassMetadata $metadata): array
-    {
-        $constructor = $metadata->reflection->getConstructor();
-
-        if (!$constructor) {
-            return [];
-        }
-
-        $parameters = $constructor->getParameters();
-        $result = [];
-
-        foreach ($parameters as $parameter) {
-            if (!$parameter->isPromoted()) {
-                continue;
-            }
-
-            if (!$parameter->isDefaultValueAvailable()) {
-                continue;
-            }
-
-            $result[$parameter->getName()] = $parameter;
-        }
-
-        return $result;
     }
 }
