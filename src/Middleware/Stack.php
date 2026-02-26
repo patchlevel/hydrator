@@ -16,14 +16,6 @@ final class Stack
 
     public function next(): Middleware
     {
-        $next = $this->middlewares[$this->index] ?? null;
-
-        if ($next === null) {
-            throw new NoMoreMiddleware();
-        }
-
-        $this->index++;
-
-        return $next;
+        return $this->middlewares[$this->index++] ?? throw new NoMoreMiddleware();
     }
 }
