@@ -111,7 +111,7 @@ final class MetadataHydrator implements Hydrator
      */
     public function metadata(string $class): ClassMetadata
     {
-        if (array_key_exists($class, $this->classMetadata)) {
+        if (isset($this->classMetadata[$class])) {
             return $this->classMetadata[$class];
         }
 

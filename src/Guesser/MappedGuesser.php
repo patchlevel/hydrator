@@ -24,12 +24,11 @@ final readonly class MappedGuesser implements Guesser
     public function guess(ObjectType $type): Normalizer|null
     {
         $className = $type->getClassName();
-        if (! array_key_exists($className, $this->map)) {
+
+        if (!isset($this->map[$className])) {
             return null;
         }
 
-        $normalizerType = $this->map[$className];
-
-        return new $normalizerType();
+        return new $this->map[$className]();
     }
 }

@@ -95,7 +95,7 @@ final class TransformMiddleware implements Middleware
     {
         $objectId = spl_object_id($object);
 
-        if (array_key_exists($objectId, $this->callStack)) {
+        if (isset($this->callStack[$objectId])) {
             $references = array_values($this->callStack);
             $references[] = $object::class;
 
