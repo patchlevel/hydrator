@@ -26,12 +26,12 @@ final class ObjectNormalizer implements Normalizer, TypeAwareNormalizer, Hydrato
     /** @param array<string, mixed> $context */
     public function normalize(mixed $value, array $context): mixed
     {
-        if (!$this->hydrator) {
-            throw new MissingHydrator();
-        }
-
         if ($value === null) {
             return null;
+        }
+
+        if (!$this->hydrator) {
+            throw new MissingHydrator();
         }
 
         $className = $this->getClassName();
@@ -46,12 +46,12 @@ final class ObjectNormalizer implements Normalizer, TypeAwareNormalizer, Hydrato
     /** @param array<string, mixed> $context */
     public function denormalize(mixed $value, array $context): object|null
     {
-        if (!$this->hydrator) {
-            throw new MissingHydrator();
-        }
-
         if ($value === null) {
             return null;
+        }
+
+        if (!$this->hydrator) {
+            throw new MissingHydrator();
         }
 
         $className = $this->getClassName();

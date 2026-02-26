@@ -44,12 +44,12 @@ final class ObjectMapNormalizer implements Normalizer, HydratorAwareNormalizer
      */
     public function normalize(mixed $value, array $context): mixed
     {
-        if (!$this->hydrator) {
-            throw new MissingHydrator();
-        }
-
         if ($value === null) {
             return null;
+        }
+
+        if (!$this->hydrator) {
+            throw new MissingHydrator();
         }
 
         if (!is_object($value)) {
@@ -84,12 +84,12 @@ final class ObjectMapNormalizer implements Normalizer, HydratorAwareNormalizer
      */
     public function denormalize(mixed $value, array $context): mixed
     {
-        if (!$this->hydrator) {
-            throw new MissingHydrator();
-        }
-
         if ($value === null) {
             return null;
+        }
+
+        if (!$this->hydrator) {
+            throw new MissingHydrator();
         }
 
         if (!is_array($value)) {
