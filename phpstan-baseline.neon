@@ -19,6 +19,30 @@ parameters:
 			path: src/Cryptography/PersonalDataPayloadCryptographer.php
 
 		-
+			message: '#^Parameter \#3 \$iv of class Patchlevel\\Hydrator\\Extension\\Cryptography\\Cipher\\CipherKey constructor expects non\-empty\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Extension/Cryptography/BaseCryptographer.php
+
+		-
+			message: '#^Method Patchlevel\\Hydrator\\Extension\\Cryptography\\Cipher\\OpensslCipher\:\:encrypt\(\) should return non\-empty\-string but returns string\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Extension/Cryptography/Cipher/OpensslCipher.php
+
+		-
+			message: '#^Parameter \#1 \$key of class Patchlevel\\Hydrator\\Extension\\Cryptography\\Cipher\\CipherKey constructor expects non\-empty\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Extension/Cryptography/Cipher/OpensslCipherKeyFactory.php
+
+		-
+			message: '#^Parameter \#3 \$iv of class Patchlevel\\Hydrator\\Extension\\Cryptography\\Cipher\\CipherKey constructor expects non\-empty\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Extension/Cryptography/Cipher/OpensslCipherKeyFactory.php
+
+		-
 			message: '#^Method Patchlevel\\Hydrator\\Guesser\\BuiltInGuesser\:\:guess\(\) has parameter \$type with generic class Symfony\\Component\\TypeInfo\\Type\\ObjectType but does not specify its types\: T$#'
 			identifier: missingType.generics
 			count: 1
@@ -107,6 +131,12 @@ parameters:
 			identifier: return.type
 			count: 1
 			path: src/Normalizer/ReflectionTypeUtil.php
+
+		-
+			message: '#^Property Patchlevel\\Hydrator\\Tests\\Unit\\Extension\\Cryptography\\Fixture\\ChildWithSensitiveDataWithIdentifierDto\:\:\$email is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: tests/Unit/Extension/Cryptography/Fixture/ChildWithSensitiveDataWithIdentifierDto.php
 
 		-
 			message: '#^Method Patchlevel\\Hydrator\\Tests\\Unit\\Fixture\\DtoWithHooks\:\:postHydrate\(\) is unused\.$#'
