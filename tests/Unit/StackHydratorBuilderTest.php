@@ -7,42 +7,35 @@ namespace Patchlevel\Hydrator\Tests\Unit;
 use Patchlevel\Hydrator\Extension;
 use Patchlevel\Hydrator\Guesser\ChainGuesser;
 use Patchlevel\Hydrator\Guesser\Guesser;
-use Patchlevel\Hydrator\HydratorBuilder;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\EnrichingMetadataFactory;
 use Patchlevel\Hydrator\Metadata\MetadataEnricher;
 use Patchlevel\Hydrator\Metadata\Psr16MetadataFactory;
 use Patchlevel\Hydrator\Metadata\Psr6MetadataFactory;
-use Patchlevel\Hydrator\MetadataHydrator;
 use Patchlevel\Hydrator\Middleware\Middleware;
+use Patchlevel\Hydrator\StackHydrator;
+use Patchlevel\Hydrator\StackHydratorBuilder;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\SimpleCache\CacheInterface;
 use ReflectionProperty;
 
-#[CoversClass(HydratorBuilder::class)]
-final class HydratorBuilderTest extends TestCase
+#[CoversClass(StackHydratorBuilder::class)]
+final class StackHydratorBuilderTest extends TestCase
 {
-    public function testBuild(): void
-    {
-        $hydrator = (new HydratorBuilder())->build();
-
-        self::assertInstanceOf(MetadataHydrator::class, $hydrator);
-    }
-
     public function testAddMiddlewareWithPriority(): void
     {
         $middleware1 = $this->createMock(Middleware::class);
         $middleware2 = $this->createMock(Middleware::class);
 
-        $builder = new HydratorBuilder();
+        $builder = new StackHydratorBuilder();
         $builder->addMiddleware($middleware1, 10);
         $builder->addMiddleware($middleware2, 20);
 
         $hydrator = $builder->build();
 
-        $reflection = new ReflectionProperty(MetadataHydrator::class, 'middlewares');
+        $reflection = new ReflectionProperty(StackHydrator::class, 'middlewares');
         $middlewares = $reflection->getValue($hydrator);
 
         self::assertSame([$middleware2, $middleware1], $middlewares);
@@ -53,13 +46,13 @@ final class HydratorBuilderTest extends TestCase
         $enricher1 = $this->createMock(MetadataEnricher::class);
         $enricher2 = $this->createMock(MetadataEnricher::class);
 
-        $builder = new HydratorBuilder();
+        $builder = new StackHydratorBuilder();
         $builder->addMetadataEnricher($enricher1, 10);
         $builder->addMetadataEnricher($enricher2, 20);
 
         $hydrator = $builder->build();
 
-        $reflection = new ReflectionProperty(MetadataHydrator::class, 'metadataFactory');
+        $reflection = new ReflectionProperty(StackHydrator::class, 'metadataFactory');
         $enrichingMetadataFactory = $reflection->getValue($hydrator);
 
         self::assertInstanceOf(EnrichingMetadataFactory::class, $enrichingMetadataFactory);
@@ -75,13 +68,13 @@ final class HydratorBuilderTest extends TestCase
         $guesser1 = $this->createMock(Guesser::class);
         $guesser2 = $this->createMock(Guesser::class);
 
-        $builder = new HydratorBuilder();
+        $builder = new StackHydratorBuilder();
         $builder->addGuesser($guesser1, 10);
         $builder->addGuesser($guesser2, 20);
 
         $hydrator = $builder->build();
 
-        $reflection = new ReflectionProperty(MetadataHydrator::class, 'metadataFactory');
+        $reflection = new ReflectionProperty(StackHydrator::class, 'metadataFactory');
         $enrichingMetadataFactory = $reflection->getValue($hydrator);
 
         self::assertInstanceOf(EnrichingMetadataFactory::class, $enrichingMetadataFactory);
@@ -104,19 +97,19 @@ final class HydratorBuilderTest extends TestCase
 
     public function testEnableDefaultLazy(): void
     {
-        $builder = new HydratorBuilder();
+        $builder = new StackHydratorBuilder();
         $builder->enableDefaultLazy();
 
         $hydrator = $builder->build();
 
-        $reflection = new ReflectionProperty(MetadataHydrator::class, 'defaultLazy');
+        $reflection = new ReflectionProperty(StackHydrator::class, 'defaultLazy');
         self::assertTrue($reflection->getValue($hydrator));
     }
 
     public function testUseExtension(): void
     {
         $extension = $this->createMock(Extension::class);
-        $builder = new HydratorBuilder();
+        $builder = new StackHydratorBuilder();
 
         $extension->expects(self::once())
             ->method('configure')
@@ -129,12 +122,12 @@ final class HydratorBuilderTest extends TestCase
     {
         $cache = $this->createMock(CacheItemPoolInterface::class);
 
-        $builder = new HydratorBuilder();
+        $builder = new StackHydratorBuilder();
         $builder->setCache($cache);
 
         $hydrator = $builder->build();
 
-        $reflection = new ReflectionProperty(MetadataHydrator::class, 'metadataFactory');
+        $reflection = new ReflectionProperty(StackHydrator::class, 'metadataFactory');
         $factory = $reflection->getValue($hydrator);
 
         self::assertInstanceOf(Psr6MetadataFactory::class, $factory);
@@ -144,12 +137,12 @@ final class HydratorBuilderTest extends TestCase
     {
         $cache = $this->createMock(CacheInterface::class);
 
-        $builder = new HydratorBuilder();
+        $builder = new StackHydratorBuilder();
         $builder->setCache($cache);
 
         $hydrator = $builder->build();
 
-        $reflection = new ReflectionProperty(MetadataHydrator::class, 'metadataFactory');
+        $reflection = new ReflectionProperty(StackHydrator::class, 'metadataFactory');
         $factory = $reflection->getValue($hydrator);
 
         self::assertInstanceOf(Psr16MetadataFactory::class, $factory);

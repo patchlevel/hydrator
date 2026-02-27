@@ -18,7 +18,7 @@ use Psr\SimpleCache\CacheInterface;
 use function array_merge;
 use function krsort;
 
-final class HydratorBuilder
+final class StackHydratorBuilder
 {
     private bool $defaultLazy = false;
 
@@ -78,7 +78,7 @@ final class HydratorBuilder
         return $this;
     }
 
-    public function build(): Hydrator
+    public function build(): StackHydrator
     {
         krsort($this->guessers);
         krsort($this->metadataEnrichers);
@@ -99,7 +99,7 @@ final class HydratorBuilder
             $metadataFactory = new Psr16MetadataFactory($metadataFactory, $this->cache);
         }
 
-        return new MetadataHydrator(
+        return new StackHydrator(
             $metadataFactory,
             array_merge(...$this->middlewares),
             $this->defaultLazy,

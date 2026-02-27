@@ -19,7 +19,7 @@ use function is_array;
 
 use const PHP_VERSION_ID;
 
-final class MetadataHydrator implements Hydrator
+final class StackHydrator implements Hydrator
 {
     /** @var array<class-string, ClassMetadata> */
     private array $classMetadata = [];

@@ -12,14 +12,14 @@ use Patchlevel\Hydrator\CircularReference;
 use Patchlevel\Hydrator\ClassNotSupported;
 use Patchlevel\Hydrator\CoreExtension;
 use Patchlevel\Hydrator\DenormalizationFailure;
-use Patchlevel\Hydrator\HydratorBuilder;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
-use Patchlevel\Hydrator\MetadataHydrator;
 use Patchlevel\Hydrator\Middleware\Middleware;
 use Patchlevel\Hydrator\Middleware\Stack;
 use Patchlevel\Hydrator\Middleware\TransformMiddleware;
 use Patchlevel\Hydrator\NormalizationFailure;
 use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
+use Patchlevel\Hydrator\StackHydrator;
+use Patchlevel\Hydrator\StackHydratorBuilder;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle1Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle2Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle3Dto;
@@ -48,15 +48,15 @@ use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use ReflectionProperty;
 
-#[CoversClass(MetadataHydrator::class)]
+#[CoversClass(StackHydrator::class)]
 #[CoversClass(TransformMiddleware::class)]
-final class MetadataHydratorTest extends TestCase
+final class StackHydratorTest extends TestCase
 {
-    private MetadataHydrator $hydrator;
+    private StackHydrator $hydrator;
 
     public function setUp(): void
     {
-        $this->hydrator = new MetadataHydrator();
+        $this->hydrator = new StackHydrator();
     }
 
     public function testExtract(): void
@@ -167,7 +167,7 @@ final class MetadataHydratorTest extends TestCase
                 $this->isInstanceOf(Stack::class),
             )->willReturn($expect);
 
-        $hydrator = (new HydratorBuilder())
+        $hydrator = (new StackHydratorBuilder())
             ->useExtension(new CoreExtension())
             ->addMiddleware($middleware)
             ->build();
@@ -322,7 +322,7 @@ final class MetadataHydratorTest extends TestCase
                 $this->isInstanceOf(Stack::class),
             )->willReturn($expect);
 
-        $hydrator = (new HydratorBuilder())
+        $hydrator = (new StackHydratorBuilder())
             ->useExtension(new CoreExtension())
             ->addMiddleware($middleware)
             ->build();
