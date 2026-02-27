@@ -18,22 +18,31 @@ use function str_starts_with;
  *     fieldName: string,
  *     normalizer: Normalizer|null,
  *     isPersonalData: bool,
- *     personalDataFallback: mixed
+ *     personalDataFallback: mixed,
+ *     extras: array<string, mixed>
  * }
  */
 final class PropertyMetadata
 {
     private const ENCRYPTED_PREFIX = '!';
 
-    /** @param (callable(string, mixed):mixed)|null $personalDataFallbackCallable */
+    public readonly string $propertyName;
+
+    /**
+     * @param (callable(string, mixed):mixed)|null $personalDataFallbackCallable
+     * @param array<string, mixed>                 $extras
+     */
     public function __construct(
-        private readonly ReflectionProperty $reflection,
-        private readonly string $fieldName,
-        private readonly Normalizer|null $normalizer = null,
-        private readonly bool $isPersonalData = false,
-        private readonly mixed $personalDataFallback = null,
-        private readonly mixed $personalDataFallbackCallable = null,
+        public readonly ReflectionProperty $reflection,
+        public string $fieldName,
+        public Normalizer|null $normalizer = null,
+        public readonly bool $isPersonalData = false,
+        public readonly mixed $personalDataFallback = null,
+        public readonly mixed $personalDataFallbackCallable = null,
+        public array $extras = [],
     ) {
+        $this->propertyName = $reflection->getName();
+
         if (str_starts_with($fieldName, self::ENCRYPTED_PREFIX)) {
             throw new InvalidArgumentException('fieldName must not start with !');
         }
@@ -46,7 +55,7 @@ final class PropertyMetadata
 
     public function propertyName(): string
     {
-        return $this->reflection->getName();
+        return $this->propertyName;
     }
 
     public function fieldName(): string
@@ -99,11 +108,12 @@ final class PropertyMetadata
     {
         return [
             'className' => $this->reflection->getDeclaringClass()->getName(),
-            'property' => $this->reflection->getName(),
+            'property' => $this->propertyName,
             'fieldName' => $this->fieldName,
             'normalizer' => $this->normalizer,
             'isPersonalData' => $this->isPersonalData,
             'personalDataFallback' => $this->personalDataFallback,
+            'extras' => $this->extras,
         ];
     }
 
@@ -115,5 +125,6 @@ final class PropertyMetadata
         $this->normalizer = $data['normalizer'];
         $this->isPersonalData = $data['isPersonalData'];
         $this->personalDataFallback = $data['personalDataFallback'];
+        $this->extras = $data['extras'];
     }
 }
