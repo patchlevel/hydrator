@@ -5,34 +5,58 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Metadata;
 
 use ReflectionClass;
+use ReflectionParameter;
+
+use function array_values;
 
 /**
  * @psalm-type serialized array{
- *     className: class-string,
- *     properties: list<PropertyMetadata>,
+ *     className: class-string<T>,
+ *     properties: array<string, PropertyMetadata>,
  *     dataSubjectIdField: string|null,
  *     postHydrateCallbacks: list<CallbackMetadata>,
  *     preExtractCallbacks: list<CallbackMetadata>,
  *     lazy: bool|null,
+ *     extras: array<string, mixed>
  * }
  * @template T of object = object
  */
-final readonly class ClassMetadata
+final class ClassMetadata
 {
+    /** @var class-string<T> */
+    public readonly string $className;
+
+    /** @var array<string, PropertyMetadata> */
+    public readonly array $properties;
+
+    /** @var array<string, ReflectionParameter>|null */
+    private array|null $promotedConstructorDefaults = null;
+
     /**
      * @param ReflectionClass<T>     $reflection
      * @param list<PropertyMetadata> $properties
      * @param list<CallbackMetadata> $postHydrateCallbacks
      * @param list<CallbackMetadata> $preExtractCallbacks
+     * @param array<string, mixed>   $extras
      */
     public function __construct(
-        private ReflectionClass $reflection,
-        private array $properties = [],
-        private string|null $dataSubjectIdField = null,
-        private array $postHydrateCallbacks = [],
-        private array $preExtractCallbacks = [],
-        private bool|null $lazy = null,
+        public readonly ReflectionClass $reflection,
+        array $properties = [],
+        public string|null $dataSubjectIdField = null,
+        public array $postHydrateCallbacks = [],
+        public array $preExtractCallbacks = [],
+        public bool|null $lazy = null,
+        public array $extras = [],
     ) {
+        $this->className = $reflection->getName();
+
+        $map = [];
+
+        foreach ($properties as $property) {
+            $map[$property->propertyName] = $property;
+        }
+
+        $this->properties = $map;
     }
 
     /** @return ReflectionClass<T> */
@@ -44,13 +68,13 @@ final readonly class ClassMetadata
     /** @return class-string<T> */
     public function className(): string
     {
-        return $this->reflection->getName();
+        return $this->className;
     }
 
     /** @return list<PropertyMetadata> */
     public function properties(): array
     {
-        return $this->properties;
+        return array_values($this->properties);
     }
 
     /** @return list<CallbackMetadata> */
@@ -92,16 +116,43 @@ final readonly class ClassMetadata
         return $this->reflection->newInstanceWithoutConstructor();
     }
 
+    /** @return array<string, ReflectionParameter> */
+    public function promotedConstructorDefaults(): array
+    {
+        if ($this->promotedConstructorDefaults !== null) {
+            return $this->promotedConstructorDefaults;
+        }
+
+        $constructor = $this->reflection->getConstructor();
+
+        if (!$constructor) {
+            return $this->promotedConstructorDefaults = [];
+        }
+
+        $result = [];
+
+        foreach ($constructor->getParameters() as $parameter) {
+            if (!$parameter->isPromoted() || !$parameter->isDefaultValueAvailable()) {
+                continue;
+            }
+
+            $result[$parameter->getName()] = $parameter;
+        }
+
+        return $this->promotedConstructorDefaults = $result;
+    }
+
     /** @return serialized */
     public function __serialize(): array
     {
         return [
-            'className' => $this->reflection->getName(),
+            'className' => $this->className,
             'properties' => $this->properties,
             'dataSubjectIdField' => $this->dataSubjectIdField,
             'postHydrateCallbacks' => $this->postHydrateCallbacks,
             'preExtractCallbacks' => $this->preExtractCallbacks,
             'lazy' => $this->lazy,
+            'extras' => $this->extras,
         ];
     }
 
@@ -114,5 +165,6 @@ final readonly class ClassMetadata
         $this->postHydrateCallbacks = $data['postHydrateCallbacks'];
         $this->preExtractCallbacks = $data['preExtractCallbacks'];
         $this->lazy = $data['lazy'];
+        $this->extras = $data['extras'];
     }
 }

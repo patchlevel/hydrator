@@ -67,12 +67,6 @@ parameters:
 			path: src/Metadata/AttributeMetadataFactory.php
 
 		-
-			message: '#^Property Patchlevel\\Hydrator\\Metadata\\ClassMetadata\<T of object \= object\>\:\:\$reflection \(ReflectionClass\<T of object \= object\>\) does not accept ReflectionClass\<object\>\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: src/Metadata/ClassMetadata.php
-
-		-
 			message: '#^Property Patchlevel\\Hydrator\\Normalizer\\EnumNormalizer\:\:\$enum \(class\-string\<BackedEnum\>\|null\) does not accept string\.$#'
 			identifier: assign.propertyType
 			count: 1
@@ -185,3 +179,9 @@ parameters:
 			identifier: cast.string
 			count: 2
 			path: tests/Unit/Normalizer/ArrayShapeNormalizerTest.php
+
+		-
+			message: '#^Parameter \#1 \$class of method Patchlevel\\Hydrator\\StackHydrator\:\:hydrate\(\) expects class\-string\<Unknown\>, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: tests/Unit/StackHydratorTest.php
