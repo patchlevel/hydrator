@@ -6,6 +6,7 @@ namespace Patchlevel\Hydrator\Tests\Unit\Normalizer;
 
 use Attribute;
 use Patchlevel\Hydrator\Hydrator;
+use Patchlevel\Hydrator\HydratorWithContext;
 use Patchlevel\Hydrator\Normalizer\InvalidArgument;
 use Patchlevel\Hydrator\Normalizer\InvalidType;
 use Patchlevel\Hydrator\Normalizer\MissingHydrator;
@@ -130,6 +131,53 @@ final class ObjectNormalizerTest extends TestCase
         $this->assertEquals(
             $expected,
             $normalizer->denormalize(['profileId' => '1', 'email' => 'info@patchlevel.de']),
+        );
+    }
+
+    public function testNormalizePassesContextToHydrator(): void
+    {
+        $context = ['key' => 'value'];
+        $hydrator = $this->createMock(HydratorWithContext::class);
+
+        $event = new ProfileCreated(
+            ProfileId::fromString('1'),
+            Email::fromString('info@patchlevel.de'),
+        );
+
+        $hydrator->expects($this->once())->method('extract')->with($event, $context)
+            ->willReturn(['profileId' => '1', 'email' => 'info@patchlevel.de']);
+
+        $normalizer = new ObjectNormalizer(ProfileCreated::class);
+        $normalizer->setHydrator($hydrator);
+
+        self::assertEquals(
+            ['profileId' => '1', 'email' => 'info@patchlevel.de'],
+            $normalizer->normalize($event, $context),
+        );
+    }
+
+    public function testDenormalizePassesContextToHydrator(): void
+    {
+        $context = ['key' => 'value'];
+        $hydrator = $this->createMock(HydratorWithContext::class);
+
+        $expected = new ProfileCreated(
+            ProfileId::fromString('1'),
+            Email::fromString('info@patchlevel.de'),
+        );
+
+        $hydrator->expects($this->once())->method('hydrate')->with(
+            ProfileCreated::class,
+            ['profileId' => '1', 'email' => 'info@patchlevel.de'],
+            $context,
+        )->willReturn($expected);
+
+        $normalizer = new ObjectNormalizer(ProfileCreated::class);
+        $normalizer->setHydrator($hydrator);
+
+        $this->assertEquals(
+            $expected,
+            $normalizer->denormalize(['profileId' => '1', 'email' => 'info@patchlevel.de'], $context),
         );
     }
 

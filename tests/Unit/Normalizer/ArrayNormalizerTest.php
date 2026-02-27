@@ -10,6 +10,7 @@ use Patchlevel\Hydrator\Normalizer\ArrayNormalizer;
 use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
 use Patchlevel\Hydrator\Normalizer\InvalidArgument;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
+use Patchlevel\Hydrator\Normalizer\NormalizerWithContext;
 use PHPUnit\Framework\TestCase;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
@@ -87,6 +88,68 @@ final class ArrayNormalizerTest extends TestCase
 
         $normalizer = new ArrayNormalizer($innerNormalizer);
         $this->assertEquals([1, 2], $normalizer->denormalize(['1', '2']));
+    }
+
+    public function testNormalizePassesContextToInnerNormalizer(): void
+    {
+        $context = ['key' => 'value'];
+
+        $innerNormalizer = new class implements NormalizerWithContext {
+            /** @var array<int, array<string, mixed>> */
+            public array $contexts = [];
+
+            /** @param array<string, mixed> $context */
+            public function normalize(mixed $value, array $context = []): mixed
+            {
+                $this->contexts[] = $context;
+
+                return $value;
+            }
+
+            /** @param array<string, mixed> $context */
+            public function denormalize(mixed $value, array $context = []): mixed
+            {
+                $this->contexts[] = $context;
+
+                return $value;
+            }
+        };
+
+        $normalizer = new ArrayNormalizer($innerNormalizer);
+        $normalizer->normalize(['a', 'b'], $context);
+
+        $this->assertSame([$context, $context], $innerNormalizer->contexts);
+    }
+
+    public function testDenormalizePassesContextToInnerNormalizer(): void
+    {
+        $context = ['key' => 'value'];
+
+        $innerNormalizer = new class implements NormalizerWithContext {
+            /** @var array<int, array<string, mixed>> */
+            public array $contexts = [];
+
+            /** @param array<string, mixed> $context */
+            public function normalize(mixed $value, array $context = []): mixed
+            {
+                $this->contexts[] = $context;
+
+                return $value;
+            }
+
+            /** @param array<string, mixed> $context */
+            public function denormalize(mixed $value, array $context = []): mixed
+            {
+                $this->contexts[] = $context;
+
+                return $value;
+            }
+        };
+
+        $normalizer = new ArrayNormalizer($innerNormalizer);
+        $normalizer->denormalize(['a', 'b'], $context);
+
+        $this->assertSame([$context, $context], $innerNormalizer->contexts);
     }
 
     public function testPassHydrator(): void

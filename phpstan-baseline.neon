@@ -73,12 +73,6 @@ parameters:
 			path: src/Metadata/ClassMetadata.php
 
 		-
-			message: '#^Dead catch \- Patchlevel\\Hydrator\\CircularReference is never thrown in the try block\.$#'
-			identifier: catch.neverThrown
-			count: 1
-			path: src/MetadataHydrator.php
-
-		-
 			message: '#^Property Patchlevel\\Hydrator\\Normalizer\\EnumNormalizer\:\:\$enum \(class\-string\<BackedEnum\>\|null\) does not accept string\.$#'
 			identifier: assign.propertyType
 			count: 1
@@ -91,7 +85,19 @@ parameters:
 			path: src/Normalizer/ObjectMapNormalizer.php
 
 		-
+			message: '#^Parameter \#2 \$data of method Patchlevel\\Hydrator\\HydratorWithContext\:\:hydrate\(\) expects array\<string, mixed\>, array given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Normalizer/ObjectMapNormalizer.php
+
+		-
 			message: '#^Parameter \#2 \$data of method Patchlevel\\Hydrator\\Hydrator\:\:hydrate\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Normalizer/ObjectNormalizer.php
+
+		-
+			message: '#^Parameter \#2 \$data of method Patchlevel\\Hydrator\\HydratorWithContext\:\:hydrate\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
 			identifier: argument.type
 			count: 1
 			path: src/Normalizer/ObjectNormalizer.php
