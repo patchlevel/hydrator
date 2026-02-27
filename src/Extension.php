@@ -6,5 +6,5 @@ namespace Patchlevel\Hydrator;
 
 interface Extension
 {
-    public function configure(HydratorBuilder $builder): void;
+    public function configure(StackHydratorBuilder $builder): void;
 }

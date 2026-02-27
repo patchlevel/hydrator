@@ -27,9 +27,9 @@ composer require patchlevel/hydrator
 To use the hydrator you just have to create an instance of it.
 
 ```php
-use Patchlevel\Hydrator\MetadataHydrator;
+use Patchlevel\Hydrator\StackHydrator;
 
-$hydrator = MetadataHydrator::create();
+$hydrator = StackHydrator::create();
 ```
 
 After that you can hydrate any classes or objects. Also `final`, `readonly` classes with `property promotion`.
@@ -483,9 +483,9 @@ class NameGuesser implements Guesser
 To use this Guesser, you must specify it when creating the Hydrator:
 
 ```php
-use Patchlevel\Hydrator\MetadataHydrator;
+use Patchlevel\Hydrator\StackHydrator;
 
-$hydrator = MetadataHydrator::create([new NameGuesser()]);
+$hydrator = StackHydrator::create([new NameGuesser()]);
 ```
 
 > [!NOTE]
@@ -595,7 +595,7 @@ For this functionality we use the [symfony/event-dispatcher](https://symfony.com
 use Patchlevel\Hydrator\Cryptography\SensitiveDataPayloadCryptographer;
 use Patchlevel\Hydrator\Cryptography\Store\CipherKeyStore;
 use Patchlevel\Hydrator\Metadata\Event\EventMetadataFactory;
-use Patchlevel\Hydrator\MetadataHydrator;
+use Patchlevel\Hydrator\StackHydrator;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Patchlevel\Hydrator\Event\PostExtract;
 use Patchlevel\Hydrator\Event\PreHydrate;
@@ -616,7 +616,7 @@ $eventDispatcher->addListener(
     }
 );
 
-$hydrator = new MetadataHydrator(eventDispatcher: $eventDispatcher);
+$hydrator = new StackHydrator(eventDispatcher: $eventDispatcher);
 ```
 
 ### Cryptography
@@ -742,11 +742,11 @@ Here we show you how to configure the cryptography.
 use Patchlevel\Hydrator\Cryptography\SensitiveDataPayloadCryptographer;
 use Patchlevel\Hydrator\Cryptography\Store\CipherKeyStore;
 use Patchlevel\Hydrator\Metadata\Event\EventMetadataFactory;
-use Patchlevel\Hydrator\MetadataHydrator;
+use Patchlevel\Hydrator\StackHydrator;
 
 $cipherKeyStore = new InMemoryCipherKeyStore();
 $cryptographer = SensitiveDataPayloadCryptographer::createWithDefaultSettings($cipherKeyStore);
-$hydrator = new MetadataHydrator(cryptographer: $cryptographer);
+$hydrator = new StackHydrator(cryptographer: $cryptographer);
 ```
 
 > [!WARNING]

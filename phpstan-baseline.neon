@@ -73,12 +73,6 @@ parameters:
 			path: src/Metadata/ClassMetadata.php
 
 		-
-			message: '#^Parameter \#2 \$data of method Patchlevel\\Hydrator\\Middleware\\Middleware\:\:hydrate\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
-			identifier: argument.type
-			count: 3
-			path: src/MetadataHydrator.php
-
-		-
 			message: '#^Property Patchlevel\\Hydrator\\Normalizer\\EnumNormalizer\:\:\$enum \(class\-string\<BackedEnum\>\|null\) does not accept string\.$#'
 			identifier: assign.propertyType
 			count: 1
@@ -89,6 +83,12 @@ parameters:
 			identifier: assign.propertyType
 			count: 1
 			path: src/Normalizer/ObjectNormalizer.php
+
+		-
+			message: '#^Parameter \#2 \$data of method Patchlevel\\Hydrator\\Middleware\\Middleware\:\:hydrate\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
+			identifier: argument.type
+			count: 3
+			path: src/StackHydrator.php
 
 		-
 			message: '#^Property Patchlevel\\Hydrator\\Tests\\Unit\\Extension\\Cryptography\\Fixture\\ChildWithSensitiveDataWithIdentifierDto\:\:\$email is never read, only written\.$#'
@@ -109,31 +109,31 @@ parameters:
 			path: tests/Unit/Metadata/AttributeMetadataFactoryTest.php
 
 		-
-			message: '#^Parameter \#1 \$class of method Patchlevel\\Hydrator\\MetadataHydrator\:\:hydrate\(\) expects class\-string\<Unknown\>, string given\.$#'
+			message: '#^Cannot cast mixed to int\.$#'
+			identifier: cast.int
+			count: 2
+			path: tests/Unit/Normalizer/ArrayNormalizerTest.php
+
+		-
+			message: '#^Cannot cast mixed to string\.$#'
+			identifier: cast.string
+			count: 2
+			path: tests/Unit/Normalizer/ArrayNormalizerTest.php
+
+		-
+			message: '#^Cannot cast mixed to int\.$#'
+			identifier: cast.int
+			count: 2
+			path: tests/Unit/Normalizer/ArrayShapeNormalizerTest.php
+
+		-
+			message: '#^Cannot cast mixed to string\.$#'
+			identifier: cast.string
+			count: 2
+			path: tests/Unit/Normalizer/ArrayShapeNormalizerTest.php
+
+		-
+			message: '#^Parameter \#1 \$class of method Patchlevel\\Hydrator\\StackHydrator\:\:hydrate\(\) expects class\-string\<Unknown\>, string given\.$#'
 			identifier: argument.type
 			count: 1
-			path: tests/Unit/MetadataHydratorTest.php
-
-		-
-			message: '#^Cannot cast mixed to int\.$#'
-			identifier: cast.int
-			count: 2
-			path: tests/Unit/Normalizer/ArrayNormalizerTest.php
-
-		-
-			message: '#^Cannot cast mixed to string\.$#'
-			identifier: cast.string
-			count: 2
-			path: tests/Unit/Normalizer/ArrayNormalizerTest.php
-
-		-
-			message: '#^Cannot cast mixed to int\.$#'
-			identifier: cast.int
-			count: 2
-			path: tests/Unit/Normalizer/ArrayShapeNormalizerTest.php
-
-		-
-			message: '#^Cannot cast mixed to string\.$#'
-			identifier: cast.string
-			count: 2
-			path: tests/Unit/Normalizer/ArrayShapeNormalizerTest.php
+			path: tests/Unit/StackHydratorTest.php

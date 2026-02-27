@@ -9,7 +9,7 @@ use Patchlevel\Hydrator\Middleware\TransformMiddleware;
 
 final class CoreExtension implements Extension
 {
-    public function configure(HydratorBuilder $builder): void
+    public function configure(StackHydratorBuilder $builder): void
     {
         $builder->addMiddleware(new TransformMiddleware(), -64);
         $builder->addGuesser(new BuiltInGuesser(), -64);
