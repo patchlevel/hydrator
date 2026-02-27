@@ -16,6 +16,7 @@ use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Metadata\ClassNotFound;
 use Patchlevel\Hydrator\Metadata\MetadataFactory;
 use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
+use Patchlevel\Hydrator\Normalizer\NormalizerWithContext;
 use ReflectionClass;
 use ReflectionParameter;
 use Symfony\Component\EventDispatcher\EventDispatcher;
@@ -30,7 +31,7 @@ use function spl_object_id;
 
 use const PHP_VERSION_ID;
 
-final class MetadataHydrator implements Hydrator
+final class MetadataHydrator implements HydratorWithContext
 {
     /** @var array<int, class-string> */
     private array $stack = [];
@@ -57,12 +58,13 @@ final class MetadataHydrator implements Hydrator
     /**
      * @param class-string<T>      $class
      * @param array<string, mixed> $data
+     * @param array<string, mixed> $context
      *
      * @return T
      *
      * @template T of object
      */
-    public function hydrate(string $class, array $data): object
+    public function hydrate(string $class, array $data, array $context = []): object
     {
         try {
             $metadata = $this->metadataFactory->metadata($class);
@@ -71,18 +73,18 @@ final class MetadataHydrator implements Hydrator
         }
 
         if (PHP_VERSION_ID < 80400) {
-            return $this->doHydrate($metadata, $data);
+            return $this->doHydrate($metadata, $data, $context);
         }
 
         $lazy = $metadata->lazy() ?? $this->defaultLazy;
 
         if (!$lazy) {
-            return $this->doHydrate($metadata, $data);
+            return $this->doHydrate($metadata, $data, $context);
         }
 
         return (new ReflectionClass($class))->newLazyProxy(
-            function () use ($metadata, $data): object {
-                return $this->doHydrate($metadata, $data);
+            function () use ($metadata, $data, $context): object {
+                return $this->doHydrate($metadata, $data, $context);
             },
         );
     }
@@ -90,12 +92,13 @@ final class MetadataHydrator implements Hydrator
     /**
      * @param ClassMetadata<T>     $metadata
      * @param array<string, mixed> $data
+     * @param array<string, mixed> $context
      *
      * @return T
      *
      * @template T of object
      */
-    private function doHydrate(ClassMetadata $metadata, array $data): object
+    private function doHydrate(ClassMetadata $metadata, array $data, array $context = []): object
     {
         if ($this->eventDispatcher) {
             $data = $this->eventDispatcher->dispatch(new PreHydrate($data, $metadata))->data;
@@ -138,7 +141,11 @@ final class MetadataHydrator implements Hydrator
 
                 try {
                     /** @psalm-suppress MixedAssignment */
-                    $value = $normalizer->denormalize($value);
+                    if ($normalizer instanceof NormalizerWithContext) {
+                        $value = $normalizer->denormalize($value, $context);
+                    } else {
+                        $value = $normalizer->denormalize($value);
+                    }
                 } catch (Throwable $e) {
                     throw new DenormalizationFailure(
                         $metadata->className(),
@@ -167,8 +174,12 @@ final class MetadataHydrator implements Hydrator
         return $object;
     }
 
-    /** @return array<string, mixed> */
-    public function extract(object $object): array
+    /**
+     * @param array<string, mixed> $context
+     *
+     * @return array<string, mixed>
+     */
+    public function extract(object $object, array $context = []): array
     {
         $objectId = spl_object_id($object);
 
@@ -202,11 +213,18 @@ final class MetadataHydrator implements Hydrator
                     }
 
                     try {
-                        /** @psalm-suppress MixedAssignment */
-                        $value = $normalizer->normalize($value);
-                    } catch (CircularReference $e) {
-                        throw $e;
+                        if ($normalizer instanceof NormalizerWithContext) {
+                            /** @psalm-suppress MixedAssignment */
+                            $value = $normalizer->normalize($value, $context);
+                        } else {
+                            /** @psalm-suppress MixedAssignment */
+                            $value = $normalizer->normalize($value);
+                        }
                     } catch (Throwable $e) {
+                        if ($e instanceof CircularReference) {
+                            throw $e;
+                        }
+
                         throw new NormalizationFailure(
                             $object::class,
                             $propertyMetadata->propertyName(),

@@ -13,15 +13,19 @@ use Symfony\Component\TypeInfo\Type\NullableType;
 use function is_array;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
-final readonly class ArrayNormalizer implements Normalizer, TypeAwareNormalizer, HydratorAwareNormalizer
+final readonly class ArrayNormalizer implements NormalizerWithContext, TypeAwareNormalizer, HydratorAwareNormalizer
 {
     public function __construct(
         private Normalizer $normalizer,
     ) {
     }
 
-    /** @return array<array-key, mixed>|null */
-    public function normalize(mixed $value): array|null
+    /**
+     * @param array<string, mixed> $context
+     *
+     * @return array<array-key, mixed>|null
+     */
+    public function normalize(mixed $value, array $context = []): array|null
     {
         if ($value === null) {
             return null;
@@ -31,15 +35,25 @@ final readonly class ArrayNormalizer implements Normalizer, TypeAwareNormalizer,
             throw InvalidArgument::withWrongType('array|null', $value);
         }
 
-        foreach ($value as &$item) {
-            $item = $this->normalizer->normalize($item);
+        if ($this->normalizer instanceof NormalizerWithContext) {
+            foreach ($value as &$item) {
+                $item = $this->normalizer->normalize($item, $context);
+            }
+        } else {
+            foreach ($value as &$item) {
+                $item = $this->normalizer->normalize($item);
+            }
         }
 
         return $value;
     }
 
-    /** @return array<array-key, mixed>|null */
-    public function denormalize(mixed $value): array|null
+    /**
+     * @param array<string, mixed> $context
+     *
+     * @return array<array-key, mixed>|null
+     */
+    public function denormalize(mixed $value, array $context = []): array|null
     {
         if ($value === null) {
             return null;
@@ -49,8 +63,14 @@ final readonly class ArrayNormalizer implements Normalizer, TypeAwareNormalizer,
             throw InvalidArgument::withWrongType('array|null', $value);
         }
 
-        foreach ($value as &$item) {
-            $item = $this->normalizer->denormalize($item);
+        if ($this->normalizer instanceof NormalizerWithContext) {
+            foreach ($value as &$item) {
+                $item = $this->normalizer->denormalize($item, $context);
+            }
+        } else {
+            foreach ($value as &$item) {
+                $item = $this->normalizer->denormalize($item);
+            }
         }
 
         return $value;

@@ -6,6 +6,7 @@ namespace Patchlevel\Hydrator\Normalizer;
 
 use Attribute;
 use Patchlevel\Hydrator\Hydrator;
+use Patchlevel\Hydrator\HydratorWithContext;
 use ReflectionType;
 use Symfony\Component\TypeInfo\Type;
 use Symfony\Component\TypeInfo\Type\GenericType;
@@ -16,7 +17,7 @@ use Symfony\Component\TypeInfo\Type\TemplateType;
 use function is_array;
 
 #[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_CLASS)]
-final class ObjectNormalizer implements Normalizer, ReflectionTypeAwareNormalizer, TypeAwareNormalizer, HydratorAwareNormalizer
+final class ObjectNormalizer implements NormalizerWithContext, ReflectionTypeAwareNormalizer, TypeAwareNormalizer, HydratorAwareNormalizer
 {
     private Hydrator|null $hydrator = null;
 
@@ -26,8 +27,12 @@ final class ObjectNormalizer implements Normalizer, ReflectionTypeAwareNormalize
     ) {
     }
 
-    /** @return array<string, mixed>|null */
-    public function normalize(mixed $value): array|null
+    /**
+     * @param array<string, mixed> $context
+     *
+     * @return array<string, mixed>|null
+     */
+    public function normalize(mixed $value, array $context = []): array|null
     {
         if (!$this->hydrator) {
             throw new MissingHydrator();
@@ -43,10 +48,15 @@ final class ObjectNormalizer implements Normalizer, ReflectionTypeAwareNormalize
             throw InvalidArgument::withWrongType($className . '|null', $value);
         }
 
+        if ($this->hydrator instanceof HydratorWithContext) {
+            return $this->hydrator->extract($value, $context);
+        }
+
         return $this->hydrator->extract($value);
     }
 
-    public function denormalize(mixed $value): object|null
+    /** @param array<string, mixed> $context */
+    public function denormalize(mixed $value, array $context = []): object|null
     {
         if (!$this->hydrator) {
             throw new MissingHydrator();
@@ -61,6 +71,10 @@ final class ObjectNormalizer implements Normalizer, ReflectionTypeAwareNormalize
         }
 
         $className = $this->getClassName();
+
+        if ($this->hydrator instanceof HydratorWithContext) {
+            return $this->hydrator->hydrate($className, $value, $context);
+        }
 
         return $this->hydrator->hydrate($className, $value);
     }

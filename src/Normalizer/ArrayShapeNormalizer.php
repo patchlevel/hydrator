@@ -13,7 +13,7 @@ use Symfony\Component\TypeInfo\Type\NullableType;
 use function is_array;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
-final readonly class ArrayShapeNormalizer implements Normalizer, TypeAwareNormalizer, HydratorAwareNormalizer
+final readonly class ArrayShapeNormalizer implements NormalizerWithContext, TypeAwareNormalizer, HydratorAwareNormalizer
 {
     /** @param array<array-key, Normalizer> $normalizerMap */
     public function __construct(
@@ -21,8 +21,12 @@ final readonly class ArrayShapeNormalizer implements Normalizer, TypeAwareNormal
     ) {
     }
 
-    /** @return array<array-key, mixed>|null */
-    public function normalize(mixed $value): array|null
+    /**
+     * @param array<string, mixed> $context
+     *
+     * @return array<array-key, mixed>|null
+     */
+    public function normalize(mixed $value, array $context = []): array|null
     {
         if ($value === null) {
             return null;
@@ -39,14 +43,22 @@ final readonly class ArrayShapeNormalizer implements Normalizer, TypeAwareNormal
                 continue;
             }
 
-            $result[$field] = $normalizer->normalize($value[$field]);
+            if ($normalizer instanceof NormalizerWithContext) {
+                $result[$field] = $normalizer->normalize($value[$field], $context);
+            } else {
+                $result[$field] = $normalizer->normalize($value[$field]);
+            }
         }
 
         return $result;
     }
 
-    /** @return array<array-key, mixed>|null */
-    public function denormalize(mixed $value): array|null
+    /**
+     * @param array<string, mixed> $context
+     *
+     * @return array<array-key, mixed>|null
+     */
+    public function denormalize(mixed $value, array $context = []): array|null
     {
         if ($value === null) {
             return null;
@@ -63,7 +75,11 @@ final readonly class ArrayShapeNormalizer implements Normalizer, TypeAwareNormal
                 continue;
             }
 
-            $result[$field] = $normalizer->denormalize($value[$field]);
+            if ($normalizer instanceof NormalizerWithContext) {
+                $result[$field] = $normalizer->denormalize($value[$field], $context);
+            } else {
+                $result[$field] = $normalizer->denormalize($value[$field]);
+            }
         }
 
         return $result;

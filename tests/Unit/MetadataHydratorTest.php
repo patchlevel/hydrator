@@ -22,6 +22,7 @@ use Patchlevel\Hydrator\Normalizer\Normalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle1Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle2Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle3Dto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\ContextAwareDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DefaultDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DtoWithHooks;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
@@ -98,6 +99,15 @@ final class MetadataHydratorTest extends TestCase
             ['event' => ['profileId' => '1', 'email' => 'info@patchlevel.de']],
             $this->hydrator->extract($event),
         );
+    }
+
+    public function testExtractPassesContextToNormalizer(): void
+    {
+        $dto = new ContextAwareDto('value');
+
+        $data = $this->hydrator->extract($dto, ['prefix' => 'ctx-']);
+
+        self::assertSame(['value' => 'ctx-value'], $data);
     }
 
     public function testExtractCircularReference(): void
@@ -185,6 +195,17 @@ final class MetadataHydratorTest extends TestCase
         );
 
         self::assertEquals($expected, $event);
+    }
+
+    public function testHydratePassesContextToNormalizer(): void
+    {
+        $event = $this->hydrator->hydrate(
+            ContextAwareDto::class,
+            ['value' => 'value'],
+            ['suffix' => '-ctx'],
+        );
+
+        self::assertSame('value-ctx', $event->value);
     }
 
     public function testHydrateUnknownClass(): void

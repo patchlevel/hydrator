@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Tests\Unit\Normalizer;
 
 use Patchlevel\Hydrator\Hydrator;
+use Patchlevel\Hydrator\HydratorWithContext;
 use Patchlevel\Hydrator\Normalizer\InvalidArgument;
 use Patchlevel\Hydrator\Normalizer\MissingHydrator;
 use Patchlevel\Hydrator\Normalizer\ObjectMapNormalizer;
@@ -125,6 +126,56 @@ final class ObjectMapNormalizerTest extends TestCase
         $this->assertEquals(
             $expected,
             $normalizer->denormalize(['profileId' => '1', 'email' => 'info@patchlevel.de', '_type' => 'created']),
+        );
+    }
+
+    public function testNormalizePassesContextToHydrator(): void
+    {
+        $context = ['key' => 'value'];
+        $hydrator = $this->createMock(HydratorWithContext::class);
+
+        $event = new ProfileCreated(
+            ProfileId::fromString('1'),
+            Email::fromString('info@patchlevel.de'),
+        );
+
+        $hydrator
+            ->expects($this->once())
+            ->method('extract')
+            ->with($event, $context)
+            ->willReturn(['profileId' => '1', 'email' => 'info@patchlevel.de']);
+
+        $normalizer = new ObjectMapNormalizer([ProfileCreated::class => 'created']);
+        $normalizer->setHydrator($hydrator);
+
+        self::assertEquals(
+            ['profileId' => '1', 'email' => 'info@patchlevel.de', '_type' => 'created'],
+            $normalizer->normalize($event, $context),
+        );
+    }
+
+    public function testDenormalizePassesContextToHydrator(): void
+    {
+        $context = ['key' => 'value'];
+        $hydrator = $this->createMock(HydratorWithContext::class);
+
+        $expected = new ProfileCreated(
+            ProfileId::fromString('1'),
+            Email::fromString('info@patchlevel.de'),
+        );
+
+        $hydrator
+            ->expects($this->once())
+            ->method('hydrate')
+            ->with(ProfileCreated::class, ['profileId' => '1', 'email' => 'info@patchlevel.de'], $context)
+            ->willReturn($expected);
+
+        $normalizer = new ObjectMapNormalizer([ProfileCreated::class => 'created']);
+        $normalizer->setHydrator($hydrator);
+
+        $this->assertEquals(
+            $expected,
+            $normalizer->denormalize(['profileId' => '1', 'email' => 'info@patchlevel.de', '_type' => 'created'], $context),
         );
     }
 
