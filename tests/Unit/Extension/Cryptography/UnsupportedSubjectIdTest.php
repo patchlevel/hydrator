@@ -1,0 +1,20 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Patchlevel\Hydrator\Tests\Unit\Extension\Cryptography;
+
+use Patchlevel\Hydrator\Extension\Cryptography\UnsupportedSubjectId;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\TestCase;
+
+#[CoversClass(UnsupportedSubjectId::class)]
+final class UnsupportedSubjectIdTest extends TestCase
+{
+    public function testCreation(): void
+    {
+        $exception = new UnsupportedSubjectId('Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated', 'profile_id', 42.4);
+
+        self::assertSame('Unsupported subject id for Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated in field profile_id. Got float.', $exception->getMessage());
+    }
+}
