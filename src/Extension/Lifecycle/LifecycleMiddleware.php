@@ -10,6 +10,7 @@ use Patchlevel\Hydrator\Middleware\Stack;
 
 use function assert;
 
+/** @experimental */
 final class LifecycleMiddleware implements Middleware
 {
     /**

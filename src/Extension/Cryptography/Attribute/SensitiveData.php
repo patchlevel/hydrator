@@ -7,6 +7,7 @@ namespace Patchlevel\Hydrator\Extension\Cryptography\Attribute;
 use Attribute;
 use InvalidArgumentException;
 
+/** @experimental */
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final class SensitiveData
 {

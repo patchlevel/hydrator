@@ -19,6 +19,7 @@ use function is_array;
 use function is_int;
 use function is_string;
 
+/** @experimental */
 final class CryptographyMiddleware implements Middleware
 {
     public function __construct(

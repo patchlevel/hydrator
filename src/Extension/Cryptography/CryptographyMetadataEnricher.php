@@ -12,6 +12,7 @@ use ReflectionProperty;
 
 use function array_key_exists;
 
+/** @experimental */
 final class CryptographyMetadataEnricher implements MetadataEnricher
 {
     public function enrich(ClassMetadata $classMetadata): void

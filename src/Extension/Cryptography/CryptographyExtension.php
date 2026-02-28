@@ -7,6 +7,7 @@ namespace Patchlevel\Hydrator\Extension\Cryptography;
 use Patchlevel\Hydrator\Extension;
 use Patchlevel\Hydrator\StackHydratorBuilder;
 
+/** @experimental */
 final class CryptographyExtension implements Extension
 {
     public function __construct(

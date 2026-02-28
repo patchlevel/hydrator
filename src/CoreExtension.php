@@ -7,6 +7,7 @@ namespace Patchlevel\Hydrator;
 use Patchlevel\Hydrator\Guesser\BuiltInGuesser;
 use Patchlevel\Hydrator\Middleware\TransformMiddleware;
 
+/** @experimental */
 final class CoreExtension implements Extension
 {
     public function configure(StackHydratorBuilder $builder): void

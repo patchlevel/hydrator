@@ -6,6 +6,7 @@ namespace Patchlevel\Hydrator\Extension\Lifecycle\Attribute;
 
 use Attribute;
 
+/** @experimental */
 #[Attribute(Attribute::TARGET_METHOD)]
 final class PreHydrate
 {

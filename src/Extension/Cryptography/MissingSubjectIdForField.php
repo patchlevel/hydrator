@@ -9,6 +9,7 @@ use RuntimeException;
 
 use function sprintf;
 
+/** @experimental */
 final class MissingSubjectIdForField extends RuntimeException implements HydratorException
 {
     /** @param class-string $class */
