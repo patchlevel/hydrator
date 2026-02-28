@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Extension\Cryptography;
 
+/** @experimental */
 final class SensitiveDataInfo
 {
     public function __construct(

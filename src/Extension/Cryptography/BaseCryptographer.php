@@ -20,6 +20,7 @@ use function base64_encode;
 use function is_array;
 
 /**
+ * @experimental
  * @phpstan-type EncryptedDataV1 array{
  *     __enc: 'v1',
  *     data: non-empty-string,

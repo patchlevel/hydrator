@@ -6,6 +6,7 @@ namespace Patchlevel\Hydrator\Extension\Cryptography\Store;
 
 use Patchlevel\Hydrator\Extension\Cryptography\Cipher\CipherKey;
 
+/** @experimental */
 final class InMemoryCipherKeyStore implements CipherKeyStore
 {
     /** @var array<string, CipherKey> */

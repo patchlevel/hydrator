@@ -18,6 +18,7 @@ use function array_key_exists;
 
 use const PHP_VERSION_ID;
 
+/** @experimental */
 final class StackHydrator implements HydratorWithContext
 {
     /** @var array<class-string, ClassMetadata> */

@@ -7,6 +7,7 @@ namespace Patchlevel\Hydrator\Extension\Cryptography\Cipher;
 use Patchlevel\Hydrator\HydratorException;
 use RuntimeException;
 
+/** @experimental */
 final class DecryptionFailed extends RuntimeException implements HydratorException
 {
     public function __construct()

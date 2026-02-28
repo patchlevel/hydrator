@@ -6,6 +6,7 @@ namespace Patchlevel\Hydrator\Extension\Cryptography\Attribute;
 
 use Attribute;
 
+/** @experimental */
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final class DataSubjectId
 {

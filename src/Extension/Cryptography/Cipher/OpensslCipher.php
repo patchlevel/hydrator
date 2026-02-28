@@ -15,6 +15,7 @@ use function openssl_encrypt;
 
 use const JSON_THROW_ON_ERROR;
 
+/** @experimental */
 final class OpensslCipher implements Cipher
 {
     /** @return non-empty-string */

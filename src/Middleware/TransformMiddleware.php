@@ -17,6 +17,7 @@ use function array_key_exists;
 use function array_values;
 use function spl_object_id;
 
+/** @experimental */
 final class TransformMiddleware implements Middleware
 {
     /** @var array<int, class-string> */

@@ -14,6 +14,7 @@ use Patchlevel\Hydrator\Metadata\MetadataEnricher;
 
 use function sprintf;
 
+/** @experimental */
 final class LifecycleMetadataEnricher implements MetadataEnricher
 {
     public function enrich(ClassMetadata $classMetadata): void

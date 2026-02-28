@@ -8,6 +8,7 @@ use Patchlevel\Hydrator\Extension\Cryptography\Cipher\DecryptionFailed;
 use Patchlevel\Hydrator\Extension\Cryptography\Cipher\EncryptionFailed;
 use Patchlevel\Hydrator\Extension\Cryptography\Store\CipherKeyNotExists;
 
+/** @experimental */
 interface Cryptographer
 {
     /** @throws EncryptionFailed */

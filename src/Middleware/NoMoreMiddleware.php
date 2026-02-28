@@ -7,6 +7,7 @@ namespace Patchlevel\Hydrator\Middleware;
 use Patchlevel\Hydrator\HydratorException;
 use RuntimeException;
 
+/** @experimental */
 final class NoMoreMiddleware extends RuntimeException implements HydratorException
 {
     public function __construct()

@@ -9,6 +9,7 @@ use RuntimeException;
 
 use function sprintf;
 
+/** @experimental */
 final class MethodNotSupported extends RuntimeException implements HydratorException
 {
     public function __construct(string $method)
