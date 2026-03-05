@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Unit\Extension\Cryptography\Store;
 
+use DateTimeImmutable;
 use Patchlevel\Hydrator\Extension\Cryptography\Cipher\CipherKey;
 use Patchlevel\Hydrator\Extension\Cryptography\Store\CipherKeyNotExists;
 use Patchlevel\Hydrator\Extension\Cryptography\Store\InMemoryCipherKeyStore;
@@ -19,6 +20,8 @@ final class InMemoryCipherKeyStoreTest extends TestCase
             'foo',
             'bar',
             'baz',
+            'aes-256-gcm',
+            new DateTimeImmutable(),
         );
 
         $store = new InMemoryCipherKeyStore();
@@ -41,6 +44,8 @@ final class InMemoryCipherKeyStoreTest extends TestCase
             'foo',
             'bar',
             'baz',
+            'aes-256-gcm',
+            new DateTimeImmutable(),
         );
 
         $store = new InMemoryCipherKeyStore();
@@ -61,6 +66,8 @@ final class InMemoryCipherKeyStoreTest extends TestCase
             'foo',
             'bar',
             'baz',
+            'aes-256-gcm',
+            new DateTimeImmutable(),
         );
 
         $store = new InMemoryCipherKeyStore();

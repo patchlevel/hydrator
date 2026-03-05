@@ -7,13 +7,9 @@ namespace Patchlevel\Hydrator\Extension\Cryptography\Cipher;
 /** @experimental */
 interface Cipher
 {
-    /**
-     * @return non-empty-string
-     *
-     * @throws EncryptionFailed
-     */
-    public function encrypt(CipherKey $key, mixed $data): string;
+    /** @throws EncryptionFailed */
+    public function encrypt(CipherKey $key, mixed $data): EncryptedData;
 
     /** @throws DecryptionFailed */
-    public function decrypt(CipherKey $key, string $data): mixed;
+    public function decrypt(CipherKey $key, EncryptedData $parameter): mixed;
 }
