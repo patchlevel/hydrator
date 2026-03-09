@@ -29,6 +29,13 @@ use function is_array;
  */
 final class BaseCryptographer implements Cryptographer
 {
+    private const VERSION_KEY = 'v';
+    private const METHOD_KEY = 'a';
+    private const KEY_ID_KEY = 'k';
+    private const NONCE_KEY = 'n';
+    private const DATA_KEY = 'd';
+    private const TAG_KEY = 't';
+
     public function __construct(
         private readonly Cipher $cipher,
         private readonly CipherKeyStore $cipherKeyStore,
@@ -53,18 +60,18 @@ final class BaseCryptographer implements Cryptographer
         $parameter = $this->cipher->encrypt($cipherKey, $value);
 
         $result = [
-            'v' => 1,
-            'a' => $parameter->method,
-            'k' => $cipherKey->id,
-            'd' => $parameter->data,
+            self::VERSION_KEY => 1,
+            self::METHOD_KEY => $parameter->method,
+            self::KEY_ID_KEY => $cipherKey->id,
+            self::DATA_KEY => $parameter->data,
         ];
 
         if ($parameter->nonce !== null) {
-            $result['n'] = $parameter->nonce;
+            $result[self::NONCE_KEY] = $parameter->nonce;
         }
 
         if ($parameter->tag !== null) {
-            $result['t'] = $parameter->tag;
+            $result[self::TAG_KEY] = $parameter->tag;
         }
 
         return $result;
@@ -78,7 +85,7 @@ final class BaseCryptographer implements Cryptographer
      */
     public function decrypt(string $subjectId, mixed $encryptedData): mixed
     {
-        $keyId = $encryptedData['k'] ?? null;
+        $keyId = $encryptedData[self::KEY_ID_KEY] ?? null;
 
         if ($keyId === null) {
             throw DecryptionFailed::missingKeyId();
@@ -89,10 +96,10 @@ final class BaseCryptographer implements Cryptographer
         return $this->cipher->decrypt(
             $cipherKey,
             new EncryptedData(
-                $encryptedData['d'],
-                $encryptedData['a'],
-                $encryptedData['n'] ?? null,
-                $encryptedData['t'] ?? null,
+                $encryptedData[self::DATA_KEY],
+                $encryptedData[self::METHOD_KEY],
+                $encryptedData[self::NONCE_KEY] ?? null,
+                $encryptedData[self::TAG_KEY] ?? null,
             ),
         );
     }
@@ -100,8 +107,8 @@ final class BaseCryptographer implements Cryptographer
     public function supports(mixed $value): bool
     {
         return is_array($value)
-            && isset($value['v'], $value['a'], $value['k'], $value['d'])
-            && $value['v'] === 1;
+            && isset($value[self::VERSION_KEY], $value[self::METHOD_KEY], $value[self::KEY_ID_KEY], $value[self::DATA_KEY])
+            && $value[self::VERSION_KEY] === 1;
     }
 
     /** @param non-empty-string $method */
