@@ -13,8 +13,8 @@ final class EncryptionFailedTest extends TestCase
 {
     public function testCreation(): void
     {
-        $exception = new EncryptionFailed();
+        $exception = EncryptionFailed::forMethod('aes-256-gcm');
 
-        self::assertSame('Encryption failed.', $exception->getMessage());
+        self::assertStringContainsString('aes-256-gcm', $exception->getMessage());
     }
 }

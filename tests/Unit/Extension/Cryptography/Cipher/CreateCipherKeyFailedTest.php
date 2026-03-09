@@ -13,8 +13,9 @@ final class CreateCipherKeyFailedTest extends TestCase
 {
     public function testCreation(): void
     {
-        $exception = new CreateCipherKeyFailed();
+        $exception = CreateCipherKeyFailed::forMethod('aes-256-gcm', 'test reason');
 
-        self::assertSame('Create cipher key failed.', $exception->getMessage());
+        self::assertStringContainsString('aes-256-gcm', $exception->getMessage());
+        self::assertStringContainsString('test reason', $exception->getMessage());
     }
 }

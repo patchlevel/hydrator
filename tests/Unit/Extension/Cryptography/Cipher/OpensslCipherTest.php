@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Unit\Extension\Cryptography\Cipher;
 
+use DateTimeImmutable;
 use Generator;
 use Patchlevel\Hydrator\Extension\Cryptography\Cipher\CipherKey;
 use Patchlevel\Hydrator\Extension\Cryptography\Cipher\DecryptionFailed;
+use Patchlevel\Hydrator\Extension\Cryptography\Cipher\EncryptedData;
 use Patchlevel\Hydrator\Extension\Cryptography\Cipher\EncryptionFailed;
 use Patchlevel\Hydrator\Extension\Cryptography\Cipher\OpensslCipher;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -17,12 +19,20 @@ use PHPUnit\Framework\TestCase;
 final class OpensslCipherTest extends TestCase
 {
     #[DataProvider('dataProvider')]
-    public function testEncrypt(mixed $value, string $encryptedString): void
+    public function testEncryptDecrypt(mixed $value): void
     {
         $cipher = new OpensslCipher();
-        $return = $cipher->encrypt($this->createKey(), $value);
+        $key = $this->createKey();
 
-        self::assertEquals($encryptedString, $return);
+        $encrypted = $cipher->encrypt($key, $value);
+
+        self::assertEquals('aes-128-cbc', $encrypted->method);
+        self::assertNotNull($encrypted->nonce);
+        self::assertNotEmpty($encrypted->data);
+
+        $decrypted = $cipher->decrypt($key, $encrypted);
+
+        self::assertEquals($value, $decrypted);
     }
 
     public function testEncryptFailed(): void
@@ -34,16 +44,9 @@ final class OpensslCipherTest extends TestCase
             'key',
             'bar',
             'abcdefg123456789',
+            'invalid-method',
+            new DateTimeImmutable(),
         ), '');
-    }
-
-    #[DataProvider('dataProvider')]
-    public function testDecrypt(mixed $value, string $encryptedString): void
-    {
-        $cipher = new OpensslCipher();
-        $return = $cipher->decrypt($this->createKey(), $encryptedString);
-
-        self::assertEquals($value, $return);
     }
 
     public function testDecryptFailed(): void
@@ -51,20 +54,22 @@ final class OpensslCipherTest extends TestCase
         $this->expectException(DecryptionFailed::class);
 
         $cipher = new OpensslCipher();
-        $cipher->decrypt($this->createKey('foo'), 'emNpWDlMWFBnRStpZk9YZktrUStRQT09');
+        $encryptedData = new EncryptedData('invalid-data', 'aes-128-cbc', 'invalid-nonce', null);
+        $cipher->decrypt($this->createKey(), $encryptedData);
     }
 
+    /** @return Generator<string, array{0: mixed}> */
     public static function dataProvider(): Generator
     {
-        yield 'empty' => ['', 'emNpWDlMWFBnRStpZk9YZktrUStRQT09'];
-        yield 'string' => ['foo bar baz', 'YUlYRnJZMEd1RkFycjNrQitETHhqQT09'];
-        yield 'integer' => [42, 'M1FHSnlnbWNlZFJiV2xwdzZIZUhDdz09'];
-        yield 'float' => [0.5, 'N2tOWGNia3lrdUJ1ancrMFA4OEY0Zz09'];
-        yield 'null' => [null, 'OUE1T081cXdpNmFMc1FIMGsrME5vdz09'];
-        yield 'true' => [true, 'NCtWMDE4WnV5NEtCamVVdkIxZjRrdz09'];
-        yield 'false' => [false, 'czh5NUYxWXhQOWhSbGVwWG5ETFdVQT09'];
-        yield 'array' => [['foo' => 'bar'], 'cHo2QlhxSnNFZG1kUEhRZ3pjcFJrUT09'];
-        yield 'long text' => ['Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.', 'eDNCalYzSS9LbkZIcGdKNWVmUFQwTTI0YXhhSnNmdUxXeXhGUGFwMWZkTmx1ZnNwNzBUa29NcUFxUzRFV3V2WWNlUmt6YWhTSlRzVXpqd3RLZkpzUWFWYVRCR1pvbkt3TUE4UzZmaDVQcTYzMzJoWVBRRzllbHhhNjYrenNWbzFDZ2lnVm1PRFhvamozZEVmcXFYVTZGQ1dIWEgzcE1mU2w2SWlRQ2o2WFdNPQ=='];
+        yield 'empty' => [''];
+        yield 'string' => ['foo bar baz'];
+        yield 'integer' => [42];
+        yield 'float' => [0.5];
+        yield 'null' => [null];
+        yield 'true' => [true];
+        yield 'false' => [false];
+        yield 'array' => [['foo' => 'bar']];
+        yield 'long text' => ['Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.'];
     }
 
     /** @param non-empty-string $key */
@@ -74,6 +79,8 @@ final class OpensslCipherTest extends TestCase
             $key,
             'aes128',
             'abcdefg123456789',
+            'aes-128-cbc',
+            new DateTimeImmutable(),
         );
     }
 }

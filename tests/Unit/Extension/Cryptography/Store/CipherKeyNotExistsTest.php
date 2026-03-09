@@ -13,8 +13,8 @@ final class CipherKeyNotExistsTest extends TestCase
 {
     public function testCreation(): void
     {
-        $exception = new CipherKeyNotExists('foo');
+        $exception = CipherKeyNotExists::forSubjectId('foo');
 
-        self::assertSame('Cipher key with subject id "foo" not found.', $exception->getMessage());
+        self::assertStringContainsString('foo', $exception->getMessage());
     }
 }
