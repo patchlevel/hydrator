@@ -117,6 +117,53 @@ final class ObjectNormalizerTest extends TestCase
         );
     }
 
+    public function testNormalizePassesContextToHydrator(): void
+    {
+        $context = ['key' => 'value'];
+        $hydrator = $this->createMock(Hydrator::class);
+
+        $event = new ProfileCreated(
+            ProfileId::fromString('1'),
+            Email::fromString('info@patchlevel.de'),
+        );
+
+        $hydrator->expects($this->once())->method('extract')->with($event, $context)
+            ->willReturn(['profileId' => '1', 'email' => 'info@patchlevel.de']);
+
+        $normalizer = new ObjectNormalizer(ProfileCreated::class);
+        $normalizer->setHydrator($hydrator);
+
+        self::assertEquals(
+            ['profileId' => '1', 'email' => 'info@patchlevel.de'],
+            $normalizer->normalize($event, $context),
+        );
+    }
+
+    public function testDenormalizePassesContextToHydrator(): void
+    {
+        $context = ['key' => 'value'];
+        $hydrator = $this->createMock(Hydrator::class);
+
+        $expected = new ProfileCreated(
+            ProfileId::fromString('1'),
+            Email::fromString('info@patchlevel.de'),
+        );
+
+        $hydrator->expects($this->once())->method('hydrate')->with(
+            ProfileCreated::class,
+            ['profileId' => '1', 'email' => 'info@patchlevel.de'],
+            $context,
+        )->willReturn($expected);
+
+        $normalizer = new ObjectNormalizer(ProfileCreated::class);
+        $normalizer->setHydrator($hydrator);
+
+        $this->assertEquals(
+            $expected,
+            $normalizer->denormalize(['profileId' => '1', 'email' => 'info@patchlevel.de'], $context),
+        );
+    }
+
     public function testAutoDetect(): void
     {
         $hydrator = $this->createMock(Hydrator::class);

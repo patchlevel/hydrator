@@ -7,7 +7,7 @@ namespace Patchlevel\Hydrator\Tests\Unit\Extension\Lifecycle;
 use Patchlevel\Hydrator\CoreExtension;
 use Patchlevel\Hydrator\Extension\Lifecycle\LifecycleExtension;
 use Patchlevel\Hydrator\StackHydratorBuilder;
-use Patchlevel\Hydrator\Tests\Unit\Fixture\LifecycleFixture;
+use Patchlevel\Hydrator\Tests\Unit\Extension\Lifecycle\Fixture\LifecycleFixture;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 

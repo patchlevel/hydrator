@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Unit\Extension\Cryptography;
 
+use DateTimeImmutable;
 use Patchlevel\Hydrator\Extension\Cryptography\BaseCryptographer;
 use Patchlevel\Hydrator\Extension\Cryptography\Cipher\Cipher;
 use Patchlevel\Hydrator\Extension\Cryptography\Cipher\CipherKey;
 use Patchlevel\Hydrator\Extension\Cryptography\Cipher\CipherKeyFactory;
+use Patchlevel\Hydrator\Extension\Cryptography\Cipher\EncryptedData;
 use Patchlevel\Hydrator\Extension\Cryptography\Store\CipherKeyNotExists;
 use Patchlevel\Hydrator\Extension\Cryptography\Store\CipherKeyStore;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -19,22 +21,22 @@ final class BaseCryptographerTest extends TestCase
 {
     public function testEncrypt(): void
     {
-        $cipherKey = new CipherKey('foo', 'methodA', 'random');
+        $cipherKey = new CipherKey('key-123', 'subject-foo', 'secret-key', 'aes-256-gcm', new DateTimeImmutable());
+        $encryptionParameter = new EncryptedData('encrypted-data', 'aes-256-gcm', 'random-nonce', 'auth-tag');
 
         $cipherKeyStore = $this->createMock(CipherKeyStore::class);
-        $cipherKeyStore->method('get')->with('foo')->willReturn($cipherKey);
+        $cipherKeyStore->method('currentKeyFor')->with('subject-foo')->willReturn($cipherKey);
 
         $cipherKeyStore
             ->expects($this->never())
-            ->method('store')
-            ->with('foo', $this->isInstanceOf(CipherKey::class));
+            ->method('store');
 
         $cipherKeyFactory = $this->createMock(CipherKeyFactory::class);
         $cipherKeyFactory->expects($this->never())->method('__invoke');
 
         $cipher = $this->createMock(Cipher::class);
         $cipher->expects($this->once())->method('encrypt')->with($cipherKey, 'info@patchlevel.de')
-            ->willReturn('encrypted');
+            ->willReturn($encryptionParameter);
 
         $cryptographer = new BaseCryptographer(
             $cipher,
@@ -43,33 +45,36 @@ final class BaseCryptographerTest extends TestCase
         );
 
         $expected = [
-            '__enc' => 'v1',
-            'data' => 'encrypted',
-            'method' => 'methodA',
-            'iv' => 'cmFuZG9t',
+            'v' => 1,
+            'a' => 'aes-256-gcm',
+            'k' => 'key-123',
+            'd' => 'encrypted-data',
+            'n' => 'random-nonce',
+            't' => 'auth-tag',
         ];
 
-        self::assertEquals($expected, $cryptographer->encrypt('foo', 'info@patchlevel.de'));
+        self::assertEquals($expected, $cryptographer->encrypt('subject-foo', 'info@patchlevel.de'));
     }
 
     public function testEncryptWithoutKey(): void
     {
-        $cipherKey = new CipherKey('foo', 'methodA', 'random');
+        $cipherKey = new CipherKey('key-456', 'subject-bar', 'secret-key', 'aes-256-gcm', new DateTimeImmutable());
+        $encryptionParameter = new EncryptedData('encrypted-data', 'aes-256-gcm', 'random-nonce', 'auth-tag');
 
         $cipherKeyStore = $this->createMock(CipherKeyStore::class);
-        $cipherKeyStore->method('get')->with('foo')->willThrowException(new CipherKeyNotExists('foo'));
+        $cipherKeyStore->method('currentKeyFor')->with('subject-bar')->willThrowException(CipherKeyNotExists::forSubjectId('subject-bar'));
 
         $cipherKeyFactory = $this->createMock(CipherKeyFactory::class);
-        $cipherKeyFactory->expects($this->once())->method('__invoke')->willReturn($cipherKey);
+        $cipherKeyFactory->expects($this->once())->method('__invoke')->with('subject-bar')->willReturn($cipherKey);
 
         $cipherKeyStore
             ->expects($this->once())
             ->method('store')
-            ->with('foo', $cipherKey);
+            ->with('key-456', $cipherKey);
 
         $cipher = $this->createMock(Cipher::class);
         $cipher->expects($this->once())->method('encrypt')->with($cipherKey, 'info@patchlevel.de')
-            ->willReturn('encrypted');
+            ->willReturn($encryptionParameter);
 
         $cryptographer = new BaseCryptographer(
             $cipher,
@@ -78,28 +83,37 @@ final class BaseCryptographerTest extends TestCase
         );
 
         $expected = [
-            '__enc' => 'v1',
-            'data' => 'encrypted',
-            'method' => 'methodA',
-            'iv' => 'cmFuZG9t',
+            'v' => 1,
+            'a' => 'aes-256-gcm',
+            'k' => 'key-456',
+            'd' => 'encrypted-data',
+            'n' => 'random-nonce',
+            't' => 'auth-tag',
         ];
 
-        self::assertEquals($expected, $cryptographer->encrypt('foo', 'info@patchlevel.de'));
+        self::assertEquals($expected, $cryptographer->encrypt('subject-bar', 'info@patchlevel.de'));
     }
 
     public function testDecrypt(): void
     {
-        $cipherKey = new CipherKey('foo', 'methodA', 'random');
+        $cipherKey = new CipherKey('key-789', 'subject-baz', 'secret-key', 'aes-256-gcm', new DateTimeImmutable());
 
         $cipherKeyStore = $this->createMock(CipherKeyStore::class);
-        $cipherKeyStore->method('get')->with('foo')->willReturn($cipherKey);
+        $cipherKeyStore->method('get')->with('key-789')->willReturn($cipherKey);
 
         $cipherKeyFactory = $this->createMock(CipherKeyFactory::class);
         $cipherKeyFactory->expects($this->never())->method('__invoke');
 
         $cipher = $this->createMock(Cipher::class);
-        $cipher->expects($this->once())->method('decrypt')->with($cipherKey, 'encrypted')
-            ->willReturn('info@patchlevel.de');
+        $cipher->expects($this->once())->method('decrypt')->with(
+            $cipherKey,
+            $this->callback(static function (EncryptedData $param) {
+                return $param->data === 'encrypted-data'
+                    && $param->method === 'aes-256-gcm'
+                    && $param->nonce === 'random-nonce'
+                    && $param->tag === 'auth-tag';
+            }),
+        )->willReturn('info@patchlevel.de');
 
         $cryptographer = new BaseCryptographer(
             $cipher,
@@ -110,44 +124,14 @@ final class BaseCryptographerTest extends TestCase
         self::assertEquals(
             'info@patchlevel.de',
             $cryptographer->decrypt(
-                'foo',
+                'subject-baz',
                 [
-                    '__enc' => 'v1',
-                    'data' => 'encrypted',
-                    'method' => 'methodA',
-                    'iv' => 'cmFuZG9t',
-                ],
-            ),
-        );
-    }
-
-    public function testDecryptWithFallback(): void
-    {
-        $cipherKey = new CipherKey('foo', 'methodA', 'random');
-
-        $cipherKeyStore = $this->createMock(CipherKeyStore::class);
-        $cipherKeyStore->method('get')->with('foo')->willReturn($cipherKey);
-
-        $cipherKeyFactory = $this->createMock(CipherKeyFactory::class);
-        $cipherKeyFactory->expects($this->never())->method('__invoke');
-
-        $cipher = $this->createMock(Cipher::class);
-        $cipher->expects($this->once())->method('decrypt')->with($cipherKey, 'encrypted')
-            ->willReturn('info@patchlevel.de');
-
-        $cryptographer = new BaseCryptographer(
-            $cipher,
-            $cipherKeyStore,
-            $cipherKeyFactory,
-        );
-
-        self::assertEquals(
-            'info@patchlevel.de',
-            $cryptographer->decrypt(
-                'foo',
-                [
-                    '__enc' => 'v1',
-                    'data' => 'encrypted',
+                    'v' => 1,
+                    'a' => 'aes-256-gcm',
+                    'k' => 'key-789',
+                    'd' => 'encrypted-data',
+                    'n' => 'random-nonce',
+                    't' => 'auth-tag',
                 ],
             ),
         );
@@ -171,7 +155,10 @@ final class BaseCryptographerTest extends TestCase
         yield ['foo', false];
         yield [[], false];
         yield [null, false];
-        yield [['__enc' => 'foo'], false];
-        yield [['__enc' => 'v1'], true];
+        yield [['v' => 'foo'], false];
+        yield [['v' => 2], false];
+        yield [['v' => 1], false]; // missing required fields
+        yield [['v' => 1, 'a' => 'aes-256-gcm'], false]; // missing k and d
+        yield [['v' => 1, 'a' => 'aes-256-gcm', 'k' => 'key-123', 'd' => 'data'], true];
     }
 }

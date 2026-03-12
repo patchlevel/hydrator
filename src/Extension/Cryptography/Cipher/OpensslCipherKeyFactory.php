@@ -4,20 +4,20 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Extension\Cryptography\Cipher;
 
+use DateTimeImmutable;
+
+use function bin2hex;
 use function function_exists;
 use function in_array;
-use function openssl_cipher_iv_length;
 use function openssl_cipher_key_length;
 use function openssl_get_cipher_methods;
 use function openssl_random_pseudo_bytes;
 
 final class OpensslCipherKeyFactory implements CipherKeyFactory
 {
-    public const DEFAULT_METHOD = 'aes128';
+    public const DEFAULT_METHOD = 'aes-128-gcm';
 
     private readonly int $keyLength;
-
-    private readonly int $ivLength;
 
     /** @param non-empty-string $method */
     public function __construct(
@@ -33,22 +33,21 @@ final class OpensslCipherKeyFactory implements CipherKeyFactory
             $keyLength = @openssl_cipher_key_length($this->method);
         }
 
-        $ivLength = @openssl_cipher_iv_length($this->method);
-
-        if ($keyLength === false || $ivLength === false) {
+        if ($keyLength === false) {
             throw new MethodNotSupported($this->method);
         }
 
         $this->keyLength = $keyLength;
-        $this->ivLength = $ivLength;
     }
 
-    public function __invoke(): CipherKey
+    public function __invoke(string $subjectId): CipherKey
     {
         return new CipherKey(
-            openssl_random_pseudo_bytes($this->keyLength),
+            bin2hex(openssl_random_pseudo_bytes(16)),
+            $subjectId,
+            bin2hex(openssl_random_pseudo_bytes($this->keyLength)),
             $this->method,
-            openssl_random_pseudo_bytes($this->ivLength),
+            new DateTimeImmutable(),
         );
     }
 

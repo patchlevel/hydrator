@@ -6,6 +6,10 @@ namespace Patchlevel\Hydrator\Extension\Cryptography\Cipher;
 
 interface CipherKeyFactory
 {
-    /** @throws CreateCipherKeyFailed */
-    public function __invoke(): CipherKey;
+    /**
+     * @param non-empty-string $subjectId
+     *
+     * @throws CreateCipherKeyFailed
+     */
+    public function __invoke(string $subjectId): CipherKey;
 }

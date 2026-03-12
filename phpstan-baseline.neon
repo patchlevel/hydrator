@@ -1,25 +1,49 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Parameter \#3 \$iv of class Patchlevel\\Hydrator\\Extension\\Cryptography\\Cipher\\CipherKey constructor expects non\-empty\-string, string given\.$#'
+			message: '#^Offset ''k'' on array\{v\: 1, a\: non\-empty\-string, k\: non\-empty\-string, n\?\: non\-empty\-string, d\: non\-empty\-string, t\?\: non\-empty\-string\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Extension/Cryptography/BaseCryptographer.php
+
+		-
+			message: '#^Parameter \#1 \$subjectId of callable Patchlevel\\Hydrator\\Extension\\Cryptography\\Cipher\\CipherKeyFactory expects non\-empty\-string, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: src/Extension/Cryptography/BaseCryptographer.php
 
 		-
-			message: '#^Method Patchlevel\\Hydrator\\Extension\\Cryptography\\Cipher\\OpensslCipher\:\:encrypt\(\) should return non\-empty\-string but returns string\.$#'
-			identifier: return.type
+			message: '#^Strict comparison using \=\=\= between non\-empty\-string and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: src/Extension/Cryptography/BaseCryptographer.php
+
+		-
+			message: '#^Parameter \#1 \$data of class Patchlevel\\Hydrator\\Extension\\Cryptography\\Cipher\\EncryptedData constructor expects non\-empty\-string, string given\.$#'
+			identifier: argument.type
 			count: 1
 			path: src/Extension/Cryptography/Cipher/OpensslCipher.php
 
 		-
-			message: '#^Parameter \#1 \$key of class Patchlevel\\Hydrator\\Extension\\Cryptography\\Cipher\\CipherKey constructor expects non\-empty\-string, string given\.$#'
+			message: '#^Parameter \#1 \$data of function openssl_decrypt expects string, string\|false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Extension/Cryptography/Cipher/OpensslCipher.php
+
+		-
+			message: '#^Parameter \#3 \$nonce of class Patchlevel\\Hydrator\\Extension\\Cryptography\\Cipher\\EncryptedData constructor expects non\-empty\-string\|null, string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Extension/Cryptography/Cipher/OpensslCipher.php
+
+		-
+			message: '#^Parameter \#1 \$id of class Patchlevel\\Hydrator\\Extension\\Cryptography\\Cipher\\CipherKey constructor expects non\-empty\-string, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: src/Extension/Cryptography/Cipher/OpensslCipherKeyFactory.php
 
 		-
-			message: '#^Parameter \#3 \$iv of class Patchlevel\\Hydrator\\Extension\\Cryptography\\Cipher\\CipherKey constructor expects non\-empty\-string, string given\.$#'
+			message: '#^Parameter \#3 \$key of class Patchlevel\\Hydrator\\Extension\\Cryptography\\Cipher\\CipherKey constructor expects non\-empty\-string, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: src/Extension/Cryptography/Cipher/OpensslCipherKeyFactory.php

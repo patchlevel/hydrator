@@ -10,59 +10,78 @@ use function base64_decode;
 use function base64_encode;
 use function json_decode;
 use function json_encode;
+use function openssl_cipher_iv_length;
 use function openssl_decrypt;
 use function openssl_encrypt;
+use function openssl_random_pseudo_bytes;
 
 use const JSON_THROW_ON_ERROR;
 
 final class OpensslCipher implements Cipher
 {
-    /** @return non-empty-string */
-    public function encrypt(CipherKey $key, mixed $data): string
+    public function encrypt(CipherKey $key, mixed $data): EncryptedData
     {
+        $ivLength = @openssl_cipher_iv_length($key->method);
+
+        if ($ivLength === false) {
+            throw EncryptionFailed::invalidIvLength($key->method);
+        }
+
+        $nonce = $ivLength > 0 ? openssl_random_pseudo_bytes($ivLength) : null;
+        $tag = null;
+
         $encryptedData = @openssl_encrypt(
-            $this->dataEncode($data),
+            json_encode($data, JSON_THROW_ON_ERROR),
             $key->method,
             $key->key,
             0,
-            $key->iv,
+            $nonce ?? '',
+            $tag,
         );
 
         if ($encryptedData === false) {
-            throw new EncryptionFailed();
+            throw EncryptionFailed::forMethod($key->method);
         }
 
-        return base64_encode($encryptedData);
+        return new EncryptedData(
+            base64_encode($encryptedData),
+            $key->method,
+            $nonce !== null ? base64_encode($nonce) : null,
+            $tag !== null ? base64_encode($tag) : null,
+        );
     }
 
-    public function decrypt(CipherKey $key, string $data): mixed
+    public function decrypt(CipherKey $key, EncryptedData $parameter): mixed
     {
+        $tag = $parameter->tag !== null ? base64_decode($parameter->tag, true) : null;
+
+        if ($parameter->tag !== null && $tag === false) {
+            throw DecryptionFailed::invalidBase64('tag');
+        }
+
+        $nonce = $parameter->nonce !== null ? base64_decode($parameter->nonce, true) : null;
+
+        if ($parameter->nonce !== null && $nonce === false) {
+            throw DecryptionFailed::invalidBase64('nonce');
+        }
+
         $data = @openssl_decrypt(
-            base64_decode($data),
-            $key->method,
+            base64_decode($parameter->data, true),
+            $parameter->method,
             $key->key,
             0,
-            $key->iv,
+            $nonce ?: '',
+            $tag ?: '',
         );
 
         if ($data === false) {
-            throw new DecryptionFailed();
+            throw DecryptionFailed::forMethod($parameter->method);
         }
 
         try {
-            return $this->dataDecode($data);
-        } catch (JsonException) {
-            throw new DecryptionFailed();
+            return json_decode($data, true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException $e) {
+            throw DecryptionFailed::invalidJson($e);
         }
-    }
-
-    private function dataEncode(mixed $data): string
-    {
-        return json_encode($data, JSON_THROW_ON_ERROR);
-    }
-
-    private function dataDecode(string $data): mixed
-    {
-        return json_decode($data, true, 512, JSON_THROW_ON_ERROR);
     }
 }

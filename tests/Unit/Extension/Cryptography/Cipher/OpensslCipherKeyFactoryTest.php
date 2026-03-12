@@ -17,11 +17,11 @@ final class OpensslCipherKeyFactoryTest extends TestCase
     public function testCreateKey(): void
     {
         $cipherKeyFactory = new OpensslCipherKeyFactory();
-        $cipherKey = $cipherKeyFactory();
+        $cipherKey = $cipherKeyFactory('test-subject');
 
-        $this->assertSame(16, strlen($cipherKey->key));
-        $this->assertSame('aes128', $cipherKey->method);
-        $this->assertSame(16, strlen($cipherKey->iv));
+        $this->assertSame(32, strlen($cipherKey->key));
+        $this->assertSame('aes-128-gcm', $cipherKey->method);
+        $this->assertSame('test-subject', $cipherKey->subjectId);
     }
 
     public function testMethodNotSupported(): void
@@ -29,6 +29,6 @@ final class OpensslCipherKeyFactoryTest extends TestCase
         $this->expectException(MethodNotSupported::class);
 
         $cipherKeyFactory = new OpensslCipherKeyFactory(method: 'foo');
-        $cipherKeyFactory();
+        $cipherKeyFactory('test-subject');
     }
 }

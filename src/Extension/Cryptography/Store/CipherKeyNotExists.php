@@ -11,8 +11,18 @@ use function sprintf;
 
 final class CipherKeyNotExists extends RuntimeException implements HydratorException
 {
-    public function __construct(string $id)
+    private function __construct(string $message)
     {
-        parent::__construct(sprintf('Cipher key with subject id "%s" not found.', $id));
+        parent::__construct($message);
+    }
+
+    public static function forKeyId(string $id): self
+    {
+        return new self(sprintf('Cipher key with id "%s" does not exist.', $id));
+    }
+
+    public static function forSubjectId(string $subjectId): self
+    {
+        return new self(sprintf('Cipher key for subject id "%s" does not exist.', $subjectId));
     }
 }

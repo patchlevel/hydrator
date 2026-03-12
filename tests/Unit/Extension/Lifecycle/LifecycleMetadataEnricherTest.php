@@ -13,7 +13,7 @@ use Patchlevel\Hydrator\Extension\Lifecycle\Lifecycle;
 use Patchlevel\Hydrator\Extension\Lifecycle\LifecycleMetadataEnricher;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
-use Patchlevel\Hydrator\Tests\Unit\Fixture\LifecycleFixture;
+use Patchlevel\Hydrator\Tests\Unit\Extension\Lifecycle\Fixture\LifecycleFixture;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 

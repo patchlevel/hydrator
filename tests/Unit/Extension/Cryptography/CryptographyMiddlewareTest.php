@@ -166,7 +166,7 @@ final class CryptographyMiddlewareTest extends TestCase
     {
         $cryptographer = $this->createMock(Cryptographer::class);
         $cryptographer->method('supports')->willReturn(true);
-        $cryptographer->method('decrypt')->willThrowException(new CipherKeyNotExists('foo'));
+        $cryptographer->method('decrypt')->willThrowException(CipherKeyNotExists::forSubjectId('foo'));
 
         $middleware = new CryptographyMiddleware($cryptographer);
 
@@ -186,7 +186,7 @@ final class CryptographyMiddlewareTest extends TestCase
     {
         $cryptographer = $this->createMock(Cryptographer::class);
         $cryptographer->method('supports')->willReturn(true);
-        $cryptographer->method('decrypt')->willThrowException(new DecryptionFailed());
+        $cryptographer->method('decrypt')->willThrowException(DecryptionFailed::forMethod('aes-256-gcm'));
 
         $middleware = new CryptographyMiddleware($cryptographer);
 
@@ -206,7 +206,7 @@ final class CryptographyMiddlewareTest extends TestCase
     {
         $cryptographer = $this->createMock(Cryptographer::class);
         $cryptographer->method('supports')->willReturn(true);
-        $cryptographer->method('decrypt')->willThrowException(new DecryptionFailed());
+        $cryptographer->method('decrypt')->willThrowException(DecryptionFailed::forMethod('aes-256-gcm'));
 
         $middleware = new CryptographyMiddleware($cryptographer);
 

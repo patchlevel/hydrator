@@ -93,6 +93,68 @@ final class ArrayNormalizerTest extends TestCase
         $this->assertEquals([1, 2], $normalizer->denormalize(['1', '2'], []));
     }
 
+    public function testNormalizePassesContextToInnerNormalizer(): void
+    {
+        $context = ['key' => 'value'];
+
+        $innerNormalizer = new class implements Normalizer {
+            /** @var array<int, array<string, mixed>> */
+            public array $contexts = [];
+
+            /** @param array<string, mixed> $context */
+            public function normalize(mixed $value, array $context = []): mixed
+            {
+                $this->contexts[] = $context;
+
+                return $value;
+            }
+
+            /** @param array<string, mixed> $context */
+            public function denormalize(mixed $value, array $context = []): mixed
+            {
+                $this->contexts[] = $context;
+
+                return $value;
+            }
+        };
+
+        $normalizer = new ArrayNormalizer($innerNormalizer);
+        $normalizer->normalize(['a', 'b'], $context);
+
+        $this->assertSame([$context, $context], $innerNormalizer->contexts);
+    }
+
+    public function testDenormalizePassesContextToInnerNormalizer(): void
+    {
+        $context = ['key' => 'value'];
+
+        $innerNormalizer = new class implements Normalizer {
+            /** @var array<int, array<string, mixed>> */
+            public array $contexts = [];
+
+            /** @param array<string, mixed> $context */
+            public function normalize(mixed $value, array $context = []): mixed
+            {
+                $this->contexts[] = $context;
+
+                return $value;
+            }
+
+            /** @param array<string, mixed> $context */
+            public function denormalize(mixed $value, array $context = []): mixed
+            {
+                $this->contexts[] = $context;
+
+                return $value;
+            }
+        };
+
+        $normalizer = new ArrayNormalizer($innerNormalizer);
+        $normalizer->denormalize(['a', 'b'], $context);
+
+        $this->assertSame([$context, $context], $innerNormalizer->contexts);
+    }
+
     public function testPassHydrator(): void
     {
         $hydrator = $this->createMock(Hydrator::class);
