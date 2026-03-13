@@ -13,9 +13,9 @@ interface CipherKeyStore
     public function currentKeyFor(string $subjectId): CipherKey;
 
     /** @throws CipherKeyNotExists */
-    public function get(string $keyId): CipherKey;
+    public function get(string $id): CipherKey;
 
-    public function store(string $id, CipherKey $key): void;
+    public function store(CipherKey $key): void;
 
     public function remove(string $id): void;
 

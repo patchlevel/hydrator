@@ -70,7 +70,7 @@ final class BaseCryptographerTest extends TestCase
         $cipherKeyStore
             ->expects($this->once())
             ->method('store')
-            ->with('key-456', $cipherKey);
+            ->with($cipherKey);
 
         $cipher = $this->createMock(Cipher::class);
         $cipher->expects($this->once())->method('encrypt')->with($cipherKey, 'info@patchlevel.de')
