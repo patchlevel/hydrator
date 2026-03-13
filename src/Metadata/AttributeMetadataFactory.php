@@ -364,7 +364,7 @@ final class AttributeMetadataFactory implements MetadataFactory
         }
 
         if ($normalizer instanceof TypeAwareNormalizer) {
-            $normalizer->handleType($this->typeResolver->resolve($reflectionProperty));
+            $normalizer->handleType($type);
         }
 
         if ($normalizer instanceof ReflectionTypeAwareNormalizer) {
