@@ -17,17 +17,17 @@ final class InMemoryCipherKeyStoreTest extends TestCase
     public function testStoreAndLoad(): void
     {
         $key = new CipherKey(
-            'foo',
-            'bar',
-            'baz',
+            'key-1',
+            'subject-1',
+            'secret',
             'aes-256-gcm',
             new DateTimeImmutable(),
         );
 
         $store = new InMemoryCipherKeyStore();
-        $store->store('foo', $key);
+        $store->store($key);
 
-        self::assertSame($key, $store->get('foo'));
+        self::assertSame($key, $store->get('key-1'));
     }
 
     public function testLoadFailed(): void
@@ -35,50 +35,215 @@ final class InMemoryCipherKeyStoreTest extends TestCase
         $this->expectException(CipherKeyNotExists::class);
 
         $store = new InMemoryCipherKeyStore();
-        $store->get('foo');
+        $store->get('non-existent');
     }
 
     public function testRemove(): void
     {
         $key = new CipherKey(
-            'foo',
-            'bar',
-            'baz',
+            'key-1',
+            'subject-1',
+            'secret',
             'aes-256-gcm',
             new DateTimeImmutable(),
         );
 
         $store = new InMemoryCipherKeyStore();
-        $store->store('foo', $key);
+        $store->store($key);
 
-        self::assertSame($key, $store->get('foo'));
+        self::assertSame($key, $store->get('key-1'));
 
-        $store->remove('foo');
+        $store->remove('key-1');
 
         $this->expectException(CipherKeyNotExists::class);
 
-        $store->get('foo');
+        $store->get('key-1');
     }
 
     public function testClear(): void
     {
         $key = new CipherKey(
-            'foo',
-            'bar',
-            'baz',
+            'key-1',
+            'subject-1',
+            'secret',
             'aes-256-gcm',
             new DateTimeImmutable(),
         );
 
         $store = new InMemoryCipherKeyStore();
-        $store->store('foo', $key);
+        $store->store($key);
 
-        self::assertSame($key, $store->get('foo'));
+        self::assertSame($key, $store->get('key-1'));
 
         $store->clear();
 
         $this->expectException(CipherKeyNotExists::class);
 
-        $store->get('foo');
+        $store->get('key-1');
+    }
+
+    public function testCurrentKeyFor(): void
+    {
+        $key1 = new CipherKey(
+            'key-1',
+            'subject-1',
+            'secret-1',
+            'aes-256-gcm',
+            new DateTimeImmutable(),
+        );
+
+        $key2 = new CipherKey(
+            'key-2',
+            'subject-1',
+            'secret-2',
+            'aes-256-gcm',
+            new DateTimeImmutable(),
+        );
+
+        $store = new InMemoryCipherKeyStore();
+        $store->store($key1);
+        $store->store($key2);
+
+        self::assertSame($key2, $store->currentKeyFor('subject-1'));
+    }
+
+    public function testCurrentKeyForNotExists(): void
+    {
+        $this->expectException(CipherKeyNotExists::class);
+
+        $store = new InMemoryCipherKeyStore();
+        $store->currentKeyFor('non-existent');
+    }
+
+    public function testRemoveWithSubjectId(): void
+    {
+        $key1 = new CipherKey(
+            'key-1',
+            'subject-1',
+            'secret-1',
+            'aes-256-gcm',
+            new DateTimeImmutable(),
+        );
+
+        $key2 = new CipherKey(
+            'key-2',
+            'subject-1',
+            'secret-2',
+            'aes-256-gcm',
+            new DateTimeImmutable(),
+        );
+
+        $key3 = new CipherKey(
+            'key-3',
+            'subject-2',
+            'secret-3',
+            'aes-256-gcm',
+            new DateTimeImmutable(),
+        );
+
+        $store = new InMemoryCipherKeyStore();
+        $store->store($key1);
+        $store->store($key2);
+        $store->store($key3);
+
+        $store->removeWithSubjectId('subject-1');
+
+        $this->expectException(CipherKeyNotExists::class);
+        $store->get('key-1');
+    }
+
+    public function testRemoveWithSubjectIdDoesNotAffectOtherSubjects(): void
+    {
+        $key1 = new CipherKey(
+            'key-1',
+            'subject-1',
+            'secret-1',
+            'aes-256-gcm',
+            new DateTimeImmutable(),
+        );
+
+        $key2 = new CipherKey(
+            'key-2',
+            'subject-2',
+            'secret-2',
+            'aes-256-gcm',
+            new DateTimeImmutable(),
+        );
+
+        $store = new InMemoryCipherKeyStore();
+        $store->store($key1);
+        $store->store($key2);
+
+        $store->removeWithSubjectId('subject-1');
+
+        self::assertSame($key2, $store->get('key-2'));
+    }
+
+    public function testRemoveWithSubjectIdNonExistent(): void
+    {
+        $store = new InMemoryCipherKeyStore();
+        $store->removeWithSubjectId('non-existent');
+
+        $this->expectNotToPerformAssertions();
+    }
+
+    public function testRemoveNonExistent(): void
+    {
+        $store = new InMemoryCipherKeyStore();
+        $store->remove('non-existent');
+
+        $this->expectNotToPerformAssertions();
+    }
+
+    public function testStoreOverwritesExistingKey(): void
+    {
+        $key1 = new CipherKey(
+            'key-1',
+            'subject-1',
+            'secret-1',
+            'aes-256-gcm',
+            new DateTimeImmutable(),
+        );
+
+        $key2 = new CipherKey(
+            'key-1',
+            'subject-1',
+            'secret-2',
+            'aes-256-gcm',
+            new DateTimeImmutable(),
+        );
+
+        $store = new InMemoryCipherKeyStore();
+        $store->store($key1);
+        $store->store($key2);
+
+        self::assertSame($key2, $store->get('key-1'));
+        self::assertSame($key2, $store->currentKeyFor('subject-1'));
+    }
+
+    public function testMultipleSubjects(): void
+    {
+        $key1 = new CipherKey(
+            'key-1',
+            'subject-1',
+            'secret-1',
+            'aes-256-gcm',
+            new DateTimeImmutable(),
+        );
+
+        $key2 = new CipherKey(
+            'key-2',
+            'subject-2',
+            'secret-2',
+            'aes-256-gcm',
+            new DateTimeImmutable(),
+        );
+
+        $store = new InMemoryCipherKeyStore();
+        $store->store($key1);
+        $store->store($key2);
+
+        self::assertSame($key1, $store->currentKeyFor('subject-1'));
+        self::assertSame($key2, $store->currentKeyFor('subject-2'));
     }
 }

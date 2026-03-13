@@ -54,7 +54,7 @@ final class BaseCryptographer implements Cryptographer
             $cipherKey = $this->cipherKeyStore->currentKeyFor($subjectId);
         } catch (CipherKeyNotExists) {
             $cipherKey = ($this->cipherKeyFactory)($subjectId);
-            $this->cipherKeyStore->store($cipherKey->id, $cipherKey);
+            $this->cipherKeyStore->store($cipherKey);
         }
 
         $parameter = $this->cipher->encrypt($cipherKey, $value);
