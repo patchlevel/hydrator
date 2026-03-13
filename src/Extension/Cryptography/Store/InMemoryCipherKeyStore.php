@@ -13,7 +13,7 @@ final class InMemoryCipherKeyStore implements CipherKeyStore
     /** @var array<string, CipherKey> */
     private array $indexById = [];
 
-    /** @var array<string, list<CipherKey>> */
+    /** @var array<string, array<string, CipherKey>> */
     private array $indexBySubjectId = [];
 
     public function currentKeyFor(string $subjectId): CipherKey
@@ -31,43 +31,31 @@ final class InMemoryCipherKeyStore implements CipherKeyStore
         return $this->indexBySubjectId[$subjectId][$lastKey];
     }
 
-    public function get(string $keyId): CipherKey
+    public function get(string $id): CipherKey
     {
-        return $this->indexById[$keyId] ?? throw CipherKeyNotExists::forKeyId($keyId);
+        return $this->indexById[$id] ?? throw CipherKeyNotExists::forKeyId($id);
     }
 
-    public function store(string $id, CipherKey $key): void
+    public function store(CipherKey $key): void
     {
-        $this->indexById[$id] = $key;
+        $this->remove($key->id);
 
-        if (!isset($this->indexBySubjectId[$key->subjectId])) {
-            $this->indexBySubjectId[$key->subjectId] = [];
-        }
-
-        $this->indexBySubjectId[$key->subjectId][] = $key;
+        $this->indexById[$key->id] = $key;
+        $this->indexBySubjectId[$key->subjectId][$key->id] = $key;
     }
 
     public function remove(string $id): void
     {
-        unset($this->indexById[$id]);
+        $key = $this->indexById[$id] ?? null;
 
-        foreach ($this->indexBySubjectId as $subjectId => $keys) {
-            $filtered = [];
-
-            foreach ($keys as $key) {
-                if ($key->id === $id) {
-                    continue;
-                }
-
-                $filtered[] = $key;
-            }
-
-            if ($filtered === []) {
-                unset($this->indexBySubjectId[$subjectId]);
-            } else {
-                $this->indexBySubjectId[$subjectId] = $filtered;
-            }
+        if (!$key) {
+            return;
         }
+
+        unset(
+            $this->indexBySubjectId[$key->subjectId][$id],
+            $this->indexById[$id],
+        );
     }
 
     public function clear(): void

@@ -124,10 +124,13 @@ final class AttributeMetadataFactory implements MetadataFactory
                 );
             }
 
+            $type = $this->typeResolver->resolve($reflectionProperty);
+
             $properties[$fieldName] = new PropertyMetadata(
                 $reflectionProperty,
+                $type,
                 $fieldName,
-                $this->getNormalizer($reflectionProperty),
+                $this->getNormalizer($reflectionProperty, $type),
             );
         }
 
@@ -198,18 +201,16 @@ final class AttributeMetadataFactory implements MetadataFactory
         );
     }
 
-    private function getNormalizer(ReflectionProperty $reflectionProperty): Normalizer|null
+    private function getNormalizer(ReflectionProperty $reflectionProperty, Type $type): Normalizer|null
     {
         $normalizer = $this->findNormalizerOnProperty($reflectionProperty);
-        $type = null;
 
         if (!$normalizer) {
-            $type = $this->typeResolver->resolve($reflectionProperty);
             $normalizer = $this->inferNormalizerByType($type);
         }
 
         if ($normalizer instanceof TypeAwareNormalizer) {
-            $normalizer->handleType($type ?? $this->typeResolver->resolve($reflectionProperty));
+            $normalizer->handleType($type);
         }
 
         return $normalizer;

@@ -10,6 +10,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use ReflectionProperty;
+use Symfony\Component\TypeInfo\Type;
 
 #[CoversClass(ClassMetadata::class)]
 final class ClassMetadataTest extends TestCase
@@ -25,8 +26,8 @@ final class ClassMetadataTest extends TestCase
         $fooReflection = new ReflectionProperty($object, 'foo');
         $barReflection = new ReflectionProperty($object, 'bar');
 
-        $fooMetadata = new PropertyMetadata($fooReflection, 'foo_field');
-        $barMetadata = new PropertyMetadata($barReflection, 'bar_field');
+        $fooMetadata = new PropertyMetadata($fooReflection, Type::string(), 'foo_field');
+        $barMetadata = new PropertyMetadata($barReflection, Type::string(), 'bar_field');
 
         $classMetadata = new ClassMetadata(
             $reflection,

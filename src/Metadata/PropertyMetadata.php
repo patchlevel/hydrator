@@ -6,10 +6,12 @@ namespace Patchlevel\Hydrator\Metadata;
 
 use Patchlevel\Hydrator\Normalizer\Normalizer;
 use ReflectionProperty;
+use Symfony\Component\TypeInfo\Type;
 
 /**
  * @phpstan-type serialized = array{
  *     className: class-string,
+ *     type: Type,
  *     propertyName: string,
  *     fieldName: string,
  *     normalizer: Normalizer|null,
@@ -23,6 +25,7 @@ final class PropertyMetadata
     /** @param array<string, mixed> $extras */
     public function __construct(
         public readonly ReflectionProperty $reflection,
+        public readonly Type $type,
         public string $fieldName,
         public Normalizer|null $normalizer = null,
         public array $extras = [],
@@ -46,6 +49,7 @@ final class PropertyMetadata
         return [
             'className' => $this->reflection->getDeclaringClass()->getName(),
             'propertyName' => $this->propertyName,
+            'type' => $this->type,
             'fieldName' => $this->fieldName,
             'normalizer' => $this->normalizer,
             'extras' => $this->extras,
@@ -56,6 +60,7 @@ final class PropertyMetadata
     public function __unserialize(array $data): void
     {
         $this->reflection = new ReflectionProperty($data['className'], $data['propertyName']);
+        $this->type = $data['type'];
         $this->propertyName = $data['propertyName'];
         $this->fieldName = $data['fieldName'];
         $this->normalizer = $data['normalizer'];

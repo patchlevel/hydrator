@@ -27,6 +27,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Wrapper;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\TypeInfo\Type;
 
 #[CoversClass(AttributeMetadataFactory::class)]
 final class AttributeMetadataFactoryTest extends TestCase
@@ -72,6 +73,7 @@ final class AttributeMetadataFactoryTest extends TestCase
 
         self::assertSame('name', $propertyMetadata->propertyName);
         self::assertSame('name', $propertyMetadata->fieldName);
+        self::assertEquals(Type::nullable(Type::string()), $propertyMetadata->type);
         self::assertNull($propertyMetadata->normalizer);
     }
 
@@ -117,6 +119,7 @@ final class AttributeMetadataFactoryTest extends TestCase
 
         self::assertSame('name', $propertyMetadata->propertyName);
         self::assertSame('name', $propertyMetadata->fieldName);
+        self::assertEquals(Type::string(), $propertyMetadata->type);
         self::assertNull($propertyMetadata->normalizer);
     }
 
@@ -165,6 +168,7 @@ final class AttributeMetadataFactoryTest extends TestCase
 
         self::assertSame('email', $propertyMetadata->propertyName);
         self::assertSame('email', $propertyMetadata->fieldName);
+        self::assertEquals(Type::object(Email::class), $propertyMetadata->type);
         self::assertInstanceOf(EmailNormalizer::class, $propertyMetadata->normalizer);
     }
 
@@ -189,6 +193,7 @@ final class AttributeMetadataFactoryTest extends TestCase
 
         self::assertSame('status', $propertyMetadata->propertyName);
         self::assertSame('status', $propertyMetadata->fieldName);
+        self::assertEquals(Type::enum(Status::class), $propertyMetadata->type);
 
         $normalizer = $propertyMetadata->normalizer;
 
@@ -226,6 +231,10 @@ final class AttributeMetadataFactoryTest extends TestCase
 
         $propertyMetadata = $metadata->propertyForField('email');
         self::assertEquals(new ObjectNormalizer(Wrapper::class), $propertyMetadata->normalizer);
+                self::assertEquals(
+                    Type::generic(Type::object(Wrapper::class), Type::object(Email::class)),
+                    $propertyMetadata->type,
+                );
     }
 
     public function testInferNormalizerWithTemplate(): void
@@ -239,10 +248,25 @@ final class AttributeMetadataFactoryTest extends TestCase
         self::assertNull($propertyMetadata->normalizer);
 
         $propertyMetadata = $metadata->propertyForField('object');
+
         self::assertEquals(new ObjectNormalizer(Wrapper::class), $propertyMetadata->normalizer);
+        self::assertEquals(
+            Type::generic(Type::object(Wrapper::class), Type::object(Email::class)),
+            $propertyMetadata->type,
+        );
 
         $propertyMetadata = $metadata->propertyForField('scalar');
         self::assertEquals(new ObjectNormalizer(Wrapper::class), $propertyMetadata->normalizer);
+
+        self::assertEquals(
+            Type::nullable(
+                Type::generic(
+                    Type::object(Wrapper::class),
+                    Type::string(),
+                ),
+            ),
+            $propertyMetadata->type,
+        );
     }
 
     public function testExtends(): void
