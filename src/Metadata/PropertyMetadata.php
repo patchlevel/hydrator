@@ -8,6 +8,7 @@ use Closure;
 use InvalidArgumentException;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
 use ReflectionProperty;
+use Symfony\Component\TypeInfo\Type;
 
 use function str_starts_with;
 
@@ -40,6 +41,7 @@ final class PropertyMetadata
         public readonly mixed $personalDataFallback = null,
         public readonly mixed $personalDataFallbackCallable = null,
         public array $extras = [],
+        public readonly Type|null $type = null,
     ) {
         $this->propertyName = $reflection->getName();
 
