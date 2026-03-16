@@ -33,7 +33,7 @@ jobs:
         with:
           ref: ${{ github.base_ref }}
 
-      - uses: ramsey/composer-install@3.2.0
+      - uses: ramsey/composer-install@3.2.1
         with:
           dependency-versions: ${{ matrix.dependencies }}
 
@@ -45,7 +45,7 @@ jobs:
         with:
           clean: false
 
-      - uses: ramsey/composer-install@3.2.0
+      - uses: ramsey/composer-install@3.2.1
         with:
           dependency-versions: ${{ matrix.dependencies }}
 
