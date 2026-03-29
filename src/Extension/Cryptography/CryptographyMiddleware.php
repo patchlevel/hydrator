@@ -38,11 +38,13 @@ final class CryptographyMiddleware implements Middleware
      */
     public function hydrate(ClassMetadata $metadata, array $data, array $context, Stack $stack): object
     {
+        $context[SubjectIds::class] = $subjectIds = $this->resolveSubjectIds($metadata, $data, $context);
+
         if ($context[LegacyCryptographyDecryptMiddleware::class] ?? false) {
+            unset($context[LegacyCryptographyDecryptMiddleware::class]);
+
             return $stack->next()->hydrate($metadata, $data, $context, $stack);
         }
-
-        $context[SubjectIds::class] = $subjectIds = $this->resolveSubjectIds($metadata, $data, $context);
 
         foreach ($metadata->properties as $propertyMetadata) {
             $info = $propertyMetadata->extras[SensitiveDataInfo::class] ?? null;
