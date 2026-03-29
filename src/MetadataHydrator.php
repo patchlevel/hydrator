@@ -104,7 +104,8 @@ final class MetadataHydrator implements HydratorWithContext
             $data = $this->eventDispatcher->dispatch(new PreHydrate($data, $metadata))->data;
         }
 
-        $object = $metadata->newInstance();
+        $object = $context[self::OBJECT_TO_POPULATE] ?? $metadata->newInstance();
+        unset($context[self::OBJECT_TO_POPULATE]);
 
         $constructorParameters = null;
 

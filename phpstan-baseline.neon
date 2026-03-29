@@ -115,6 +115,36 @@ parameters:
 			path: src/Metadata/AttributeMetadataFactory.php
 
 		-
+			message: '#^Method Patchlevel\\Hydrator\\MetadataHydrator\:\:doHydrate\(\) should return T of object but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/MetadataHydrator.php
+
+		-
+			message: '#^Parameter \#1 \$object of method Patchlevel\\Hydrator\\Metadata\\CallbackMetadata\:\:invoke\(\) expects object, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/MetadataHydrator.php
+
+		-
+			message: '#^Parameter \#1 \$object of method Patchlevel\\Hydrator\\Metadata\\PropertyMetadata\:\:setValue\(\) expects object, mixed given\.$#'
+			identifier: argument.type
+			count: 2
+			path: src/MetadataHydrator.php
+
+		-
+			message: '#^Method Patchlevel\\Hydrator\\Middleware\\TransformMiddleware\:\:hydrate\(\) should return T of object but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Middleware/TransformMiddleware.php
+
+		-
+			message: '#^Parameter \#1 \$object of method Patchlevel\\Hydrator\\Metadata\\PropertyMetadata\:\:setValue\(\) expects object, mixed given\.$#'
+			identifier: argument.type
+			count: 2
+			path: src/Middleware/TransformMiddleware.php
+
+		-
 			message: '#^Property Patchlevel\\Hydrator\\Normalizer\\EnumNormalizer\:\:\$enum \(class\-string\<BackedEnum\>\|null\) does not accept string\.$#'
 			identifier: assign.propertyType
 			count: 1

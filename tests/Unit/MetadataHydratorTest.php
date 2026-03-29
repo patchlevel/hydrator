@@ -291,6 +291,22 @@ final class MetadataHydratorTest extends TestCase
         self::assertEquals($expected, $event);
     }
 
+    public function testHydrateWithObjectToPopulate(): void
+    {
+        $id = ProfileId::fromString('1');
+        $dto = new ProfileCreated($id, Email::fromString('foo@patchlevel.de'));
+
+        $processedDto = $this->hydrator->hydrate(
+            $dto::class,
+            ['email' => 'other@patchlevel.de'],
+            [MetadataHydrator::OBJECT_TO_POPULATE => $dto],
+        );
+
+        self::assertSame($dto, $processedDto);
+        self::assertSame($id, $processedDto->profileId);
+        self::assertEquals(Email::fromString('other@patchlevel.de'), $processedDto->email);
+    }
+
     public function testDenormalizationFailure(): void
     {
         $this->expectException(DenormalizationFailure::class);

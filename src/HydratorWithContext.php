@@ -6,6 +6,8 @@ namespace Patchlevel\Hydrator;
 
 interface HydratorWithContext extends Hydrator
 {
+    public const OBJECT_TO_POPULATE = 'object_to_populate';
+
     /**
      * @param class-string<T>      $class
      * @param array<string, mixed> $data
