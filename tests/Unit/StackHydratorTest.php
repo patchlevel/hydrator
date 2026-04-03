@@ -353,6 +353,22 @@ final class StackHydratorTest extends TestCase
         self::assertEquals($expect, $object);
     }
 
+    public function testHydrateWithObjectToPopulate(): void
+    {
+        $id = ProfileId::fromString('1');
+        $dto = new ProfileCreated($id, Email::fromString('foo@patchlevel.de'));
+
+        $processedDto = $this->hydrator->hydrate(
+            $dto::class,
+            ['email' => 'other@patchlevel.de'],
+            [StackHydrator::OBJECT_TO_POPULATE => $dto],
+        );
+
+        self::assertSame($dto, $processedDto);
+        self::assertSame($id, $processedDto->profileId);
+        self::assertEquals(Email::fromString('other@patchlevel.de'), $processedDto->email);
+    }
+
     #[RequiresPhp('>=8.5')]
     public function testHydrateWithInlineNormalizer(): void
     {

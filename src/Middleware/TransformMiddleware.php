@@ -6,6 +6,7 @@ namespace Patchlevel\Hydrator\Middleware;
 
 use Patchlevel\Hydrator\CircularReference;
 use Patchlevel\Hydrator\DenormalizationFailure;
+use Patchlevel\Hydrator\HydratorWithContext;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\NormalizationFailure;
 use Patchlevel\Hydrator\TypeMismatch;
@@ -32,7 +33,8 @@ final class TransformMiddleware implements Middleware
      */
     public function hydrate(ClassMetadata $metadata, array $data, array $context, Stack $stack): object
     {
-        $object = $metadata->newInstance();
+        $object = $context[HydratorWithContext::OBJECT_TO_POPULATE] ?? $metadata->newInstance();
+        unset($context[HydratorWithContext::OBJECT_TO_POPULATE]);
 
         $constructorParameters = null;
 

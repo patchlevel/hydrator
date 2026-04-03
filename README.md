@@ -125,6 +125,24 @@ $oldEvent == $event // true
 > [!WARNING]
 > It is important to know that the constructor is not called!
 
+#### Object to populate
+
+If you want to hydrate an object that already exists, you can specify the object to populate.
+This is useful if you want to update an existing object.
+
+```php
+$dto = new Dto();
+
+$event = $hydrator->hydrate(
+    $dto::class,
+    [
+      'name' => 'patchlevel',
+    ], [
+        MetadataHydrator::OBJECT_TO_POPULATE => $dto,
+    ],
+);
+```
+
 ### Normalizer
 
 For more complex structures, i.e. non-scalar data types, we use normalizers.

@@ -38,6 +38,12 @@ final class CryptographyMiddleware implements Middleware
     {
         $context[SubjectIds::class] = $subjectIds = $this->resolveSubjectIds($metadata, $data, $context);
 
+        if ($context[LegacyCryptographyDecryptMiddleware::class] ?? false) {
+            unset($context[LegacyCryptographyDecryptMiddleware::class]);
+
+            return $stack->next()->hydrate($metadata, $data, $context, $stack);
+        }
+
         foreach ($metadata->properties as $propertyMetadata) {
             $info = $propertyMetadata->extras[SensitiveDataInfo::class] ?? null;
 

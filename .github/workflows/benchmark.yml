@@ -22,7 +22,7 @@ jobs:
 
     steps:
       - name: "Install PHP"
-        uses: "shivammathur/setup-php@2.36.0"
+        uses: "shivammathur/setup-php@2.37.0"
         with:
           coverage: "none"
           php-version: "${{ matrix.php-version }}"
@@ -33,7 +33,7 @@ jobs:
         with:
           ref: ${{ github.base_ref }}
 
-      - uses: ramsey/composer-install@3.2.0
+      - uses: ramsey/composer-install@4.0.0
         with:
           dependency-versions: ${{ matrix.dependencies }}
 
@@ -45,7 +45,7 @@ jobs:
         with:
           clean: false
 
-      - uses: ramsey/composer-install@3.2.0
+      - uses: ramsey/composer-install@4.0.0
         with:
           dependency-versions: ${{ matrix.dependencies }}
 
