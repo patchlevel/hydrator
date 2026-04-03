@@ -81,15 +81,11 @@ final class StackHydratorBuilder
 
     public function build(): StackHydrator
     {
-        krsort($this->guessers);
-        krsort($this->metadataEnrichers);
-        krsort($this->middlewares);
-
         $metadataFactory = new EnrichingMetadataFactory(
             new AttributeMetadataFactory(
-                guesser: new ChainGuesser(array_merge(...$this->guessers)),
+                guesser: new ChainGuesser($this->guessers()),
             ),
-            array_merge(...$this->metadataEnrichers),
+            $this->metadataEnrichers(),
         );
 
         if ($this->cache instanceof CacheItemPoolInterface) {
@@ -102,8 +98,37 @@ final class StackHydratorBuilder
 
         return new StackHydrator(
             $metadataFactory,
-            array_merge(...$this->middlewares),
+            $this->middlewares(),
             $this->defaultLazy,
         );
+    }
+
+    public function defaultLazy(): bool
+    {
+        return $this->defaultLazy;
+    }
+
+    /** @return list<Middleware> */
+    public function middlewares(): array
+    {
+        krsort($this->middlewares);
+
+        return array_merge(...$this->middlewares);
+    }
+
+    /** @return list<Guesser> */
+    public function guessers(): array
+    {
+        krsort($this->guessers);
+
+        return array_merge(...$this->guessers);
+    }
+
+    /** @return list<MetadataEnricher> */
+    public function metadataEnrichers(): array
+    {
+        krsort($this->metadataEnrichers);
+
+        return array_merge(...$this->metadataEnrichers);
     }
 }

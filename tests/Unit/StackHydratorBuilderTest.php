@@ -39,6 +39,7 @@ final class StackHydratorBuilderTest extends TestCase
         $middlewares = $reflection->getValue($hydrator);
 
         self::assertSame([$middleware2, $middleware1], $middlewares);
+        self::assertSame([$middleware2, $middleware1], $builder->middlewares());
     }
 
     public function testAddMetadataEnricherWithPriority(): void
@@ -61,6 +62,7 @@ final class StackHydratorBuilderTest extends TestCase
         $enrichers = $reflection->getValue($enrichingMetadataFactory);
 
         self::assertSame([$enricher2, $enricher1], $enrichers);
+        self::assertSame([$enricher2, $enricher1], $builder->metadataEnrichers());
     }
 
     public function testAddGuesserWithPriority(): void
@@ -93,6 +95,7 @@ final class StackHydratorBuilderTest extends TestCase
         $guessers = $reflection->getValue($guesser);
 
         self::assertSame([$guesser2, $guesser1], $guessers);
+        self::assertSame([$guesser2, $guesser1], $builder->guessers());
     }
 
     public function testEnableDefaultLazy(): void
@@ -104,6 +107,7 @@ final class StackHydratorBuilderTest extends TestCase
 
         $reflection = new ReflectionProperty(StackHydrator::class, 'defaultLazy');
         self::assertTrue($reflection->getValue($hydrator));
+        self::assertTrue($builder->defaultLazy());
     }
 
     public function testUseExtension(): void
