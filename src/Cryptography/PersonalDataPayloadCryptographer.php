@@ -27,6 +27,7 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
         private readonly Cipher $cipher,
         private readonly bool $useEncryptedFieldName = false,
         private readonly bool $fallbackToFieldName = false,
+        private readonly bool $encryptNull = true,
     ) {
     }
 
@@ -55,13 +56,19 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
                 continue;
             }
 
+            $value = $data[$propertyMetadata->fieldName()] ?? null;
+
+            if (!$this->encryptNull && $value === null) {
+                continue;
+            }
+
             $targetFieldName = $this->useEncryptedFieldName
                 ? $propertyMetadata->encryptedFieldName()
                 : $propertyMetadata->fieldName();
 
             $data[$targetFieldName] = $this->cipher->encrypt(
                 $cipherKey,
-                $data[$propertyMetadata->fieldName()],
+                $value,
             );
 
             if (!$this->useEncryptedFieldName) {
@@ -104,6 +111,10 @@ final class PersonalDataPayloadCryptographer implements PayloadCryptographer
             } elseif (!$this->useEncryptedFieldName || $this->fallbackToFieldName) {
                 $rawData = $data[$propertyMetadata->fieldName()];
             } else {
+                continue;
+            }
+
+            if (!is_string($rawData)) {
                 continue;
             }
 

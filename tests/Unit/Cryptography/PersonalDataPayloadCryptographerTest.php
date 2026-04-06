@@ -144,6 +144,74 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
         self::assertEquals(['id' => 'foo', '!email' => 'encrypted'], $result);
     }
 
+    public function testEncryptSkipNullValueIfEncryptNullDisabled(): void
+    {
+        $cipherKey = new CipherKey(
+            'foo',
+            'bar',
+            'baz',
+        );
+
+        $cipherKeyStore = $this->createMock(CipherKeyStore::class);
+        $cipherKeyStore->method('get')->with('foo')->willReturn($cipherKey);
+        $cipherKeyStore->expects($this->never())->method('store');
+
+        $cipherKeyFactory = $this->createMock(CipherKeyFactory::class);
+        $cipherKeyFactory->expects($this->never())->method('__invoke');
+
+        $cipher = $this->createMock(Cipher::class);
+        $cipher->expects($this->never())->method('encrypt');
+
+        $cryptographer = new PersonalDataPayloadCryptographer(
+            $cipherKeyStore,
+            $cipherKeyFactory,
+            $cipher,
+            false,
+            false,
+            false,
+        );
+
+        $result = $cryptographer->encrypt(
+            $this->metadata(PersonalDataProfileCreated::class),
+            ['id' => 'foo', 'email' => null],
+        );
+
+        self::assertSame(['id' => 'foo', 'email' => null], $result);
+    }
+
+    public function testEncryptNullValueIfEncryptNullEnabled(): void
+    {
+        $cipherKey = new CipherKey(
+            'foo',
+            'bar',
+            'baz',
+        );
+
+        $cipherKeyStore = $this->createMock(CipherKeyStore::class);
+        $cipherKeyStore->method('get')->with('foo')->willReturn($cipherKey);
+        $cipherKeyStore->expects($this->never())->method('store');
+
+        $cipherKeyFactory = $this->createMock(CipherKeyFactory::class);
+        $cipherKeyFactory->expects($this->never())->method('__invoke');
+
+        $cipher = $this->createMock(Cipher::class);
+        $cipher->expects($this->once())->method('encrypt')->with($cipherKey, null)
+            ->willReturn('encrypted-null');
+
+        $cryptographer = new PersonalDataPayloadCryptographer(
+            $cipherKeyStore,
+            $cipherKeyFactory,
+            $cipher,
+        );
+
+        $result = $cryptographer->encrypt(
+            $this->metadata(PersonalDataProfileCreated::class),
+            ['id' => 'foo', 'email' => null],
+        );
+
+        self::assertSame(['id' => 'foo', 'email' => 'encrypted-null'], $result);
+    }
+
     public function testSkipDecrypt(): void
     {
         $cipherKeyStore = $this->createMock(CipherKeyStore::class);
@@ -371,6 +439,30 @@ final class PersonalDataPayloadCryptographerTest extends TestCase
         $result = $cryptographer->decrypt($this->metadata(PersonalDataProfileCreated::class), ['id' => 'foo', 'email' => 'encrypted']);
 
         self::assertEquals(['id' => 'foo', 'email' => 'info@patchlevel.de'], $result);
+    }
+
+    public function testDecryptSkipNonStringValue(): void
+    {
+        $cipherKeyStore = $this->createMock(CipherKeyStore::class);
+        $cipherKeyStore->method('get')->with('foo')->willThrowException(new CipherKeyNotExists('foo'));
+
+        $cipherKeyFactory = $this->createMock(CipherKeyFactory::class);
+        $cipher = $this->createMock(Cipher::class);
+        $cipher->expects($this->never())->method('decrypt');
+
+        $cryptographer = new PersonalDataPayloadCryptographer(
+            $cipherKeyStore,
+            $cipherKeyFactory,
+            $cipher,
+        );
+
+        $email = new Email('info@patchlevel.de');
+        $result = $cryptographer->decrypt(
+            $this->metadata(PersonalDataProfileCreated::class),
+            ['id' => 'foo', 'email' => $email],
+        );
+
+        self::assertSame(['id' => 'foo', 'email' => $email], $result);
     }
 
     public function testUnsupportedSubjectId(): void
