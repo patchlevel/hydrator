@@ -61,6 +61,12 @@ parameters:
 			path: src/Extension/Cryptography/Cipher/OpensslCipherKeyFactory.php
 
 		-
+			message: '#^Cannot access property \$nameToField on mixed\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: src/Extension/Cryptography/LegacyCryptographyMetadataEnricher.php
+
+		-
 			message: '#^Method Patchlevel\\Hydrator\\Guesser\\BuiltInGuesser\:\:guess\(\) has parameter \$type with generic class Symfony\\Component\\TypeInfo\\Type\\ObjectType but does not specify its types\: T$#'
 			identifier: missingType.generics
 			count: 1

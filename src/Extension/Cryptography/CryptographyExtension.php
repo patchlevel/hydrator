@@ -14,6 +14,7 @@ final class CryptographyExtension implements Extension
     public function __construct(
         private readonly Cryptographer $cryptography,
         private readonly PayloadCryptographer|null $legacyCryptographer = null,
+        private readonly bool $legacyMetadataMapping = false,
     ) {
     }
 
@@ -21,6 +22,10 @@ final class CryptographyExtension implements Extension
     {
         $builder->addMetadataEnricher(new CryptographyMetadataEnricher(), 64);
         $builder->addMiddleware(new CryptographyMiddleware($this->cryptography), 64);
+
+        if ($this->legacyMetadataMapping) {
+            $builder->addMetadataEnricher(new LegacyCryptographyMetadataEnricher(), 63);
+        }
 
         if ($this->legacyCryptographer === null) {
             return;
