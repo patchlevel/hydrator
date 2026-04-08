@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Normalizer;
 
 use Attribute;
+use Deprecated;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\HydratorWithContext;
 use ReflectionType;
@@ -42,7 +43,7 @@ final class ObjectNormalizer implements NormalizerWithContext, ReflectionTypeAwa
             return null;
         }
 
-        $className = $this->getClassName();
+        $className = $this->className();
 
         if (!$value instanceof $className) {
             throw InvalidArgument::withWrongType($className . '|null', $value);
@@ -70,7 +71,7 @@ final class ObjectNormalizer implements NormalizerWithContext, ReflectionTypeAwa
             throw InvalidArgument::withWrongType('array<string, mixed>|null', $value);
         }
 
-        $className = $this->getClassName();
+        $className = $this->className();
 
         if ($this->hydrator instanceof HydratorWithContext) {
             return $this->hydrator->hydrate($className, $value, $context);
@@ -120,7 +121,14 @@ final class ObjectNormalizer implements NormalizerWithContext, ReflectionTypeAwa
     }
 
     /** @return class-string */
+    #[Deprecated('Use `className()` method instead')]
     public function getClassName(): string
+    {
+        return $this->className();
+    }
+
+    /** @return class-string */
+    public function className(): string
     {
         if ($this->className === null) {
             throw InvalidType::missingType();

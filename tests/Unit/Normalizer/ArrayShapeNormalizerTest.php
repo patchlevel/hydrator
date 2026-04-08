@@ -161,4 +161,12 @@ final class ArrayShapeNormalizerTest extends TestCase
         $normalizer = new ArrayShapeNormalizer(['foo' => $normalizer]);
         $normalizer->setHydrator($hydrator);
     }
+
+    public function testInnerNormalizers(): void
+    {
+        $innerNormalizer = $this->createMock(Normalizer::class);
+        $normalizer = new ArrayShapeNormalizer(['foo' => $innerNormalizer]);
+
+        self::assertSame(['foo' => $innerNormalizer], $normalizer->innerNormalizers());
+    }
 }

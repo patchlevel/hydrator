@@ -120,4 +120,10 @@ final readonly class ArrayShapeNormalizer implements NormalizerWithContext, Type
             $normalizer->handleType($shape[$field]['type']);
         }
     }
+
+    /** @return array<array-key, Normalizer> */
+    public function innerNormalizers(): array
+    {
+        return $this->normalizerMap;
+    }
 }
