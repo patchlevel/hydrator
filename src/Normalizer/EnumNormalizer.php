@@ -6,6 +6,7 @@ namespace Patchlevel\Hydrator\Normalizer;
 
 use Attribute;
 use BackedEnum;
+use Deprecated;
 use ReflectionType;
 use Symfony\Component\TypeInfo\Type;
 use Symfony\Component\TypeInfo\Type\BackedEnumType;
@@ -30,7 +31,7 @@ final class EnumNormalizer implements Normalizer, ReflectionTypeAwareNormalizer,
             return null;
         }
 
-        $enum = $this->getEnum();
+        $enum = $this->className();
 
         if (!$value instanceof $enum) {
             throw InvalidArgument::withWrongType($enum . '|null', $value);
@@ -49,7 +50,7 @@ final class EnumNormalizer implements Normalizer, ReflectionTypeAwareNormalizer,
             throw InvalidArgument::withWrongType('string|int|null', $value);
         }
 
-        $enum = $this->getEnum();
+        $enum = $this->className();
 
         try {
             return $enum::from($value);
@@ -86,7 +87,14 @@ final class EnumNormalizer implements Normalizer, ReflectionTypeAwareNormalizer,
     }
 
     /** @return class-string<BackedEnum> */
+    #[Deprecated('Use `className()` method instead')]
     public function getEnum(): string
+    {
+        return $this->className();
+    }
+
+    /** @return class-string<BackedEnum> */
+    public function className(): string
     {
         if ($this->enum === null) {
             throw InvalidType::missingType();
