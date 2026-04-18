@@ -112,4 +112,10 @@ final readonly class ArrayShapeNormalizer implements Normalizer, TypeAwareNormal
             $normalizer->handleType($shape[$field]['type']);
         }
     }
+
+    /** @return array<array-key, Normalizer> */
+    public function innerNormalizers(): array
+    {
+        return $this->normalizerMap;
+    }
 }

@@ -89,4 +89,9 @@ final readonly class ArrayNormalizer implements Normalizer, TypeAwareNormalizer,
 
         $this->normalizer->handleType($type->getCollectionValueType());
     }
+
+    public function innerNormalizer(): Normalizer
+    {
+        return $this->normalizer;
+    }
 }

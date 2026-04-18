@@ -172,7 +172,7 @@ final class ObjectNormalizerTest extends TestCase
         $normalizer->setHydrator($hydrator);
         $normalizer->handleType(Type::object(ProfileCreated::class));
 
-        self::assertEquals(ProfileCreated::class, $normalizer->getClassName());
+        self::assertEquals(ProfileCreated::class, $normalizer->className());
     }
 
     public function testAutoDetectOverrideNotPossible(): void
@@ -183,7 +183,7 @@ final class ObjectNormalizerTest extends TestCase
         $normalizer->setHydrator($hydrator);
         $normalizer->handleType(Type::object(ProfileCreated::class));
 
-        self::assertEquals(AutoTypeDto::class, $normalizer->getClassName());
+        self::assertEquals(AutoTypeDto::class, $normalizer->className());
     }
 
     public function testAutoDetectMissingType(): void
@@ -195,7 +195,7 @@ final class ObjectNormalizerTest extends TestCase
         $normalizer = new ObjectNormalizer();
         $normalizer->setHydrator($hydrator);
 
-        $normalizer->getClassName();
+        $normalizer->className();
     }
 
     public function testAutoDetectMissingTypeBecauseNull(): void
@@ -208,7 +208,7 @@ final class ObjectNormalizerTest extends TestCase
         $normalizer->setHydrator($hydrator);
         $normalizer->handleType(null);
 
-        $normalizer->getClassName();
+        $normalizer->className();
     }
 
     public function testGeneric(): void
@@ -219,7 +219,7 @@ final class ObjectNormalizerTest extends TestCase
         $normalizer->setHydrator($hydrator);
         $normalizer->handleType(Type::generic(Type::object(ProfileCreated::class)));
 
-        self::assertEquals(ProfileCreated::class, $normalizer->getClassName());
+        self::assertEquals(ProfileCreated::class, $normalizer->className());
     }
 
     public function testTemplate(): void
@@ -230,7 +230,7 @@ final class ObjectNormalizerTest extends TestCase
         $normalizer->setHydrator($hydrator);
         $normalizer->handleType(Type::template('T', Type::object(ProfileCreated::class)));
 
-        self::assertEquals(ProfileCreated::class, $normalizer->getClassName());
+        self::assertEquals(ProfileCreated::class, $normalizer->className());
     }
 
     public function testSerialize(): void

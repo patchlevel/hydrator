@@ -12,6 +12,8 @@ use Symfony\Component\TypeInfo\Type\NullableType;
 use Symfony\Component\TypeInfo\Type\ObjectType;
 use Symfony\Component\TypeInfo\Type\TemplateType;
 
+use function is_array;
+
 #[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_CLASS)]
 final class ObjectNormalizer implements Normalizer, TypeAwareNormalizer, HydratorAwareNormalizer
 {
@@ -34,7 +36,7 @@ final class ObjectNormalizer implements Normalizer, TypeAwareNormalizer, Hydrato
             return null;
         }
 
-        $className = $this->getClassName();
+        $className = $this->className();
 
         if (!$value instanceof $className) {
             throw InvalidArgument::withWrongType($className . '|null', $value);
@@ -54,7 +56,11 @@ final class ObjectNormalizer implements Normalizer, TypeAwareNormalizer, Hydrato
             return null;
         }
 
-        $className = $this->getClassName();
+        if (!is_array($value)) {
+            throw InvalidArgument::withWrongType('array<string, mixed>|null', $value);
+        }
+
+        $className = $this->className();
 
         return $this->hydrator->hydrate($className, $value, $context);
     }
@@ -90,7 +96,7 @@ final class ObjectNormalizer implements Normalizer, TypeAwareNormalizer, Hydrato
     }
 
     /** @return class-string */
-    public function getClassName(): string
+    public function className(): string
     {
         if ($this->className === null) {
             throw InvalidType::missingType();

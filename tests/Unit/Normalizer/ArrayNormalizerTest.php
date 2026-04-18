@@ -164,4 +164,12 @@ final class ArrayNormalizerTest extends TestCase
         $normalizer = new ArrayNormalizer($normalizer);
         $normalizer->setHydrator($hydrator);
     }
+
+    public function testInnerNormalizer(): void
+    {
+        $innerNormalizer = $this->createMock(Normalizer::class);
+        $normalizer = new ArrayNormalizer($innerNormalizer);
+
+        self::assertSame($innerNormalizer, $normalizer->innerNormalizer());
+    }
 }

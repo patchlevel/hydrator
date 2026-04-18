@@ -30,7 +30,7 @@ final class EnumNormalizer implements Normalizer, TypeAwareNormalizer
             return null;
         }
 
-        $enum = $this->getEnum();
+        $enum = $this->className();
 
         if (!$value instanceof $enum) {
             throw InvalidArgument::withWrongType($enum . '|null', $value);
@@ -50,7 +50,7 @@ final class EnumNormalizer implements Normalizer, TypeAwareNormalizer
             throw InvalidArgument::withWrongType('string|int|null', $value);
         }
 
-        $enum = $this->getEnum();
+        $enum = $this->className();
 
         try {
             return $enum::from($value);
@@ -77,7 +77,7 @@ final class EnumNormalizer implements Normalizer, TypeAwareNormalizer
     }
 
     /** @return class-string<BackedEnum> */
-    public function getEnum(): string
+    public function className(): string
     {
         if ($this->enum === null) {
             throw InvalidType::missingType();

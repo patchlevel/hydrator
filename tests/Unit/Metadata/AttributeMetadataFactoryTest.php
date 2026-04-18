@@ -198,7 +198,7 @@ final class AttributeMetadataFactoryTest extends TestCase
         $normalizer = $propertyMetadata->normalizer;
 
         self::assertInstanceOf(EnumNormalizer::class, $normalizer);
-        self::assertSame(Status::class, $normalizer->getEnum());
+        self::assertSame(Status::class, $normalizer->className());
     }
 
     public function testInferNormalizer(): void
