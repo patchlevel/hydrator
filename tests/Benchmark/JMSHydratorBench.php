@@ -4,35 +4,26 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Benchmark;
 
-use Patchlevel\Hydrator\Extension\Generated\GeneratedCoreExtension;
-use Patchlevel\Hydrator\Guesser\BuiltInGuesser;
-use Patchlevel\Hydrator\Hydrator;
-use Patchlevel\Hydrator\StackHydratorBuilder;
+use JMS\Serializer\Serializer;
+use JMS\Serializer\SerializerBuilder;
 use Patchlevel\Hydrator\Tests\Benchmark\Fixture\ProfileCreated;
 use Patchlevel\Hydrator\Tests\Benchmark\Fixture\ProfileId;
 use Patchlevel\Hydrator\Tests\Benchmark\Fixture\Skill;
 use PhpBench\Attributes as Bench;
 
 #[Bench\BeforeMethods('setUp')]
-#[Bench\Groups(['hydrator'])]
-final class StubGeneratedHydratorBench
+final class JMSHydratorBench
 {
-    private Hydrator $hydrator;
+    private Serializer $hydrator;
 
     public function __construct()
     {
-        require_once __DIR__ . '/../../stub/GeneratedTransformMiddleware.php';
-
-        $this->hydrator = (new StackHydratorBuilder())
-            ->addMiddleware(new \GeneratedTransformMiddleware())
-            ->addGuesser(new BuiltInGuesser(), -64)
-            ->build();
+        $this->hydrator = SerializerBuilder::create()->build();
     }
 
     public function setUp(): void
     {
-        $this->hydrator->hydrate(
-            ProfileCreated::class,
+        $object = $this->hydrator->fromArray(
             [
                 'profileId' => '1',
                 'name' => 'foo',
@@ -41,20 +32,26 @@ final class StubGeneratedHydratorBench
                     ['name' => 'symfony'],
                 ],
             ],
+            ProfileCreated::class,
         );
+
+        $this->hydrator->toArray($object);
     }
 
     #[Bench\Revs(5)]
     public function benchHydrate1Object(): void
     {
-        $this->hydrator->hydrate(ProfileCreated::class, [
-            'profileId' => '1',
-            'name' => 'foo',
-            'skills' => [
-                ['name' => 'php'],
-                ['name' => 'symfony'],
+        $this->hydrator->fromArray(
+            [
+                'profileId' => '1',
+                'name' => 'foo',
+                'skills' => [
+                    ['name' => 'php'],
+                    ['name' => 'symfony'],
+                ],
             ],
-        ]);
+            ProfileCreated::class
+        );
     }
 
     #[Bench\Revs(5)]
@@ -69,21 +66,24 @@ final class StubGeneratedHydratorBench
             ],
         );
 
-        $this->hydrator->extract($object);
+        $this->hydrator->toArray($object);
     }
 
     #[Bench\Revs(3)]
     public function benchHydrate1000Objects(): void
     {
         for ($i = 0; $i < 1_000; $i++) {
-            $this->hydrator->hydrate(ProfileCreated::class, [
-                'profileId' => '1',
-                'name' => 'foo',
-                'skills' => [
-                    ['name' => 'php'],
-                    ['name' => 'symfony'],
+            $this->hydrator->fromArray(
+                [
+                    'profileId' => '1',
+                    'name' => 'foo',
+                    'skills' => [
+                        ['name' => 'php'],
+                        ['name' => 'symfony'],
+                    ],
                 ],
-            ]);
+                ProfileCreated::class
+            );
         }
     }
 
@@ -100,7 +100,7 @@ final class StubGeneratedHydratorBench
         );
 
         for ($i = 0; $i < 1_000; $i++) {
-            $this->hydrator->extract($object);
+            $this->hydrator->toArray($object);
         }
     }
 
@@ -108,14 +108,17 @@ final class StubGeneratedHydratorBench
     public function benchHydrate1000000Objects(): void
     {
         for ($i = 0; $i < 1_000_000; $i++) {
-            $this->hydrator->hydrate(ProfileCreated::class, [
-                'profileId' => '1',
-                'name' => 'foo',
-                'skills' => [
-                    ['name' => 'php'],
-                    ['name' => 'symfony'],
+            $this->hydrator->fromArray(
+                [
+                    'profileId' => '1',
+                    'name' => 'foo',
+                    'skills' => [
+                        ['name' => 'php'],
+                        ['name' => 'symfony'],
+                    ],
                 ],
-            ]);
+                ProfileCreated::class
+            );
         }
     }
 
@@ -132,7 +135,7 @@ final class StubGeneratedHydratorBench
         );
 
         for ($i = 0; $i < 1_000_000; $i++) {
-            $this->hydrator->extract($object);
+            $this->hydrator->toArray($object);
         }
     }
 }

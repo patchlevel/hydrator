@@ -6,7 +6,7 @@ namespace Patchlevel\Hydrator\Extension\Generated;
 
 use Patchlevel\Hydrator\Extension;
 use Patchlevel\Hydrator\Guesser\BuiltInGuesser;
-use Patchlevel\Hydrator\HydratorBuilder;
+use Patchlevel\Hydrator\StackHydratorBuilder;
 
 final class GeneratedCoreExtension implements Extension
 {
@@ -18,7 +18,7 @@ final class GeneratedCoreExtension implements Extension
     }
 
     //@todo most probably this is not the best idea to add this as an extension, as we have here some bidirectional dependencies
-    public function configure(HydratorBuilder $builder): void
+    public function configure(StackHydratorBuilder $builder): void
     {
         $builder->addGuesser(new BuiltInGuesser(), -64); // @todo this should be somehow considered in generator
         $metadataFactory = $builder->getMetadataFactory();

@@ -48,12 +48,12 @@ final class MiddlewareGenerator
 
                 foreach ($metadata->properties as $property) {
                     if ($property->normalizer instanceof ObjectNormalizer) {
-                        $todo[] = $property->normalizer->getClassName();
+                        $todo[] = $property->normalizer->className();
                     } elseif ($property->normalizer instanceof ArrayNormalizer) {
                         $reflection = new ReflectionProperty($property->normalizer, 'normalizer');
                         $inner = $reflection->getValue($property->normalizer);
                         if ($inner instanceof ObjectNormalizer) {
-                            $todo[] = $inner->getClassName();
+                            $todo[] = $inner->className();
                         }
                     }
                 }
@@ -283,13 +283,13 @@ PHP;
 
         if ($property->normalizer !== null) {
             if ($property->normalizer instanceof ObjectNormalizer) {
-                $nestedClass = $property->normalizer->getClassName();
+                $nestedClass = $property->normalizer->className();
                 $valueCode = "\$this->doHydrate(\\$nestedClass::class, \$data['$fieldName'], \$context, \$stack)";
             } elseif ($property->normalizer instanceof ArrayNormalizer) {
                 $reflection = new ReflectionProperty($property->normalizer, 'normalizer');
                 $inner = $reflection->getValue($property->normalizer);
                 if ($inner instanceof ObjectNormalizer) {
-                    $nestedClass = $inner->getClassName();
+                    $nestedClass = $inner->className();
                     $before = <<<PHP
 foreach (\$data['$fieldName'] as &\${$propertyName}Item) {
     \${$propertyName}Item = \$this->doHydrate(\\$nestedClass::class, \${$propertyName}Item, \$context, \$stack);
