@@ -12,6 +12,8 @@ use Symfony\Component\TypeInfo\Type\NullableType;
 use Symfony\Component\TypeInfo\Type\ObjectType;
 use Symfony\Component\TypeInfo\Type\TemplateType;
 
+use function is_array;
+
 #[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_CLASS)]
 final class ObjectNormalizer implements Normalizer, TypeAwareNormalizer, HydratorAwareNormalizer
 {

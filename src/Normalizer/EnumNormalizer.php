@@ -77,13 +77,6 @@ final class EnumNormalizer implements Normalizer, TypeAwareNormalizer
     }
 
     /** @return class-string<BackedEnum> */
-    #[Deprecated('Use `className()` method instead')]
-    public function getEnum(): string
-    {
-        return $this->className();
-    }
-
-    /** @return class-string<BackedEnum> */
     public function className(): string
     {
         if ($this->enum === null) {
