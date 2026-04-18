@@ -21,8 +21,12 @@
   "require": {
     "php": "~8.2.0 || ~8.3.0 || ~8.4.0 || ~8.5.0",
     "ext-openssl": "*",
+    "crell/serde": "^1.5",
+    "eventsauce/object-hydrator": "^1.8",
     "psr/cache": "^2.0.0 || ^3.0.0",
     "psr/simple-cache": "^2.0.0 || ^3.0.0",
+    "symfony/property-access": "^8.0",
+    "symfony/serializer": "^8.0",
     "symfony/type-info": "^7.3.0 || ^8.0.0"
   },
   "require-dev": {

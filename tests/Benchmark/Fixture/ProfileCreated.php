@@ -12,6 +12,7 @@ final class ProfileCreated
     /** @param list<Skill> $skills */
     public function __construct(
         #[ProfileIdNormalizer]
+        #[ProfileIdCaster]
         #[DataSubjectId]
         public ProfileId $profileId,
         #[SensitiveData(fallback: 'unknown')]
