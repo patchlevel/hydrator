@@ -6,7 +6,6 @@ namespace Patchlevel\Hydrator\Extension\Cryptography\Store;
 
 use Patchlevel\Hydrator\Extension\Cryptography\Cipher\CipherKey;
 
-/** @experimental */
 interface CipherKeyStore
 {
     /** @throws CipherKeyNotExists */

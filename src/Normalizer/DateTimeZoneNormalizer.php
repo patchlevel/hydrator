@@ -12,7 +12,8 @@ use function is_string;
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final readonly class DateTimeZoneNormalizer implements Normalizer
 {
-    public function normalize(mixed $value): string|null
+    /** @param array<string, mixed> $context */
+    public function normalize(mixed $value, array $context): string|null
     {
         if ($value === null) {
             return null;
@@ -25,7 +26,8 @@ final readonly class DateTimeZoneNormalizer implements Normalizer
         return $value->getName();
     }
 
-    public function denormalize(mixed $value): DateTimeZone|null
+    /** @param array<string, mixed> $context */
+    public function denormalize(mixed $value, array $context): DateTimeZone|null
     {
         if ($value === null) {
             return null;

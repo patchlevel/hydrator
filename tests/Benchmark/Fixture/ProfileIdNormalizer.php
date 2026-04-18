@@ -13,7 +13,8 @@ use function is_string;
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final class ProfileIdNormalizer implements Normalizer
 {
-    public function normalize(mixed $value): string
+    /** @param array<string, mixed> $context */
+    public function normalize(mixed $value, array $context): string
     {
         if (!$value instanceof ProfileId) {
             throw new InvalidArgumentException();
@@ -22,7 +23,8 @@ final class ProfileIdNormalizer implements Normalizer
         return $value->toString();
     }
 
-    public function denormalize(mixed $value): ProfileId|null
+    /** @param array<string, mixed> $context */
+    public function denormalize(mixed $value, array $context): ProfileId|null
     {
         if ($value === null) {
             return null;

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Middleware;
 
-/** @experimental */
 final class Stack
 {
     private int $index = 0;

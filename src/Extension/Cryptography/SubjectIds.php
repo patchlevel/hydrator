@@ -6,7 +6,6 @@ namespace Patchlevel\Hydrator\Extension\Cryptography;
 
 use function array_merge;
 
-/** @experimental */
 final class SubjectIds
 {
     /** @param array<string, string> $subjectIds */

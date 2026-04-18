@@ -4,20 +4,17 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Metadata;
 
+use Patchlevel\Hydrator\Normalizer\Normalizer;
 use ReflectionClass;
 use ReflectionParameter;
 
-use function array_values;
-
 /**
- * @psalm-type serialized array{
- *     className: class-string<T>,
+ * @phpstan-type serialized array{
+ *     className: class-string,
+ *     normalizer: Normalizer|null,
  *     properties: array<string, PropertyMetadata>,
- *     dataSubjectIdField: string|null,
- *     postHydrateCallbacks: list<CallbackMetadata>,
- *     preExtractCallbacks: list<CallbackMetadata>,
  *     lazy: bool|null,
- *     extras: array<string, mixed>
+ *     extras: array<string, mixed>,
  * }
  * @template T of object = object
  */
@@ -35,16 +32,12 @@ final class ClassMetadata
     /**
      * @param ReflectionClass<T>     $reflection
      * @param list<PropertyMetadata> $properties
-     * @param list<CallbackMetadata> $postHydrateCallbacks
-     * @param list<CallbackMetadata> $preExtractCallbacks
      * @param array<string, mixed>   $extras
      */
     public function __construct(
         public readonly ReflectionClass $reflection,
+        public Normalizer|null $normalizer = null,
         array $properties = [],
-        public string|null $dataSubjectIdField = null,
-        public array $postHydrateCallbacks = [],
-        public array $preExtractCallbacks = [],
         public bool|null $lazy = null,
         public array $extras = [],
     ) {
@@ -59,50 +52,10 @@ final class ClassMetadata
         $this->properties = $map;
     }
 
-    /** @return ReflectionClass<T> */
-    public function reflection(): ReflectionClass
-    {
-        return $this->reflection;
-    }
-
-    /** @return class-string<T> */
-    public function className(): string
-    {
-        return $this->className;
-    }
-
-    /** @return list<PropertyMetadata> */
-    public function properties(): array
-    {
-        return array_values($this->properties);
-    }
-
-    /** @return list<CallbackMetadata> */
-    public function postHydrateCallbacks(): array
-    {
-        return $this->postHydrateCallbacks;
-    }
-
-    /** @return list<CallbackMetadata> */
-    public function preExtractCallbacks(): array
-    {
-        return $this->preExtractCallbacks;
-    }
-
-    public function lazy(): bool|null
-    {
-        return $this->lazy;
-    }
-
-    public function dataSubjectIdField(): string|null
-    {
-        return $this->dataSubjectIdField;
-    }
-
     public function propertyForField(string $name): PropertyMetadata
     {
         foreach ($this->properties as $property) {
-            if ($property->fieldName() === $name) {
+            if ($property->fieldName === $name) {
                 return $property;
             }
         }
@@ -147,10 +100,8 @@ final class ClassMetadata
     {
         return [
             'className' => $this->className,
+            'normalizer' => $this->normalizer,
             'properties' => $this->properties,
-            'dataSubjectIdField' => $this->dataSubjectIdField,
-            'postHydrateCallbacks' => $this->postHydrateCallbacks,
-            'preExtractCallbacks' => $this->preExtractCallbacks,
             'lazy' => $this->lazy,
             'extras' => $this->extras,
         ];
@@ -160,10 +111,8 @@ final class ClassMetadata
     public function __unserialize(array $data): void
     {
         $this->reflection = new ReflectionClass($data['className']);
+        $this->normalizer = $data['normalizer'];
         $this->properties = $data['properties'];
-        $this->dataSubjectIdField = $data['dataSubjectIdField'];
-        $this->postHydrateCallbacks = $data['postHydrateCallbacks'];
-        $this->preExtractCallbacks = $data['preExtractCallbacks'];
         $this->lazy = $data['lazy'];
         $this->extras = $data['extras'];
     }

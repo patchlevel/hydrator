@@ -9,7 +9,6 @@ use Patchlevel\Hydrator\DenormalizationFailure;
 use Patchlevel\Hydrator\HydratorWithContext;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\NormalizationFailure;
-use Patchlevel\Hydrator\Normalizer\NormalizerWithContext;
 use Patchlevel\Hydrator\TypeMismatch;
 use Throwable;
 use TypeError;
@@ -18,7 +17,6 @@ use function array_key_exists;
 use function array_values;
 use function spl_object_id;
 
-/** @experimental */
 final class TransformMiddleware implements Middleware
 {
     /** @var array<int, class-string> */
@@ -40,8 +38,8 @@ final class TransformMiddleware implements Middleware
 
         $constructorParameters = null;
 
-        foreach ($metadata->properties() as $propertyMetadata) {
-            if (!array_key_exists($propertyMetadata->fieldName(), $data)) {
+        foreach ($metadata->properties as $propertyMetadata) {
+            if (!array_key_exists($propertyMetadata->fieldName, $data)) {
                 if (!$propertyMetadata->reflection->isPromoted()) {
                     continue;
                 }
@@ -62,13 +60,8 @@ final class TransformMiddleware implements Middleware
 
             if ($propertyMetadata->normalizer) {
                 try {
-                    if ($propertyMetadata->normalizer instanceof NormalizerWithContext) {
-                        /** @psalm-suppress MixedAssignment */
-                        $value = $propertyMetadata->normalizer->denormalize($data[$propertyMetadata->fieldName], $context);
-                    } else {
-                        /** @psalm-suppress MixedAssignment */
-                        $value = $propertyMetadata->normalizer->denormalize($data[$propertyMetadata->fieldName]);
-                    }
+                    /** @psalm-suppress MixedAssignment */
+                    $value = $propertyMetadata->normalizer->denormalize($data[$propertyMetadata->fieldName], $context);
                 } catch (Throwable $e) {
                     throw new DenormalizationFailure(
                         $metadata->className,
@@ -119,18 +112,11 @@ final class TransformMiddleware implements Middleware
             foreach ($metadata->properties as $propertyMetadata) {
                 if ($propertyMetadata->normalizer) {
                     try {
-                        if ($propertyMetadata->normalizer instanceof NormalizerWithContext) {
-                            /** @psalm-suppress MixedAssignment */
-                            $data[$propertyMetadata->fieldName] = $propertyMetadata->normalizer->normalize(
-                                $propertyMetadata->getValue($object),
-                                $context,
-                            );
-                        } else {
-                            /** @psalm-suppress MixedAssignment */
-                            $data[$propertyMetadata->fieldName] = $propertyMetadata->normalizer->normalize(
-                                $propertyMetadata->getValue($object),
-                            );
-                        }
+                        /** @psalm-suppress MixedAssignment */
+                        $data[$propertyMetadata->fieldName] = $propertyMetadata->normalizer->normalize(
+                            $propertyMetadata->getValue($object),
+                            $context,
+                        );
                     } catch (CircularReference $e) {
                         throw $e;
                     } catch (Throwable $e) {

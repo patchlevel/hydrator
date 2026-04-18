@@ -9,7 +9,6 @@ use RuntimeException;
 
 use function sprintf;
 
-/** @experimental */
 final class SubjectIdAndSensitiveDataConflict extends RuntimeException implements MetadataException
 {
     /** @param class-string $class */

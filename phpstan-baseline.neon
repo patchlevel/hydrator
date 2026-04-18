@@ -1,18 +1,6 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Parameter \#1 \$key of class Patchlevel\\Hydrator\\Cryptography\\Cipher\\CipherKey constructor expects non\-empty\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Cryptography/Cipher/OpensslCipherKeyFactory.php
-
-		-
-			message: '#^Parameter \#3 \$iv of class Patchlevel\\Hydrator\\Cryptography\\Cipher\\CipherKey constructor expects non\-empty\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Cryptography/Cipher/OpensslCipherKeyFactory.php
-
-		-
 			message: '#^Offset ''k'' on array\{v\: 1, a\: non\-empty\-string, k\: non\-empty\-string, n\?\: non\-empty\-string, d\: non\-empty\-string, t\?\: non\-empty\-string\} on left side of \?\? always exists and is not nullable\.$#'
 			identifier: nullCoalesce.offset
 			count: 1
@@ -61,8 +49,74 @@ parameters:
 			path: src/Extension/Cryptography/Cipher/OpensslCipherKeyFactory.php
 
 		-
+			message: '#^Parameter \$legacyCryptographer of method Patchlevel\\Hydrator\\Extension\\Cryptography\\CryptographyExtension\:\:__construct\(\) has invalid type Patchlevel\\Hydrator\\Cryptography\\PayloadCryptographer\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/Extension/Cryptography/CryptographyExtension.php
+
+		-
+			message: '#^Property Patchlevel\\Hydrator\\Extension\\Cryptography\\CryptographyExtension\:\:\$legacyCryptographer has unknown class Patchlevel\\Hydrator\\Cryptography\\PayloadCryptographer as its type\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/Extension/Cryptography/CryptographyExtension.php
+
+		-
+			message: '#^Call to method decrypt\(\) on an unknown class Patchlevel\\Hydrator\\Cryptography\\PayloadCryptographer\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/Extension/Cryptography/LegacyCryptographyDecryptMiddleware.php
+
+		-
+			message: '#^Parameter \#2 \$data of method Patchlevel\\Hydrator\\Middleware\\Middleware\:\:hydrate\(\) expects array\<string, mixed\>, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Extension/Cryptography/LegacyCryptographyDecryptMiddleware.php
+
+		-
+			message: '#^Parameter \$payloadCryptographer of method Patchlevel\\Hydrator\\Extension\\Cryptography\\LegacyCryptographyDecryptMiddleware\:\:__construct\(\) has invalid type Patchlevel\\Hydrator\\Cryptography\\PayloadCryptographer\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/Extension/Cryptography/LegacyCryptographyDecryptMiddleware.php
+
+		-
+			message: '#^Property Patchlevel\\Hydrator\\Extension\\Cryptography\\LegacyCryptographyDecryptMiddleware\:\:\$payloadCryptographer has unknown class Patchlevel\\Hydrator\\Cryptography\\PayloadCryptographer as its type\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/Extension/Cryptography/LegacyCryptographyDecryptMiddleware.php
+
+		-
+			message: '#^Access to property \$fallback on an unknown class Patchlevel\\Hydrator\\Attribute\\PersonalData\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/Extension/Cryptography/LegacyCryptographyMetadataEnricher.php
+
+		-
+			message: '#^Access to property \$fallbackCallable on an unknown class Patchlevel\\Hydrator\\Attribute\\PersonalData\.$#'
+			identifier: class.notFound
+			count: 2
+			path: src/Extension/Cryptography/LegacyCryptographyMetadataEnricher.php
+
+		-
 			message: '#^Cannot access property \$nameToField on mixed\.$#'
 			identifier: property.nonObject
+			count: 1
+			path: src/Extension/Cryptography/LegacyCryptographyMetadataEnricher.php
+
+		-
+			message: '#^Class Patchlevel\\Hydrator\\Attribute\\DataSubjectId not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/Extension/Cryptography/LegacyCryptographyMetadataEnricher.php
+
+		-
+			message: '#^Class Patchlevel\\Hydrator\\Attribute\\PersonalData not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/Extension/Cryptography/LegacyCryptographyMetadataEnricher.php
+
+		-
+			message: '#^Creating callable from mixed but it''s not a callable\.$#'
+			identifier: callable.nonCallable
 			count: 1
 			path: src/Extension/Cryptography/LegacyCryptographyMetadataEnricher.php
 
@@ -103,34 +157,22 @@ parameters:
 			path: src/Metadata/AttributeMetadataFactory.php
 
 		-
-			message: '#^Method Patchlevel\\Hydrator\\Metadata\\AttributeMetadataFactory\:\:getPersonalData\(\) should return array\{bool, mixed, \(callable\(string, mixed\)\: mixed\)\|null\} but returns array\{false, null\}\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Metadata/AttributeMetadataFactory.php
-
-		-
 			message: '#^Parameter \#1 \$class of method Patchlevel\\Hydrator\\Metadata\\AttributeMetadataFactory\:\:findNormalizerOnClass\(\) expects class\-string, string given\.$#'
 			identifier: argument.type
 			count: 3
 			path: src/Metadata/AttributeMetadataFactory.php
 
 		-
-			message: '#^Method Patchlevel\\Hydrator\\MetadataHydrator\:\:doHydrate\(\) should return T of object but returns mixed\.$#'
-			identifier: return.type
+			message: '#^Property Patchlevel\\Hydrator\\Metadata\\ClassMetadata\<T of object \= object\>\:\:\$reflection \(ReflectionClass\<T of object \= object\>\) does not accept ReflectionClass\<object\>\.$#'
+			identifier: assign.propertyType
 			count: 1
-			path: src/MetadataHydrator.php
+			path: src/Metadata/ClassMetadata.php
 
 		-
-			message: '#^Parameter \#1 \$object of method Patchlevel\\Hydrator\\Metadata\\CallbackMetadata\:\:invoke\(\) expects object, mixed given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/MetadataHydrator.php
-
-		-
-			message: '#^Parameter \#1 \$object of method Patchlevel\\Hydrator\\Metadata\\PropertyMetadata\:\:setValue\(\) expects object, mixed given\.$#'
-			identifier: argument.type
+			message: '#^Access to constant OBJECT_TO_POPULATE on an unknown class Patchlevel\\Hydrator\\HydratorWithContext\.$#'
+			identifier: class.notFound
 			count: 2
-			path: src/MetadataHydrator.php
+			path: src/Middleware/TransformMiddleware.php
 
 		-
 			message: '#^Method Patchlevel\\Hydrator\\Middleware\\TransformMiddleware\:\:hydrate\(\) should return T of object but returns mixed\.$#'
@@ -145,34 +187,22 @@ parameters:
 			path: src/Middleware/TransformMiddleware.php
 
 		-
-			message: '#^Property Patchlevel\\Hydrator\\Normalizer\\EnumNormalizer\:\:\$enum \(class\-string\<BackedEnum\>\|null\) does not accept string\.$#'
-			identifier: assign.propertyType
+			message: '#^Possibly invalid array key type mixed\.$#'
+			identifier: offsetAccess.invalidOffset
+			count: 2
+			path: src/Middleware/TransformMiddleware.php
+
+		-
+			message: '#^Attribute class Patchlevel\\Hydrator\\Normalizer\\Deprecated does not exist\.$#'
+			identifier: attribute.notFound
 			count: 1
 			path: src/Normalizer/EnumNormalizer.php
 
 		-
-			message: '#^Parameter \#2 \$data of method Patchlevel\\Hydrator\\Hydrator\:\:hydrate\(\) expects array\<string, mixed\>, array given\.$#'
-			identifier: argument.type
+			message: '#^Property Patchlevel\\Hydrator\\Normalizer\\EnumNormalizer\:\:\$enum \(class\-string\<BackedEnum\>\|null\) does not accept string\.$#'
+			identifier: assign.propertyType
 			count: 1
-			path: src/Normalizer/ObjectMapNormalizer.php
-
-		-
-			message: '#^Parameter \#2 \$data of method Patchlevel\\Hydrator\\HydratorWithContext\:\:hydrate\(\) expects array\<string, mixed\>, array given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Normalizer/ObjectMapNormalizer.php
-
-		-
-			message: '#^Parameter \#2 \$data of method Patchlevel\\Hydrator\\Hydrator\:\:hydrate\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Normalizer/ObjectNormalizer.php
-
-		-
-			message: '#^Parameter \#2 \$data of method Patchlevel\\Hydrator\\HydratorWithContext\:\:hydrate\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Normalizer/ObjectNormalizer.php
+			path: src/Normalizer/EnumNormalizer.php
 
 		-
 			message: '#^Property Patchlevel\\Hydrator\\Normalizer\\ObjectNormalizer\:\:\$className \(class\-string\|null\) does not accept string\.$#'
@@ -181,10 +211,16 @@ parameters:
 			path: src/Normalizer/ObjectNormalizer.php
 
 		-
-			message: '#^Method Patchlevel\\Hydrator\\Normalizer\\ReflectionTypeUtil\:\:classStringInstanceOf\(\) should return class\-string\<T\> but returns class\-string\<T\>\|\(string&T\)\.$#'
-			identifier: return.type
+			message: '#^Parameter \#2 \$data of method Patchlevel\\Hydrator\\Middleware\\Middleware\:\:hydrate\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
+			identifier: argument.type
+			count: 3
+			path: src/StackHydrator.php
+
+		-
+			message: '#^Class Patchlevel\\Hydrator\\Cryptography\\PayloadCryptographer not found\.$#'
+			identifier: class.notFound
 			count: 1
-			path: src/Normalizer/ReflectionTypeUtil.php
+			path: tests/Unit/Extension/Cryptography/CryptographyExtensionTest.php
 
 		-
 			message: '#^Property Patchlevel\\Hydrator\\Tests\\Unit\\Extension\\Cryptography\\Fixture\\ChildWithSensitiveDataWithIdentifierDto\:\:\$email is never read, only written\.$#'
@@ -193,28 +229,34 @@ parameters:
 			path: tests/Unit/Extension/Cryptography/Fixture/ChildWithSensitiveDataWithIdentifierDto.php
 
 		-
-			message: '#^Method Patchlevel\\Hydrator\\Tests\\Unit\\Fixture\\DtoWithHooks\:\:postHydrate\(\) is unused\.$#'
-			identifier: method.unused
-			count: 1
-			path: tests/Unit/Fixture/DtoWithHooks.php
+			message: '#^Call to method expects\(\) on an unknown class Patchlevel\\Hydrator\\Cryptography\\PayloadCryptographer\.$#'
+			identifier: class.notFound
+			count: 2
+			path: tests/Unit/Extension/Cryptography/LegacyCryptographyDecryptMiddlewareTest.php
 
 		-
-			message: '#^Method Patchlevel\\Hydrator\\Tests\\Unit\\Fixture\\DtoWithHooks\:\:preExtract\(\) is unused\.$#'
-			identifier: method.unused
-			count: 1
-			path: tests/Unit/Fixture/DtoWithHooks.php
+			message: '#^Class Patchlevel\\Hydrator\\Cryptography\\PayloadCryptographer not found\.$#'
+			identifier: class.notFound
+			count: 2
+			path: tests/Unit/Extension/Cryptography/LegacyCryptographyDecryptMiddlewareTest.php
 
 		-
-			message: '#^Method class@anonymous/tests/Unit/Metadata/AttributeMetadataFactoryTest\.php\:477\:\:postHydrate\(\) is unused\.$#'
-			identifier: method.unused
-			count: 1
-			path: tests/Unit/Metadata/AttributeMetadataFactoryTest.php
+			message: '#^Attribute class Patchlevel\\Hydrator\\Attribute\\DataSubjectId does not exist\.$#'
+			identifier: attribute.notFound
+			count: 4
+			path: tests/Unit/Extension/Cryptography/LegacyCryptographyMetadataEnricherTest.php
 
 		-
-			message: '#^Method class@anonymous/tests/Unit/Metadata/AttributeMetadataFactoryTest\.php\:477\:\:preExtract\(\) is unused\.$#'
-			identifier: method.unused
+			message: '#^Attribute class Patchlevel\\Hydrator\\Attribute\\PersonalData does not exist\.$#'
+			identifier: attribute.notFound
+			count: 3
+			path: tests/Unit/Extension/Cryptography/LegacyCryptographyMetadataEnricherTest.php
+
+		-
+			message: '#^Property Patchlevel\\Hydrator\\Tests\\Unit\\Fixture\\IdNormalizer\:\:\$idClass \(class\-string\<Patchlevel\\Hydrator\\Tests\\Unit\\Fixture\\Id\>\|null\) does not accept string\.$#'
+			identifier: assign.propertyType
 			count: 1
-			path: tests/Unit/Metadata/AttributeMetadataFactoryTest.php
+			path: tests/Unit/Fixture/IdNormalizer.php
 
 		-
 			message: '#^Parameter \#1 \$class of method Patchlevel\\Hydrator\\Metadata\\AttributeMetadataFactory\:\:metadata\(\) expects class\-string\<Unknown\>, string given\.$#'
@@ -223,24 +265,6 @@ parameters:
 			path: tests/Unit/Metadata/AttributeMetadataFactoryTest.php
 
 		-
-			message: '#^Static method class@anonymous/tests/Unit/Metadata/AttributeMetadataFactoryTest\.php\:505\:\:postHydrate\(\) is unused\.$#'
-			identifier: method.unused
-			count: 1
-			path: tests/Unit/Metadata/AttributeMetadataFactoryTest.php
-
-		-
-			message: '#^Static method class@anonymous/tests/Unit/Metadata/AttributeMetadataFactoryTest\.php\:505\:\:preExtract\(\) is unused\.$#'
-			identifier: method.unused
-			count: 1
-			path: tests/Unit/Metadata/AttributeMetadataFactoryTest.php
-
-		-
-			message: '#^Parameter \#1 \$class of method Patchlevel\\Hydrator\\MetadataHydrator\:\:hydrate\(\) expects class\-string\<Unknown\>, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: tests/Unit/MetadataHydratorTest.php
-
-		-
 			message: '#^Cannot cast mixed to int\.$#'
 			identifier: cast.int
 			count: 2
@@ -263,9 +287,27 @@ parameters:
 			identifier: cast.string
 			count: 2
 			path: tests/Unit/Normalizer/ArrayShapeNormalizerTest.php
+
+		-
+			message: '#^Access to undefined constant Patchlevel\\Hydrator\\StackHydrator\:\:OBJECT_TO_POPULATE\.$#'
+			identifier: classConstant.notFound
+			count: 1
+			path: tests/Unit/StackHydratorTest.php
 
 		-
 			message: '#^Parameter \#1 \$class of method Patchlevel\\Hydrator\\StackHydrator\:\:hydrate\(\) expects class\-string\<Unknown\>, string given\.$#'
 			identifier: argument.type
+			count: 1
+			path: tests/Unit/StackHydratorTest.php
+
+		-
+			message: '#^Parameter \#3 \$context of method Patchlevel\\Hydrator\\StackHydrator\:\:hydrate\(\) expects array\<string, mixed\>, array\<Patchlevel\\Hydrator\\Tests\\Unit\\Fixture\\ProfileCreated\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: tests/Unit/StackHydratorTest.php
+
+		-
+			message: '#^Possibly invalid array key type mixed\.$#'
+			identifier: array.invalidKey
 			count: 1
 			path: tests/Unit/StackHydratorTest.php

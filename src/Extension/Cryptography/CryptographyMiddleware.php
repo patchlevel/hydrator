@@ -10,7 +10,6 @@ use Patchlevel\Hydrator\Extension\Cryptography\Store\CipherKeyNotExists;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Middleware\Middleware;
 use Patchlevel\Hydrator\Middleware\Stack;
-use Patchlevel\Hydrator\Normalizer\NormalizerWithContext;
 use Stringable;
 
 use function array_key_exists;
@@ -19,7 +18,6 @@ use function is_array;
 use function is_int;
 use function is_string;
 
-/** @experimental */
 final class CryptographyMiddleware implements Middleware
 {
     public function __construct(
@@ -73,11 +71,7 @@ final class CryptographyMiddleware implements Middleware
                     : $info->fallback;
 
                 if ($propertyMetadata->normalizer) {
-                    if ($propertyMetadata->normalizer instanceof NormalizerWithContext) {
-                        $fallback = $propertyMetadata->normalizer->normalize($fallback, $context);
-                    } else {
-                        $fallback = $propertyMetadata->normalizer->normalize($fallback);
-                    }
+                    $fallback = $propertyMetadata->normalizer->normalize($fallback, $context);
                 }
 
                 $data[$propertyMetadata->fieldName] = $fallback;
@@ -161,11 +155,7 @@ final class CryptographyMiddleware implements Middleware
                 $subjectId = $property->getValue($data);
 
                 if ($property->normalizer) {
-                    if ($property->normalizer instanceof NormalizerWithContext) {
-                        $subjectId = $property->normalizer->normalize($subjectId, $context);
-                    } else {
-                        $subjectId = $property->normalizer->normalize($subjectId);
-                    }
+                    $subjectId = $property->normalizer->normalize($subjectId, $context);
                 }
             }
 
