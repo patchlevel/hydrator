@@ -9,7 +9,7 @@ final class Stack
 {
     private int $index = 0;
 
-    /** @param list<Middleware> $middlewares */
+    /** @param non-empty-list<Middleware> $middlewares */
     public function __construct(
         private readonly array $middlewares,
     ) {
@@ -20,7 +20,7 @@ final class Stack
         $next = $this->middlewares[$this->index] ?? null;
 
         if ($next === null) {
-            throw new NoMoreMiddleware();
+            throw new NoMoreMiddleware($this->middlewares);
         }
 
         $this->index++;

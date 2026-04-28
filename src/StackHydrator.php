@@ -30,6 +30,9 @@ final class StackHydrator implements HydratorWithContext
         private readonly array $middlewares = [new TransformMiddleware()],
         private readonly bool $defaultLazy = false,
     ) {
+        if ($middlewares === []) {
+            throw new MissingMiddlewares();
+        }
     }
 
     /**

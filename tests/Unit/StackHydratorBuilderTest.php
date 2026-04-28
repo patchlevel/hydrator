@@ -51,6 +51,8 @@ final class StackHydratorBuilderTest extends TestCase
         $builder->addMetadataEnricher($enricher1, 10);
         $builder->addMetadataEnricher($enricher2, 20);
 
+        $builder->addMiddleware($this->createMock(Middleware::class));
+
         $hydrator = $builder->build();
 
         $reflection = new ReflectionProperty(StackHydrator::class, 'metadataFactory');
@@ -73,6 +75,8 @@ final class StackHydratorBuilderTest extends TestCase
         $builder = new StackHydratorBuilder();
         $builder->addGuesser($guesser1, 10);
         $builder->addGuesser($guesser2, 20);
+
+        $builder->addMiddleware($this->createMock(Middleware::class));
 
         $hydrator = $builder->build();
 
@@ -103,6 +107,8 @@ final class StackHydratorBuilderTest extends TestCase
         $builder = new StackHydratorBuilder();
         $builder->enableDefaultLazy();
 
+        $builder->addMiddleware($this->createMock(Middleware::class));
+
         $hydrator = $builder->build();
 
         $reflection = new ReflectionProperty(StackHydrator::class, 'defaultLazy');
@@ -128,6 +134,7 @@ final class StackHydratorBuilderTest extends TestCase
 
         $builder = new StackHydratorBuilder();
         $builder->setCache($cache);
+        $builder->addMiddleware($this->createMock(Middleware::class));
 
         $hydrator = $builder->build();
 
@@ -143,6 +150,7 @@ final class StackHydratorBuilderTest extends TestCase
 
         $builder = new StackHydratorBuilder();
         $builder->setCache($cache);
+        $builder->addMiddleware($this->createMock(Middleware::class));
 
         $hydrator = $builder->build();
 
