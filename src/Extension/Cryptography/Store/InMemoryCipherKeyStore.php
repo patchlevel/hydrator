@@ -8,7 +8,6 @@ use Patchlevel\Hydrator\Extension\Cryptography\Cipher\CipherKey;
 
 use function array_key_last;
 
-/** @experimental */
 final class InMemoryCipherKeyStore implements CipherKeyStore
 {
     /** @var array<string, CipherKey> */

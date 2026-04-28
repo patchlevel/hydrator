@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Extension\Cryptography\Cipher;
 
-/** @experimental */
 interface CipherKeyFactory
 {
     /**

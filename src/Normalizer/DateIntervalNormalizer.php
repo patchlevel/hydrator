@@ -19,7 +19,12 @@ final readonly class DateIntervalNormalizer implements Normalizer
     {
     }
 
-    public function normalize(mixed $value): string|null
+    /**
+     * @param array<string, mixed> $context
+     *
+     * @throws InvalidArgument
+     */
+    public function normalize(mixed $value, array $context): string|null
     {
         if ($value === null) {
             return null;
@@ -32,7 +37,12 @@ final readonly class DateIntervalNormalizer implements Normalizer
         return $value->format($this->format);
     }
 
-    public function denormalize(mixed $value): DateInterval|null
+    /**
+     * @param array<string, mixed> $context
+     *
+     * @throws InvalidArgument
+     */
+    public function denormalize(mixed $value, array $context): DateInterval|null
     {
         if ($value === null) {
             return null;

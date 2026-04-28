@@ -6,8 +6,6 @@ namespace Patchlevel\Hydrator\Normalizer;
 
 use Attribute;
 use BackedEnum;
-use Deprecated;
-use ReflectionType;
 use Symfony\Component\TypeInfo\Type;
 use Symfony\Component\TypeInfo\Type\BackedEnumType;
 use Symfony\Component\TypeInfo\Type\NullableType;
@@ -17,7 +15,7 @@ use function is_int;
 use function is_string;
 
 #[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_CLASS)]
-final class EnumNormalizer implements Normalizer, ReflectionTypeAwareNormalizer, TypeAwareNormalizer
+final class EnumNormalizer implements Normalizer, TypeAwareNormalizer
 {
     /** @param class-string<BackedEnum>|null $enum */
     public function __construct(
@@ -25,7 +23,8 @@ final class EnumNormalizer implements Normalizer, ReflectionTypeAwareNormalizer,
     ) {
     }
 
-    public function normalize(mixed $value): mixed
+    /** @param array<string, mixed> $context */
+    public function normalize(mixed $value, array $context): mixed
     {
         if ($value === null) {
             return null;
@@ -40,7 +39,8 @@ final class EnumNormalizer implements Normalizer, ReflectionTypeAwareNormalizer,
         return $value->value;
     }
 
-    public function denormalize(mixed $value): BackedEnum|null
+    /** @param array<string, mixed> $context */
+    public function denormalize(mixed $value, array $context): BackedEnum|null
     {
         if ($value === null) {
             return null;
@@ -59,16 +59,6 @@ final class EnumNormalizer implements Normalizer, ReflectionTypeAwareNormalizer,
         }
     }
 
-    /** @deprecated use `handleType()` instead */
-    public function handleReflectionType(ReflectionType|null $reflectionType): void
-    {
-        if ($this->enum !== null || $reflectionType === null) {
-            return;
-        }
-
-        $this->enum = ReflectionTypeUtil::classStringInstanceOf($reflectionType, BackedEnum::class);
-    }
-
     public function handleType(Type|null $type): void
     {
         if ($this->enum !== null || $type === null) {
@@ -84,13 +74,6 @@ final class EnumNormalizer implements Normalizer, ReflectionTypeAwareNormalizer,
         }
 
         $this->enum = $type->getClassName();
-    }
-
-    /** @return class-string<BackedEnum> */
-    #[Deprecated('Use `className()` method instead')]
-    public function getEnum(): string
-    {
-        return $this->className();
     }
 
     /** @return class-string<BackedEnum> */
