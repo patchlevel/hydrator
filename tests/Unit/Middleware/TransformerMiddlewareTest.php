@@ -30,7 +30,7 @@ class TransformerMiddlewareTest extends TestCase
             $this->classMetadata(ProfileCreated::class),
             ['profileId' => '1', 'email' => 'info@patchlevel.de'],
             [],
-            new Stack([]),
+            new Stack([$middleware]),
         );
 
         self::assertEquals($expected, $event);
@@ -49,7 +49,7 @@ class TransformerMiddlewareTest extends TestCase
                 Email::fromString('info@patchlevel.de'),
             ),
             [],
-            new Stack([]),
+            new Stack([$middleware]),
         );
 
         self::assertEquals($expected, $data);

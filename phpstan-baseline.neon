@@ -187,6 +187,12 @@ parameters:
 			path: src/Normalizer/ReflectionTypeUtil.php
 
 		-
+			message: '#^Parameter \#1 \$middlewares of class Patchlevel\\Hydrator\\Middleware\\Stack constructor expects non\-empty\-list\<Patchlevel\\Hydrator\\Middleware\\Middleware\>, list\<Patchlevel\\Hydrator\\Middleware\\Middleware\> given\.$#'
+			identifier: argument.type
+			count: 4
+			path: src/StackHydrator.php
+
+		-
 			message: '#^Property Patchlevel\\Hydrator\\Tests\\Unit\\Extension\\Cryptography\\Fixture\\ChildWithSensitiveDataWithIdentifierDto\:\:\$email is never read, only written\.$#'
 			identifier: property.onlyWritten
 			count: 1

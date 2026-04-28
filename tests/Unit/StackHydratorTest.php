@@ -11,10 +11,12 @@ use Patchlevel\Hydrator\CircularReference;
 use Patchlevel\Hydrator\ClassNotSupported;
 use Patchlevel\Hydrator\CoreExtension;
 use Patchlevel\Hydrator\DenormalizationFailure;
+use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Middleware\Middleware;
 use Patchlevel\Hydrator\Middleware\Stack;
 use Patchlevel\Hydrator\Middleware\TransformMiddleware;
+use Patchlevel\Hydrator\MissingMiddlewares;
 use Patchlevel\Hydrator\NormalizationFailure;
 use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
 use Patchlevel\Hydrator\StackHydrator;
@@ -56,6 +58,17 @@ final class StackHydratorTest extends TestCase
     public function setUp(): void
     {
         $this->hydrator = new StackHydrator();
+    }
+
+    public function testMissingMiddlewares(): void
+    {
+        $this->expectException(MissingMiddlewares::class);
+        $this->expectExceptionMessage('Missing middlewares.');
+
+        new StackHydrator(
+            new AttributeMetadataFactory(),
+            [],
+        );
     }
 
     public function testExtract(): void
