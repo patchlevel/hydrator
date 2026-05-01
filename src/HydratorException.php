@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator;
 
-interface HydratorException
+use Throwable;
+
+interface HydratorException extends Throwable
 {
 }
