@@ -62,6 +62,11 @@ final class MetadataHydrator implements HydratorWithContext
      *
      * @return T
      *
+     * @throws ClassNotSupported if the target class does not exist.
+     * @throws DenormalizationFailure if any normalizers throw an exception.
+     * @throws TypeMismatch if a TypeError occurs when setting a property value.
+     * @throws HydratorException Any other thrown exceptions should implement HydratorException.
+     *
      * @template T of object
      */
     public function hydrate(string $class, array $data, array $context = []): object
@@ -95,6 +100,9 @@ final class MetadataHydrator implements HydratorWithContext
      * @param array<string, mixed> $context
      *
      * @return T
+     *
+     * @throws DenormalizationFailure if any normalizers throw an exception.
+     * @throws TypeMismatch if a TypeError occurs when setting a property value.
      *
      * @template T of object
      */
@@ -179,6 +187,11 @@ final class MetadataHydrator implements HydratorWithContext
      * @param array<string, mixed> $context
      *
      * @return array<string, mixed>
+     *
+     * @throws CircularReference
+     * @throws NormalizationFailure
+     * @throws NormalizationMissing
+     * @throws ClassNotFound
      */
     public function extract(object $object, array $context = []): array
     {
