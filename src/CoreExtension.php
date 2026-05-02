@@ -12,7 +12,7 @@ final class CoreExtension implements Extension
 {
     public function configure(StackHydratorBuilder $builder): void
     {
-        $builder->addMiddleware(new TransformMiddleware(), -64);
+        $builder->addMiddleware(new TransformMiddleware(), Extension::PRIORITY_TRANSFORM);
         $builder->addGuesser(new BuiltInGuesser(), -64);
     }
 }
