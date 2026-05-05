@@ -23,6 +23,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle1Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle2Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle3Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ContextAwareDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\CovariantTemplate;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DefaultDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DtoWithHooks;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
@@ -665,5 +666,19 @@ final class MetadataHydratorTest extends TestCase
         ));
 
         self::assertSame(4, $guesser->count);
+    }
+
+    public function testTypesWithCovariantTemplatesCanBeSerialisedAndHydrated(): void
+    {
+        $object = new CovariantTemplate([
+            (object)['foo' => 1],
+            (object)['foo' => 2],
+        ]);
+
+        $serialized = $this->hydrator->extract($object);
+        $hydrated = $this->hydrator->hydrate(CovariantTemplate::class, $serialized);
+
+        self::assertNotSame($object, $hydrated);
+        self::assertEquals($object, $hydrated);
     }
 }
