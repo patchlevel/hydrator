@@ -14,6 +14,7 @@ use Throwable;
 
 use function array_key_exists;
 use function array_values;
+use function deepclone_hydrate;
 use function spl_object_id;
 
 /** @experimental */
