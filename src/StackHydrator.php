@@ -10,6 +10,7 @@ use Patchlevel\Hydrator\Metadata\ClassNotFound;
 use Patchlevel\Hydrator\Metadata\MetadataFactory;
 use Patchlevel\Hydrator\Middleware\Middleware;
 use Patchlevel\Hydrator\Middleware\Stack;
+use Patchlevel\Hydrator\Middleware\SymfonyTransformMiddleware;
 use Patchlevel\Hydrator\Middleware\TransformMiddleware;
 use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
 use ReflectionClass;
@@ -27,7 +28,7 @@ final class StackHydrator implements HydratorWithContext
     /** @param list<Middleware> $middlewares */
     public function __construct(
         private readonly MetadataFactory $metadataFactory = new AttributeMetadataFactory(),
-        private readonly array $middlewares = [new TransformMiddleware()],
+        private readonly array $middlewares = [new SymfonyTransformMiddleware()],
         private readonly bool $defaultLazy = false,
     ) {
         if ($middlewares === []) {

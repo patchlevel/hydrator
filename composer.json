@@ -24,6 +24,7 @@
     "psr/cache": "^2.0.0 || ^3.0.0",
     "psr/simple-cache": "^2.0.0 || ^3.0.0",
     "symfony/event-dispatcher": "^5.4.29 || ^6.4.0 || ^7.0.0 || ^8.0.0",
+    "symfony/polyfill-deepclone": "^1.37",
     "symfony/type-info": "^7.3.0 || ^8.0.0"
   },
   "require-dev": {
