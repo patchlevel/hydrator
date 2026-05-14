@@ -18,9 +18,7 @@ final class ProfileCreated
         public ProfileId $profileId,
         #[SensitiveData(fallback: 'unknown')]
         public string $name,
-        /**
-         * @Type("list<Patchlevel\Hydrator\Tests\Benchmark\Fixture\Skill>")
-         */
+        #[Type('list<Patchlevel\Hydrator\Tests\Benchmark\Fixture\Skill')]
         public array $skills = [],
     ) {
     }
