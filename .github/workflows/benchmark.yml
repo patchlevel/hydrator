@@ -26,7 +26,12 @@ jobs:
         with:
           coverage: "none"
           php-version: "${{ matrix.php-version }}"
-          ini-values: memory_limit=-1, opcache.enable_cli=1, opcache.jit=tracing, opcache.jit_buffer_size=64M
+          ini-values: memory_limit=-1, opcache.enable_cli=1, opcache.jit=tracing, opcache.jit_buffer_size=64M, extension=deepclone
+          tools: pie
+
+      - name: "Install symfony/deepclone"
+        run: |
+          sudo pie install symfony/deepclone
 
       - name: "Checkout base"
         uses: actions/checkout@v6
