@@ -88,7 +88,11 @@ final class StackHydrator implements Hydrator
         );
     }
 
-    /** @param array<string, mixed> $context */
+    /**
+     * @param array<string, mixed> $context
+     *
+     * @throws HydratorException
+     */
     public function extract(object $object, array $context = []): mixed
     {
         $metadata = $this->metadata($object::class);
