@@ -34,7 +34,7 @@ final class StackHydratorBuilder
     private CacheItemPoolInterface|CacheInterface|null $cache = null;
 
     /** @return $this */
-    public function addMiddleware(Middleware $middleware, int $priority = 0): static
+    public function addMiddleware(Middleware $middleware, int $priority = Extension::PRIORITY_BEFORE_TRANSFORM): static
     {
         $this->middlewares[$priority][] = $middleware;
 

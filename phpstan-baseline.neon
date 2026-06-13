@@ -109,12 +109,6 @@ parameters:
 			path: src/Middleware/TransformMiddleware.php
 
 		-
-			message: '#^Attribute class Patchlevel\\Hydrator\\Normalizer\\Deprecated does not exist\.$#'
-			identifier: attribute.notFound
-			count: 1
-			path: src/Normalizer/EnumNormalizer.php
-
-		-
 			message: '#^Property Patchlevel\\Hydrator\\Normalizer\\EnumNormalizer\:\:\$enum \(class\-string\<BackedEnum\>\|null\) does not accept string\.$#'
 			identifier: assign.propertyType
 			count: 1
@@ -127,15 +121,15 @@ parameters:
 			path: src/Normalizer/ObjectNormalizer.php
 
 		-
-			message: '#^Parameter \#2 \$data of method Patchlevel\\Hydrator\\Middleware\\Middleware\:\:hydrate\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
-			identifier: argument.type
-			count: 3
-			path: src/StackHydrator.php
-
-		-
 			message: '#^Parameter \#1 \$middlewares of class Patchlevel\\Hydrator\\Middleware\\Stack constructor expects non\-empty\-list\<Patchlevel\\Hydrator\\Middleware\\Middleware\>, list\<Patchlevel\\Hydrator\\Middleware\\Middleware\> given\.$#'
 			identifier: argument.type
 			count: 4
+			path: src/StackHydrator.php
+
+		-
+			message: '#^Parameter \#2 \$data of method Patchlevel\\Hydrator\\Middleware\\Middleware\:\:hydrate\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
+			identifier: argument.type
+			count: 3
 			path: src/StackHydrator.php
 
 		-
@@ -143,6 +137,36 @@ parameters:
 			identifier: property.onlyWritten
 			count: 1
 			path: tests/Unit/Extension/Cryptography/Fixture/ChildWithSensitiveDataWithIdentifierDto.php
+
+		-
+			message: '#^Class Patchlevel\\Hydrator\\Cryptography\\PayloadCryptographer not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: tests/Unit/Extension/Upcast/UpcastExtensionTest.php
+
+		-
+			message: '#^Class Patchlevel\\Hydrator\\Extension\\Cryptography\\CryptographyExtension constructor invoked with 2 parameters, 1 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: tests/Unit/Extension/Upcast/UpcastExtensionTest.php
+
+		-
+			message: '#^Class Patchlevel\\Hydrator\\Extension\\Cryptography\\LegacyCryptographyDecryptMiddleware not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: tests/Unit/Extension/Upcast/UpcastExtensionTest.php
+
+		-
+			message: '#^Binary operation "\." between mixed and '' '' results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 1
+			path: tests/Unit/Extension/Upcast/UpcastMiddlewareTest.php
+
+		-
+			message: '#^Binary operation "\." between non\-falsy\-string and mixed results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 1
+			path: tests/Unit/Extension/Upcast/UpcastMiddlewareTest.php
 
 		-
 			message: '#^Property Patchlevel\\Hydrator\\Tests\\Unit\\Fixture\\IdNormalizer\:\:\$idClass \(class\-string\<Patchlevel\\Hydrator\\Tests\\Unit\\Fixture\\Id\>\|null\) does not accept string\.$#'

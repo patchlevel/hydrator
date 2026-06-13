@@ -17,6 +17,6 @@ final class CryptographyExtension implements Extension
     public function configure(StackHydratorBuilder $builder): void
     {
         $builder->addMetadataEnricher(new CryptographyMetadataEnricher(), 64);
-        $builder->addMiddleware(new CryptographyMiddleware($this->cryptography), 64);
+        $builder->addMiddleware(new CryptographyMiddleware($this->cryptography), Extension::PRIORITY_ENCODING);
     }
 }
