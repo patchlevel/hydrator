@@ -21,7 +21,7 @@ final class CryptographyExtension implements Extension
     public function configure(StackHydratorBuilder $builder): void
     {
         $builder->addMetadataEnricher(new CryptographyMetadataEnricher(), 64);
-        $builder->addMiddleware(new CryptographyMiddleware($this->cryptography), 64);
+        $builder->addMiddleware(new CryptographyMiddleware($this->cryptography), Extension::PRIORITY_ENCODING);
 
         if ($this->legacyMetadataMapping) {
             $builder->addMetadataEnricher(new LegacyCryptographyMetadataEnricher(), 63);
@@ -31,6 +31,10 @@ final class CryptographyExtension implements Extension
             return;
         }
 
-        $builder->addMiddleware(new LegacyCryptographyDecryptMiddleware($this->legacyCryptographer), 65);
+        // the legacy decrypt has to run before the regular decryption
+        $builder->addMiddleware(
+            new LegacyCryptographyDecryptMiddleware($this->legacyCryptographer),
+            Extension::PRIORITY_ENCODING + 1,
+        );
     }
 }

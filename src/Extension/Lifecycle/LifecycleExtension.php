@@ -12,7 +12,7 @@ final readonly class LifecycleExtension implements Extension
 {
     public function configure(StackHydratorBuilder $builder): void
     {
-        $builder->addMiddleware(new LifecycleMiddleware());
+        $builder->addMiddleware(new LifecycleMiddleware(), Extension::PRIORITY_BEFORE_TRANSFORM);
         $builder->addMetadataEnricher(new LifecycleMetadataEnricher());
     }
 }
