@@ -1,0 +1,24 @@
+{
+  "navigation": [
+    { "title": "Introduction", "file": "index.md" },
+    { "title": "Getting Started", "file": "getting-started.md" },
+    {
+      "title": "Core",
+      "subEntries": [
+        { "title": "Hydrator", "file": "hydrator.md" },
+        { "title": "Normalizer", "file": "normalizer.md" },
+        { "title": "Guesser", "file": "guesser.md" },
+        { "title": "Lazy Objects", "file": "lazy.md" },
+        { "title": "Extensions", "file": "extensions.md" },
+        { "title": "Caching", "file": "caching.md" }
+      ]
+    },
+    {
+      "title": "Extensions",
+      "subEntries": [
+        { "title": "Lifecycle Hooks", "file": "lifecycle-hooks.md" },
+        { "title": "Cryptography", "file": "cryptography.md" }
+      ]
+    }
+  ]
+}
