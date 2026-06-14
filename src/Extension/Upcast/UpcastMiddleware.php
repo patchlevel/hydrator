@@ -8,7 +8,6 @@ use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Middleware\Middleware;
 use Patchlevel\Hydrator\Middleware\Stack;
 
-/** @experimental */
 final readonly class UpcastMiddleware implements Middleware
 {
     /** @param list<Upcaster> $upcasters */

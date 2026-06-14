@@ -4,9 +4,6 @@ Over time the shape of your stored data drifts away from your classes: fields
 get renamed, split or merged. Upcasting reshapes the stored array on the fly
 while it is hydrated, so old payloads keep loading into your current classes
 without a migration of the underlying storage.
-:::experimental
-The upcast extension is experimental and may change in a minor release.
-:::
 
 ## Setup
 
