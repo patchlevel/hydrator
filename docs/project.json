@@ -1,6 +1,6 @@
 {
   "navigation": [
-    { "title": "Introduction", "file": "index.md" },
+    { "title": "Introduction", "file": "introduction.md" },
     { "title": "Getting Started", "file": "getting-started.md" },
     {
       "title": "Core",
@@ -17,7 +17,8 @@
       "title": "Extensions",
       "subEntries": [
         { "title": "Lifecycle Hooks", "file": "lifecycle-hooks.md" },
-        { "title": "Cryptography", "file": "cryptography.md" }
+        { "title": "Cryptography", "file": "cryptography.md" },
+        { "title": "Upcasting", "file": "upcasting.md" }
       ]
     }
   ]

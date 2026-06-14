@@ -201,5 +201,6 @@ actually accessed.
 ## Learn more
 
 * [How to hydrate objects lazily](lazy.md)
+* [How to reshape outdated stored data](upcasting.md)
 * [How extensions work](extensions.md)
 * [How to use the hydrator](hydrator.md)

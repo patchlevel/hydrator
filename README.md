@@ -9,14 +9,14 @@ optimized for developer experience and performance."
 
 ## Features
 
-* Extract objects to arrays and hydrate them back, without calling the constructor
+* Extract objects to arrays and [hydrate](https://patchlevel.dev/docs/hydrator/latest/hydrator) them back, without calling the constructor
 * Works with `final`, `readonly` classes, property promotion and deeply nested structures
-* Automatic normalizer resolution for enums, date types, collections, array shapes and objects
-* Rename or exclude fields with attributes
-* Lazy hydration of objects with PHP 8.4 lazy proxies
-* Pluggable guessers and extensions to customize the process
-* Safe usage of Personal Data with crypto-shredding
-* Metadata caching with any PSR-6 or PSR-16 cache
+* Automatic [normalizer](https://patchlevel.dev/docs/hydrator/latest/normalizer) resolution for enums, date types, collections, array shapes and objects
+* [Rename or exclude](https://patchlevel.dev/docs/hydrator/latest/hydrator) fields with attributes
+* [Lazy hydration](https://patchlevel.dev/docs/hydrator/latest/lazy) of objects with PHP 8.4 lazy proxies
+* Pluggable [guessers](https://patchlevel.dev/docs/hydrator/latest/guesser) and [extensions](https://patchlevel.dev/docs/hydrator/latest/extensions) to customize the process
+* Safe usage of Personal Data with [crypto-shredding](https://patchlevel.dev/docs/hydrator/latest/cryptography)
+* [Metadata caching](https://patchlevel.dev/docs/hydrator/latest/caching) with any PSR-6 or PSR-16 cache
 * Developer experience oriented and fully typed
 * and much more...
 
