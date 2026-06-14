@@ -2,12 +2,16 @@
   "name": "patchlevel/hydrator",
   "type": "library",
   "license": "MIT",
-  "description": "Hydrator",
+  "description": "A library for seamless hydration of objects to arrays - and back again, optimized for developer experience and performance",
   "keywords": [
     "hydrator",
-    "serializer"
+    "serializer",
+    "normalizer",
+    "denormalizer",
+    "object mapping",
+    "patchlevel"
   ],
-  "homepage": "https://github.com/patchlevel/hydrator",
+  "homepage": "https://patchlevel.dev/docs/hydrator/latest",
   "authors": [
     {
       "name": "Daniel Badura",
