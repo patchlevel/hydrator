@@ -11,6 +11,7 @@ use Patchlevel\Hydrator\Metadata\EnrichingMetadataFactory;
 use Patchlevel\Hydrator\Metadata\MetadataEnricher;
 use Patchlevel\Hydrator\Metadata\Psr16MetadataFactory;
 use Patchlevel\Hydrator\Metadata\Psr6MetadataFactory;
+use Patchlevel\Hydrator\Metadata\MetadataFactory;
 use Patchlevel\Hydrator\Middleware\Middleware;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\SimpleCache\CacheInterface;
@@ -80,12 +81,7 @@ final class StackHydratorBuilder
 
     public function build(): StackHydrator
     {
-        $metadataFactory = new EnrichingMetadataFactory(
-            new AttributeMetadataFactory(
-                guesser: new ChainGuesser($this->guessers()),
-            ),
-            $this->metadataEnrichers(),
-        );
+        $metadataFactory = $this->getMetadataFactory();
 
         if ($this->cache instanceof CacheItemPoolInterface) {
             $metadataFactory = new Psr6MetadataFactory($metadataFactory, $this->cache);
@@ -129,5 +125,15 @@ final class StackHydratorBuilder
         krsort($this->metadataEnrichers);
 
         return array_merge(...$this->metadataEnrichers);
+    }
+
+    public function getMetadataFactory(): MetadataFactory
+    {
+        return new EnrichingMetadataFactory(
+            new AttributeMetadataFactory(
+                guesser: new ChainGuesser($this->guessers()),
+            ),
+            $this->metadataEnrichers(),
+        );
     }
 }

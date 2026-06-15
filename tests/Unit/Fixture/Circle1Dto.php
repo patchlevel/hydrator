@@ -8,6 +8,10 @@ use Patchlevel\Hydrator\Normalizer\ObjectNormalizer;
 
 final class Circle1Dto
 {
-    #[ObjectNormalizer(Circle2Dto::class)]
-    public object|null $to = null;
+    public function __construct(
+        #[ObjectNormalizer(Circle2Dto::class)]
+        public object|null $to = null
+    )
+    {
+    }
 }
