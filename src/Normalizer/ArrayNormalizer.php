@@ -35,11 +35,13 @@ final readonly class ArrayNormalizer implements Normalizer, TypeAwareNormalizer,
             throw InvalidArgument::withWrongType('array|null', $value);
         }
 
-        foreach ($value as &$item) {
-            $item = $this->normalizer->normalize($item, $context);
+        $result = [];
+
+        foreach ($value as $key => $item) {
+            $result[$key] = $this->normalizer->normalize($item, $context);
         }
 
-        return $value;
+        return $result;
     }
 
     /**
@@ -57,11 +59,13 @@ final readonly class ArrayNormalizer implements Normalizer, TypeAwareNormalizer,
             throw InvalidArgument::withWrongType('array|null', $value);
         }
 
-        foreach ($value as &$item) {
-            $item = $this->normalizer->denormalize($item, $context);
+        $result = [];
+
+        foreach ($value as $key => $item) {
+            $result[$key] = $this->normalizer->denormalize($item, $context);
         }
 
-        return $value;
+        return $result;
     }
 
     public function setHydrator(Hydrator $hydrator): void

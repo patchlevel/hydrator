@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Unit\Normalizer;
 
+use InvalidArgumentException;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\Normalizer\ArrayNormalizer;
 use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
@@ -11,6 +12,8 @@ use Patchlevel\Hydrator\Normalizer\InvalidArgument;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+
+use function is_int;
 
 #[CoversClass(ArrayNormalizer::class)]
 final class ArrayNormalizerTest extends TestCase
@@ -153,6 +156,83 @@ final class ArrayNormalizerTest extends TestCase
         $normalizer->denormalize(['a', 'b'], $context);
 
         $this->assertSame([$context, $context], $innerNormalizer->contexts);
+    }
+
+    public function testNormalizeDoesNotMutateSourceArrayWithReferencedElement(): void
+    {
+        $innerNormalizer = new class implements Normalizer {
+            /** @param array<string, mixed> $context */
+            public function normalize(mixed $value, array $context): int
+            {
+                if (!is_int($value)) {
+                    throw new InvalidArgumentException();
+                }
+
+                return $value + 100;
+            }
+
+            /** @param array<string, mixed> $context */
+            public function denormalize(mixed $value, array $context): int
+            {
+                if (!is_int($value)) {
+                    throw new InvalidArgumentException();
+                }
+
+                return $value - 100;
+            }
+        };
+
+        $source = [1, 2, 3];
+
+        // A leftover reference from a previous `foreach ($source as &$row)` without
+        // unset() turns the last element into a PHP reference. Iterating the source
+        // by reference inside the normalizer must not write back into it.
+        // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedForeach
+        foreach ($source as &$row) {
+        }
+
+        $normalizer = new ArrayNormalizer($innerNormalizer);
+        $result = $normalizer->normalize($source, []);
+
+        self::assertSame([101, 102, 103], $result);
+        self::assertSame([1, 2, 3], $source);
+    }
+
+    public function testDenormalizeDoesNotMutateSourceArrayWithReferencedElement(): void
+    {
+        $innerNormalizer = new class implements Normalizer {
+            /** @param array<string, mixed> $context */
+            public function normalize(mixed $value, array $context): int
+            {
+                if (!is_int($value)) {
+                    throw new InvalidArgumentException();
+                }
+
+                return $value + 100;
+            }
+
+            /** @param array<string, mixed> $context */
+            public function denormalize(mixed $value, array $context): int
+            {
+                if (!is_int($value)) {
+                    throw new InvalidArgumentException();
+                }
+
+                return $value - 100;
+            }
+        };
+
+        $source = [101, 102, 103];
+
+        // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedForeach
+        foreach ($source as &$row) {
+        }
+
+        $normalizer = new ArrayNormalizer($innerNormalizer);
+        $result = $normalizer->denormalize($source, []);
+
+        self::assertSame([1, 2, 3], $result);
+        self::assertSame([101, 102, 103], $source);
     }
 
     public function testPassHydrator(): void
