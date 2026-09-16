@@ -20,7 +20,6 @@ $hydrator = (new StackHydratorBuilder())
     ->useExtension(new CoreExtension())
     ->build();
 ```
-
 If you don't need any extensions, you can also instantiate the `StackHydrator`
 directly, it defaults to the same middleware and guesser:
 
@@ -40,8 +39,6 @@ Use the builder as soon as you want [extensions](extensions.md), custom
 To convert objects into serializable arrays, use the `extract` method.
 
 ```php
-use DateTimeImmutable;
-
 $event = new ProfileCreated(
     1,
     'patchlevel',
@@ -52,12 +49,11 @@ $event = new ProfileCreated(
 
 $data = $hydrator->extract($event);
 ```
-
 The result is an array of scalars and nested arrays that can be passed straight
 to `json_encode`:
 
 ```php
-[
+$eventData = [
     'id' => 1,
     'name' => 'patchlevel',
     'role' => 'admin',
@@ -66,9 +62,8 @@ to `json_encode`:
         ['name' => 'event-sourcing', 'level' => 10],
     ],
     'createdAt' => '2023-10-01T12:00:00+00:00',
-]
+];
 ```
-
 ## Hydrate objects
 
 The reverse direction is the `hydrate` method. You specify the class that should
@@ -114,7 +109,6 @@ $profile = $hydrator->hydrate(
     [Hydrator::OBJECT_TO_POPULATE => $profile],
 );
 ```
-
 ## Rename fields
 
 By default, the property name is used to name the field in the extracted
@@ -129,13 +123,10 @@ final class Profile
     public string $name;
 }
 ```
-
 The extracted result then looks like this:
 
 ```php
-[
-    'profile_name' => 'patchlevel',
-]
+$data = ['profile_name' => 'patchlevel'];
 ```
 :::tip
 You can rename a property without a backwards compatibility break in your stored
@@ -177,7 +168,7 @@ use Patchlevel\Hydrator\HydratorException;
 
 try {
     $event = $hydrator->hydrate(ProfileCreated::class, $data);
-} catch (HydratorException $e) {
+} catch (HydratorException) {
     // invalid data, unsupported class, type mismatch, ...
 }
 ```
