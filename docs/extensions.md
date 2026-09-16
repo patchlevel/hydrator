@@ -21,7 +21,6 @@ $hydrator = (new StackHydratorBuilder())
     ->useExtension(new LifecycleExtension())
     ->build();
 ```
-
 ## Built-in extensions
 
 The library ships with four extensions out of the box:
@@ -60,7 +59,6 @@ final class RemoveNullValuesMiddleware implements Middleware
     }
 }
 ```
-
 Middlewares are added with a priority, higher priorities run first (outermost).
 The `TransformMiddleware` from the `CoreExtension` has priority `-64`, so it
 always runs last.
@@ -68,7 +66,6 @@ always runs last.
 ```php
 $builder->addMiddleware(new RemoveNullValuesMiddleware(), 0);
 ```
-
 ## Metadata enricher
 
 A metadata enricher runs once per class when the metadata is created. It can
@@ -94,7 +91,6 @@ final class AuditMetadataEnricher implements MetadataEnricher
     }
 }
 ```
-
 ```php
 $builder->addMetadataEnricher(new AuditMetadataEnricher());
 ```
@@ -122,7 +118,6 @@ final class AuditExtension implements Extension
     }
 }
 ```
-
 ## Learn more
 
 * [How to run code before extract and after hydrate](lifecycle-hooks.md)

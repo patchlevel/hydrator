@@ -44,5 +44,27 @@ benchmark-diff-test: vendor                                                     
 	vendor/bin/phpbench run tests/Benchmark --revs=1 --report=diff --progress=none --ref=base
 
 
+.PHONY: docs
+docs: docs-extract-php docs-php-lint docs-phpcs docs-inject-php                  ## check and format docs code
+
+.PHONY: docs-extract-php
+docs-extract-php: vendor
+	bin/docs-extract-php-code
+
+.PHONY: docs-inject-php
+docs-inject-php: vendor
+	bin/docs-inject-php-code
+
+.PHONY: docs-format
+docs-format: docs-phpcs docs-inject-php                                         ## format docs
+
+.PHONY: docs-php-lint
+docs-php-lint: docs-extract-php                                                 ## lint docs code
+	php -l docs_php/*.php | grep -E 'Parse error|Fatal error' || true
+
+.PHONY: docs-phpcs
+docs-phpcs: docs-extract-php
+	vendor/bin/phpcbf docs_php --exclude=SlevomatCodingStandard.TypeHints.DeclareStrictTypes,SlevomatCodingStandard.ControlStructures.EarlyExit || true
+
 .PHONY: dev
 dev: static test                                                                ## run dev tools

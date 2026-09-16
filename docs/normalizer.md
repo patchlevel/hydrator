@@ -12,10 +12,11 @@ For every property, the normalizer is determined in this order:
 
 1. Does the property have a normalizer as an attribute? Use this.
 2. Otherwise, the type of the property is determined:
-    1. If it is an array shape, the `ArrayShapeNormalizer` is used (recursive).
-    2. If it is a collection, the `ArrayNormalizer` is used (recursive).
-    3. If it is an object, a normalizer attribute is searched on the class, its parents and interfaces.
-    4. If none is found, the [guessers](guesser.md) are asked. The built-in guesser handles enums and date types and falls back to the `ObjectNormalizer`.
+   1. If it is an array shape, the `ArrayShapeNormalizer` is used (recursive).
+   2. If it is a collection, the `ArrayNormalizer` is used (recursive).
+   3. If it is an object, a normalizer attribute is searched on the class, its parents and interfaces.
+   4. If none is found, the [guessers](guesser.md) are asked. The built-in guesser handles enums and date types and falls back to the `ObjectNormalizer`.
+   
 
 The normalizer is only determined once per class because it is cached in the
 [metadata](caching.md).
@@ -35,12 +36,10 @@ final readonly class ProfileCreated
     }
 }
 ```
-
 You can also set the `ArrayNormalizer` explicitly and pass it the normalizer
 for the elements:
 
 ```php
-use DateTimeImmutable;
 use Patchlevel\Hydrator\Normalizer\ArrayNormalizer;
 use Patchlevel\Hydrator\Normalizer\DateTimeImmutableNormalizer;
 
@@ -62,7 +61,6 @@ It is inferred automatically from an `array{...}` docblock, or you can configure
 it explicitly with a map of field name to normalizer.
 
 ```php
-use DateTimeImmutable;
 use Patchlevel\Hydrator\Normalizer\ArrayShapeNormalizer;
 use Patchlevel\Hydrator\Normalizer\DateTimeImmutableNormalizer;
 
@@ -80,7 +78,6 @@ final class Profile
     public array $explicitMeta;
 }
 ```
-
 ## DateTimeImmutable
 
 With the `DateTimeImmutableNormalizer` you can convert `DateTimeImmutable`
@@ -88,7 +85,6 @@ objects to a string and back again. It is applied automatically to
 `DateTimeImmutable` properties.
 
 ```php
-use DateTimeImmutable;
 use Patchlevel\Hydrator\Normalizer\DateTimeImmutableNormalizer;
 
 final class Profile
@@ -97,12 +93,10 @@ final class Profile
     public DateTimeImmutable $createdAt;
 }
 ```
-
 You can also define the format. Either describe it yourself as a string or use
 one of the existing constants. The default is `DateTimeImmutable::ATOM`.
 
 ```php
-use DateTimeImmutable;
 use Patchlevel\Hydrator\Normalizer\DateTimeImmutableNormalizer;
 
 final class Profile
@@ -121,7 +115,6 @@ The `DateTimeNormalizer` works exactly like the `DateTimeImmutableNormalizer`,
 only for `DateTime` objects. The default format is `DateTime::ATOM`.
 
 ```php
-use DateTime;
 use Patchlevel\Hydrator\Normalizer\DateTimeNormalizer;
 
 final class Profile
@@ -130,13 +123,11 @@ final class Profile
     public DateTime $lastSeen;
 }
 ```
-
 ## DateTimeZone
 
 To normalize a `DateTimeZone`, the `DateTimeZoneNormalizer` is used.
 
 ```php
-use DateTimeZone;
 use Patchlevel\Hydrator\Normalizer\DateTimeZoneNormalizer;
 
 final class Profile
@@ -145,14 +136,12 @@ final class Profile
     public DateTimeZone $timeZone;
 }
 ```
-
 ## DateInterval
 
 A `DateInterval` is converted to its ISO 8601 duration string with the
 `DateIntervalNormalizer`. The format can be customized.
 
 ```php
-use DateInterval;
 use Patchlevel\Hydrator\Normalizer\DateIntervalNormalizer;
 
 final class Subscription
@@ -161,7 +150,6 @@ final class Subscription
     public DateInterval $renewEvery;
 }
 ```
-
 ## Enum
 
 Backed enums are converted to their backing value. The enum class is inferred
@@ -179,7 +167,6 @@ final class Profile
     public mixed $explicitRole;
 }
 ```
-
 ## Object
 
 If you have a complex object that you want to normalize, the `ObjectNormalizer`
@@ -245,8 +232,12 @@ don't want to create a separate normalizer class.
 use Patchlevel\Hydrator\Normalizer\InlineNormalizer;
 
 #[InlineNormalizer(
-    normalize: static fn (self $email): string => $email->toString(),
-    denormalize: static fn (string $value): self => new self($value),
+    normalize: static function (self $email): string {
+        return $email->toString();
+    },
+    denormalize: static function (string $value): self {
+        return new self($value);
+    },
 )]
 final class Email
 {
@@ -263,7 +254,8 @@ final class Email
 ```
 :::note
 Closures in attributes are only possible since PHP 8.5, therefore this normalizer
-can only be used as an attribute with PHP 8.5.
+can only be used as an attribute with PHP 8.5. Arrow functions (`fn`) are not
+allowed there, you have to use a `static function` closure.
 :::
 
 :::tip
@@ -284,15 +276,11 @@ In this example we have a value object that holds a validated name:
 ```php
 final class Name
 {
-    private string $value;
-
-    public function __construct(string $value)
+    public function __construct(private string $value)
     {
         if (strlen($value) < 3) {
             throw new NameIsTooShort($value);
         }
-
-        $this->value = $value;
     }
 
     public function toString(): string
@@ -301,11 +289,9 @@ final class Name
     }
 }
 ```
-
 The matching normalizer converts it to a string and back:
 
 ```php
-use Attribute;
 use Patchlevel\Hydrator\Normalizer\InvalidArgument;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
 
@@ -339,7 +325,6 @@ final class NameNormalizer implements Normalizer
     }
 }
 ```
-
 Now you can use the normalizer directly on a property:
 
 ```php
@@ -349,7 +334,6 @@ final class Profile
     public Name $name;
 }
 ```
-
 ## Define a normalizer on class level
 
 Instead of specifying the normalizer on each property, you can also set the

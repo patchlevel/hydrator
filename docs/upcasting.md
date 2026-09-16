@@ -65,7 +65,6 @@ final class RenameEmailUpcaster implements Upcaster
     }
 }
 ```
-
 For the common case of a single class and a closure, use the
 `CallbackUpcaster`. It compares the class name for you and only invokes the
 callback for a match. The callback receives the data and the context:
@@ -83,7 +82,6 @@ $upcaster = CallbackUpcaster::forClass(
     },
 );
 ```
-
 ## When upcasters run
 
 The hydrator decodes the stored payload in stages: first it is read as raw
