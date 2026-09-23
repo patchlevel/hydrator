@@ -35,7 +35,6 @@ final readonly class Psr6CacheStoreDecorator implements CipherKeyStore
         $entry = $this->cipherKeyStore->currentKeyFor($subjectId);
 
         $this->save(CacheKey::forSubjectId($subjectId), $entry);
-        $this->rememberKeyId($entry);
 
         return $entry;
     }

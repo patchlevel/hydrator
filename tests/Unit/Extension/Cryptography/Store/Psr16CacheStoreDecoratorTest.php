@@ -131,6 +131,19 @@ final class Psr16CacheStoreDecoratorTest extends TestCase
         self::assertEquals($otherKey, $store->get('key-3'));
     }
 
+    public function testRemoveWithSubjectIdEvictsStoredKeys(): void
+    {
+        $innerStore = new InMemoryCipherKeyStore();
+
+        $store = new Psr16CacheStoreDecorator($innerStore, $this->createCache());
+        $store->store($this->createKey('key-1', 'subject-1'));
+
+        $store->removeWithSubjectId('subject-1');
+
+        $this->assertKeyIdNotExists($store, 'key-1');
+        $this->assertSubjectIdNotExists($store, 'subject-1');
+    }
+
     public function testTtlIsPassedToCache(): void
     {
         $cache = $this->createMock(CacheInterface::class);
