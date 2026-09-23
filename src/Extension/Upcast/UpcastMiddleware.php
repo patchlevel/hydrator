@@ -4,17 +4,25 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Extension\Upcast;
 
+use Patchlevel\Hydrator\Extension\Upcast\Attribute\UpcasterFor;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Middleware\Skip;
 use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
 use Patchlevel\Hydrator\Middleware\Stack;
+use ReflectionClass;
+
+use function array_map;
 
 final readonly class UpcastMiddleware implements SkippableMiddleware
 {
+    /** @var list<class-string|null> */
+    private array $targets;
+
     /** @param list<Upcaster> $upcasters */
     public function __construct(
         private array $upcasters,
     ) {
+        $this->targets = array_map(self::resolveTarget(...), $upcasters);
     }
 
     /**
@@ -28,7 +36,13 @@ final readonly class UpcastMiddleware implements SkippableMiddleware
      */
     public function hydrate(ClassMetadata $metadata, array $data, array $context, Stack $stack): object
     {
-        foreach ($this->upcasters as $upcaster) {
+        foreach ($this->upcasters as $index => $upcaster) {
+            $target = $this->targets[$index];
+
+            if ($target !== null && $target !== $metadata->className) {
+                continue;
+            }
+
             $data = $upcaster->upcast($metadata, $data, $context);
         }
 
@@ -61,14 +75,36 @@ final readonly class UpcastMiddleware implements SkippableMiddleware
             return Skip::Both;
         }
 
-        foreach ($this->upcasters as $upcaster) {
-            // an upcaster we cannot introspect might still target this class
-            if (!$upcaster instanceof CallbackUpcaster || $upcaster->className === $metadata->className) {
+        foreach ($this->targets as $target) {
+            // a target we could not resolve might still apply to this class
+            if ($target === null || $target === $metadata->className) {
                 return Skip::Extract;
             }
         }
 
-        // every upcaster is a CallbackUpcaster and none of them targets this class
+        // none of the upcasters targets this class
         return Skip::Both;
+    }
+
+    /**
+     * Resolve the class an upcaster is restricted to, either from its
+     * `#[UpcasterFor]` attribute or, for a `CallbackUpcaster`, from the class
+     * name it was built with. Null means the upcaster applies to every class.
+     *
+     * @return class-string|null
+     */
+    private static function resolveTarget(Upcaster $upcaster): string|null
+    {
+        if ($upcaster instanceof CallbackUpcaster) {
+            return $upcaster->className;
+        }
+
+        $attributes = (new ReflectionClass($upcaster))->getAttributes(UpcasterFor::class);
+
+        if ($attributes === []) {
+            return null;
+        }
+
+        return $attributes[0]->newInstance()->className;
     }
 }

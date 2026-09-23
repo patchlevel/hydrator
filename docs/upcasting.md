@@ -43,21 +43,19 @@ up to date.
 
 An upcaster implements the `Upcaster` interface. It receives the
 [class metadata](hydrator.md), the data array and the context, and returns the
-reshaped data. Because every registered upcaster runs for every class, check the
-metadata and leave data you do not care about untouched.
+reshaped data. Mark it with the `#[UpcasterFor]` attribute to restrict it to a
+single class, so you do not have to check the metadata yourself:
 
 ```php
+use Patchlevel\Hydrator\Extension\Upcast\Attribute\UpcasterFor;
 use Patchlevel\Hydrator\Extension\Upcast\Upcaster;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 
+#[UpcasterFor(ProfileCreated::class)]
 final class RenameEmailUpcaster implements Upcaster
 {
     public function upcast(ClassMetadata $metadata, array $data, array $context): array
     {
-        if ($metadata->className !== ProfileCreated::class) {
-            return $data;
-        }
-
         $data['email'] = $data['mail'];
         unset($data['mail']);
 
@@ -65,9 +63,18 @@ final class RenameEmailUpcaster implements Upcaster
     }
 }
 ```
+:::note
+`#[UpcasterFor]` is more than a convenience: the `UpcastMiddleware` reads it to
+know it can be [skipped](extensions.md#skipping-middlewares) entirely for
+classes it does not target. Without it, the upcaster is called for every
+class, so if you do check the metadata yourself, the middleware has no way of
+knowing and always calls it.
+:::
+
 For the common case of a single class and a closure, use the
 `CallbackUpcaster`. It compares the class name for you and only invokes the
-callback for a match. The callback receives the data and the context:
+callback for a match, and the `UpcastMiddleware` recognizes it the same way it
+recognizes `#[UpcasterFor]`. The callback receives the data and the context:
 
 ```php
 use Patchlevel\Hydrator\Extension\Upcast\CallbackUpcaster;

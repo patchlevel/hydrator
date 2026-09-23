@@ -109,8 +109,9 @@ The built-in middlewares use this as well: the `CryptographyMiddleware` is left
 out for classes without sensitive data, the `LifecycleMiddleware` only runs in
 the directions the class has hooks for, and the `UpcastMiddleware` is left out
 while extracting, since upcasting only ever happens while hydrating. If every
-upcaster is a `CallbackUpcaster`, it is also left out while hydrating classes
-none of them target.
+upcaster is a `CallbackUpcaster` or carries an
+[`#[UpcasterFor]`](upcasting.md#writing-an-upcaster) attribute, it is also left
+out while hydrating classes none of them target.
 
 :::warning
 At least one middleware has to run. If every middleware skips a class, an
