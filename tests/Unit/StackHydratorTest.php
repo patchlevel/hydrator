@@ -14,7 +14,10 @@ use Patchlevel\Hydrator\CoreExtension;
 use Patchlevel\Hydrator\DenormalizationFailure;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
+use Patchlevel\Hydrator\Middleware\AllMiddlewaresSkipped;
 use Patchlevel\Hydrator\Middleware\Middleware;
+use Patchlevel\Hydrator\Middleware\Skip;
+use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
 use Patchlevel\Hydrator\Middleware\Stack;
 use Patchlevel\Hydrator\Middleware\TransformMiddleware;
 use Patchlevel\Hydrator\MissingMiddlewares;
@@ -622,5 +625,138 @@ final class StackHydratorTest extends TestCase
 
         $reflection = new ReflectionProperty($normalizer, 'hydrator');
         self::assertSame($this->hydrator, $reflection->getValue($normalizer));
+    }
+
+    public function testSkippableMiddlewareIsSkipped(): void
+    {
+        $middleware = $this->createMock(SkippableMiddleware::class);
+        $middleware
+            ->expects($this->once())
+            ->method('skip')
+            ->willReturn(Skip::Both);
+        $middleware
+            ->expects($this->never())
+            ->method('extract');
+
+        $hydrator = (new StackHydratorBuilder())
+            ->useExtension(new CoreExtension())
+            ->addMiddleware($middleware)
+            ->build();
+
+        $event = new ProfileCreated(
+            ProfileId::fromString('1'),
+            Email::fromString('info@patchlevel.de'),
+        );
+
+        self::assertEquals(
+            ['profileId' => '1', 'email' => 'info@patchlevel.de'],
+            $hydrator->extract($event),
+        );
+
+        // the decision is cached per class, so skip is not called again
+        $hydrator->extract($event);
+    }
+
+    public function testSkippableMiddlewareIsExecuted(): void
+    {
+        $expect = ['profileId' => '1', 'email' => 'info@patchlevel.de'];
+
+        $middleware = $this->createMock(SkippableMiddleware::class);
+        $middleware
+            ->expects($this->once())
+            ->method('skip')
+            ->willReturn(Skip::None);
+        $middleware
+            ->expects($this->once())
+            ->method('extract')
+            ->willReturn($expect);
+
+        $hydrator = (new StackHydratorBuilder())
+            ->useExtension(new CoreExtension())
+            ->addMiddleware($middleware)
+            ->build();
+
+        $event = new ProfileCreated(
+            ProfileId::fromString('1'),
+            Email::fromString('info@patchlevel.de'),
+        );
+
+        self::assertEquals($expect, $hydrator->extract($event));
+    }
+
+    public function testSkippableMiddlewareIsOnlySkippedWhileHydrating(): void
+    {
+        $data = ['profileId' => '1', 'email' => 'info@patchlevel.de'];
+
+        $middleware = $this->createMock(SkippableMiddleware::class);
+        $middleware
+            ->method('skip')
+            ->willReturn(Skip::Hydrate);
+        $middleware
+            ->expects($this->never())
+            ->method('hydrate');
+        $middleware
+            ->expects($this->once())
+            ->method('extract')
+            ->willReturn($data);
+
+        $hydrator = (new StackHydratorBuilder())
+            ->useExtension(new CoreExtension())
+            ->addMiddleware($middleware)
+            ->build();
+
+        $event = $hydrator->hydrate(ProfileCreated::class, $data);
+
+        self::assertEquals($data, $hydrator->extract($event));
+    }
+
+    public function testSkippableMiddlewareIsOnlySkippedWhileExtracting(): void
+    {
+        $data = ['profileId' => '1', 'email' => 'info@patchlevel.de'];
+
+        $event = new ProfileCreated(
+            ProfileId::fromString('1'),
+            Email::fromString('info@patchlevel.de'),
+        );
+
+        $middleware = $this->createMock(SkippableMiddleware::class);
+        $middleware
+            ->method('skip')
+            ->willReturn(Skip::Extract);
+        $middleware
+            ->expects($this->once())
+            ->method('hydrate')
+            ->willReturn($event);
+        $middleware
+            ->expects($this->never())
+            ->method('extract');
+
+        $hydrator = (new StackHydratorBuilder())
+            ->useExtension(new CoreExtension())
+            ->addMiddleware($middleware)
+            ->build();
+
+        self::assertSame($event, $hydrator->hydrate(ProfileCreated::class, $data));
+        self::assertEquals($data, $hydrator->extract($event));
+    }
+
+    public function testAllMiddlewaresSkipped(): void
+    {
+        $middleware = $this->createMock(SkippableMiddleware::class);
+        $middleware
+            ->method('skip')
+            ->willReturn(Skip::Both);
+
+        $hydrator = new StackHydrator(
+            new AttributeMetadataFactory(),
+            [$middleware],
+        );
+
+        $this->expectException(AllMiddlewaresSkipped::class);
+        $this->expectExceptionMessage(
+            'All middlewares were skipped for the class "' . ProfileCreated::class . '", at least one middleware must run.',
+        );
+
+        $hydrator->hydrate(ProfileCreated::class, ['profileId' => '1', 'email' => 'info@patchlevel.de']);
     }
 }
