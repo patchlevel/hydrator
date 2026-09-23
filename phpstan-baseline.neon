@@ -121,9 +121,9 @@ parameters:
 			path: src/Normalizer/ObjectNormalizer.php
 
 		-
-			message: '#^Parameter \#1 \$middlewares of class Patchlevel\\Hydrator\\Middleware\\Stack constructor expects non\-empty\-list\<Patchlevel\\Hydrator\\Middleware\\Middleware\>, list\<Patchlevel\\Hydrator\\Middleware\\Middleware\> given\.$#'
-			identifier: argument.type
-			count: 4
+			message: '#^Method Patchlevel\\Hydrator\\StackHydrator\:\:middlewaresFor\(\) should return non\-empty\-list\<Patchlevel\\Hydrator\\Middleware\\Middleware\> but returns list\<Patchlevel\\Hydrator\\Middleware\\Middleware\>\.$#'
+			identifier: return.type
+			count: 1
 			path: src/StackHydrator.php
 
 		-
