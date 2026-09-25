@@ -38,22 +38,14 @@ test: phpunit                                                                   
 snapshot: vendor                                                                ## regenerate the snapshot of the generated middleware
 	UPDATE_SNAPSHOTS=1 vendor/bin/phpunit --no-coverage --filter testGeneratedCodeMatchesSnapshot
 
-# benchmarks need opcache and must not run under xdebug, otherwise the numbers are meaningless
-PHPBENCH_OPTS = --php-config='{"opcache.enable_cli": 1, "xdebug.mode": "off", "memory_limit": "-1"}'
-
 .PHONY: benchmark
-benchmark: vendor                                                               ## run benchmarks
-	vendor/bin/phpbench run tests/Benchmark $(PHPBENCH_OPTS) --report=default
+benchmark: vendor                                                               ## run all benchmarks
+	vendor/bin/phpbench run --report=diff
 
-.PHONY: benchmark-fast
-benchmark-fast: vendor                                                          ## run only the fast benchmarks (our hydrators and the generated eventsauce mapper) with 1M objects
-	vendor/bin/phpbench run tests/Benchmark $(PHPBENCH_OPTS) --iterations=3 --revs=1 --report='{"generator":"expression","cols":["benchmark","subject","mode","rstdev"]}' --filter='Benchmark\\(StackHydratorBench|GeneratedHydratorBench|GeneratedHydratorWithCryptographyBench|HydratorWithCryptographyBench|GeneratedEventSauceHydratorBench)::bench(Hydrate|Extract)1000000Objects$$'
-
-.PHONY: benchmark-diff-test
-benchmark-diff-test: vendor                                                          ## run benchmarks
-	vendor/bin/phpbench run tests/Benchmark $(PHPBENCH_OPTS) --revs=1 --report=default --progress=none --tag=base
-	vendor/bin/phpbench run tests/Benchmark $(PHPBENCH_OPTS) --revs=1 --report=diff --progress=none --ref=base
-
+.PHONY: benchmark-diff
+benchmark-diff: vendor                                                          ## run the benchmarks twice and compare the second run against the first, like the CI does
+	vendor/bin/phpbench run --progress=none --tag=base
+	vendor/bin/phpbench run --progress=none --report=diff --ref=base
 
 .PHONY: docs
 docs: docs-extract-php docs-php-lint docs-phpcs docs-inject-php                  ## check and format docs code
