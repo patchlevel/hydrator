@@ -11,7 +11,7 @@ use Patchlevel\Hydrator\Tests\Benchmark\Fixture\ProfileCreated;
 use PhpBench\Attributes as Bench;
 
 #[Bench\BeforeMethods('setUp')]
-final class HydratorWithLazyBench
+final class StackHydratorWithLazyBench
 {
     private Hydrator $hydrator;
 
@@ -40,7 +40,7 @@ final class HydratorWithLazyBench
         $this->hydrator->extract($object);
     }
 
-    #[Bench\Revs(5)]
+    #[Bench\Revs(1000)]
     public function benchHydrate1Object(): void
     {
         $this->hydrator->hydrate(ProfileCreated::class, [
@@ -53,7 +53,7 @@ final class HydratorWithLazyBench
         ]);
     }
 
-    #[Bench\Revs(5)]
+    #[Bench\Revs(1000)]
     public function benchHydrate1ObjectTriggerInit(): void
     {
         $object = $this->hydrator->hydrate(ProfileCreated::class, [
@@ -97,38 +97,6 @@ final class HydratorWithLazyBench
             ]);
 
             $name = $object->name;
-        }
-    }
-
-    #[Bench\Revs(3)]
-    public function benchHydrate1000000Objects(): void
-    {
-        for ($i = 0; $i < 1_000_000; $i++) {
-            $this->hydrator->hydrate(ProfileCreated::class, [
-                'profileId' => '1',
-                'name' => 'foo',
-                'skills' => [
-                    ['name' => 'php'],
-                    ['name' => 'symfony'],
-                ],
-            ]);
-        }
-    }
-
-    #[Bench\Revs(3)]
-    public function benchHydrate1000000ObjectsTriggerInit(): void
-    {
-        for ($i = 0; $i < 1_000_000; $i++) {
-            $object = $this->hydrator->hydrate(ProfileCreated::class, [
-                'profileId' => '1',
-                'name' => 'foo',
-                'skills' => [
-                    ['name' => 'php'],
-                    ['name' => 'symfony'],
-                ],
-            ]);
-
-            $object = $object->name;
         }
     }
 }

@@ -6,11 +6,13 @@ namespace Patchlevel\Hydrator\Middleware;
 
 final class Stack
 {
-    private int $index = 0;
-
-    /** @param non-empty-list<Middleware> $middlewares */
+    /**
+     * @param non-empty-list<Middleware> $middlewares
+     * @param int                        $index       Position of the middleware returned by the next call to next().
+     */
     public function __construct(
         private readonly array $middlewares,
+        private int $index = 0,
     ) {
     }
 
