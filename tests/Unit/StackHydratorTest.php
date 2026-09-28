@@ -141,11 +141,13 @@ final class StackHydratorTest extends TestCase
         $dto3->to = $dto1;
 
         // Prevent infinite recursion
+        $dummy = new DummyMiddleware();
+
         $middleware = $this->createMock(Middleware::class);
         $middleware
             ->expects($this->exactly(4))
             ->method('extract')
-            ->willReturnCallback((new DummyMiddleware())->extract(...));
+            ->willReturnCallback($dummy->extract(...));
 
         $hydrator = new StackHydrator(middlewares: [$middleware, new TransformMiddleware()]);
 
