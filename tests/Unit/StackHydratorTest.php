@@ -30,6 +30,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle2Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle3Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ContextAwareDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DefaultDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\DummyMiddleware;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithIterablesDto;
@@ -139,7 +140,18 @@ final class StackHydratorTest extends TestCase
         $dto2->to = $dto3;
         $dto3->to = $dto1;
 
-        $this->hydrator->extract($dto1);
+        // Prevent infinite recursion
+        $dummy = new DummyMiddleware();
+
+        $middleware = $this->createMock(Middleware::class);
+        $middleware
+            ->expects($this->exactly(4))
+            ->method('extract')
+            ->willReturnCallback($dummy->extract(...));
+
+        $hydrator = new StackHydrator(middlewares: [$middleware, new TransformMiddleware()]);
+
+        $hydrator->extract($dto1);
     }
 
     public function testExtractWithInferNormalizer(): void
