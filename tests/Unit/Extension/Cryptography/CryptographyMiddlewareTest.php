@@ -20,6 +20,7 @@ use Patchlevel\Hydrator\Middleware\Stack;
 use Patchlevel\Hydrator\Middleware\TransformMiddleware;
 use Patchlevel\Hydrator\Tests\Unit\Extension\Cryptography\Fixture\SensitiveDataProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Extension\Cryptography\Fixture\SensitiveDataProfileCreatedFallbackCallback;
+use Patchlevel\Hydrator\Tests\Unit\Extension\Cryptography\Fixture\SensitiveDataWithContextDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
@@ -221,6 +222,46 @@ final class CryptographyMiddlewareTest extends TestCase
         self::assertInstanceOf(SensitiveDataProfileCreatedFallbackCallback::class, $result);
         self::assertEquals(ProfileId::fromString('foo'), $result->profileId);
         self::assertEquals(new Email('foo@example.com'), $result->email);
+    }
+
+    public function testFallbackUsesPropertyContext(): void
+    {
+        $cryptographer = $this->createMock(Cryptographer::class);
+        $cryptographer->method('supports')->willReturn(true);
+        $cryptographer->method('decrypt')->willThrowException(DecryptionFailed::forMethod('aes-256-gcm'));
+
+        $middleware = new CryptographyMiddleware($cryptographer);
+
+        $result = $middleware->hydrate(
+            $this->metadata(SensitiveDataWithContextDto::class),
+            ['id' => 'foo', 'email' => 'encrypted'],
+            [],
+            new Stack([new TransformMiddleware()]),
+        );
+
+        self::assertInstanceOf(SensitiveDataWithContextDto::class, $result);
+        self::assertSame('p-fallback-s', $result->email);
+    }
+
+    public function testSubjectIdUsesPropertyContext(): void
+    {
+        $cryptographer = $this->createMock(Cryptographer::class);
+        $cryptographer
+            ->expects($this->once())
+            ->method('encrypt')
+            ->with('id-foo', 'p-info@patchlevel.de')
+            ->willReturn('encrypted');
+
+        $middleware = new CryptographyMiddleware($cryptographer);
+
+        $result = $middleware->extract(
+            $this->metadata(SensitiveDataWithContextDto::class),
+            new SensitiveDataWithContextDto('foo', 'info@patchlevel.de'),
+            [],
+            new Stack([new TransformMiddleware()]),
+        );
+
+        self::assertSame(['id' => 'id-foo', 'email' => 'encrypted'], $result);
     }
 
     public function testDecrypt(): void

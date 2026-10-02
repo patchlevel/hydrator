@@ -23,6 +23,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\IgnoreParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWithGeneric;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\PropertyContextDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Wrapper;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -349,6 +350,16 @@ final class AttributeMetadataFactoryTest extends TestCase
         self::assertSame('profileId', $emailPropertyMetadata->propertyName);
         self::assertSame('profileId', $emailPropertyMetadata->fieldName);
         self::assertInstanceOf(IdNormalizer::class, $emailPropertyMetadata->normalizer);
+    }
+
+    public function testContext(): void
+    {
+        $metadataFactory = new AttributeMetadataFactory();
+        $metadata = $metadataFactory->metadata(PropertyContextDto::class);
+
+        self::assertSame(['prefix' => 'attr-', 'suffix' => '-attr'], $metadata->properties['value']->context);
+        self::assertSame(['prefix' => 'second-', 'suffix' => '-second'], $metadata->properties['repeated']->context);
+        self::assertSame([], $metadata->properties['plain']->context);
     }
 
     public function testIgnoreNotFoundProperty(): void

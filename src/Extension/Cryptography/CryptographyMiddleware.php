@@ -66,7 +66,10 @@ final class CryptographyMiddleware implements SkippableMiddleware
                     : $info->fallback;
 
                 if ($propertyMetadata->normalizer) {
-                    $fallback = $propertyMetadata->normalizer->normalize($fallback, $context);
+                    $fallback = $propertyMetadata->normalizer->normalize(
+                        $fallback,
+                        $propertyMetadata->context === [] ? $context : [...$context, ...$propertyMetadata->context],
+                    );
                 }
 
                 $data[$propertyMetadata->fieldName] = $fallback;
@@ -170,7 +173,10 @@ final class CryptographyMiddleware implements SkippableMiddleware
                 $subjectId = $property->getValue($data);
 
                 if ($property->normalizer) {
-                    $subjectId = $property->normalizer->normalize($subjectId, $context);
+                    $subjectId = $property->normalizer->normalize(
+                        $subjectId,
+                        $property->context === [] ? $context : [...$context, ...$property->context],
+                    );
                 }
             }
 

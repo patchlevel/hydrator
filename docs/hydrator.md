@@ -133,6 +133,42 @@ You can rename a property without a backwards compatibility break in your stored
 data by keeping the old serialized name with `NormalizedName`.
 :::
 
+## Context
+
+Both `extract` and `hydrate` accept a context array as last argument. It is
+passed to every normalizer and on to nested objects, so it can change how
+values are converted for a single call.
+
+```php
+use Patchlevel\Hydrator\Normalizer\DateTimeImmutableNormalizer;
+
+$data = $hydrator->extract($event, [DateTimeImmutableNormalizer::FORMAT => 'Y-m-d']);
+```
+With the `Context` attribute you can add context for a single property. It is
+merged into the context that is passed to the normalizer of this property, and
+on to nested objects if the property holds one. Values from the attribute win
+over the context of the call.
+
+```php
+use Patchlevel\Hydrator\Attribute\Context;
+use Patchlevel\Hydrator\Normalizer\DateTimeImmutableNormalizer;
+
+final class Profile
+{
+    #[Context([DateTimeImmutableNormalizer::FORMAT => 'Y-m-d'])]
+    public DateTimeImmutable $birthday;
+
+    public DateTimeImmutable $createdAt;
+}
+```
+The attribute can be used multiple times on the same property. The contexts
+are merged in the given order.
+
+:::note
+The context only reaches normalizers. Properties without a normalizer, like
+plain strings or integers, are copied as they are.
+:::
+
 ## Ignore properties
 
 Sometimes it is necessary to exclude properties. You can do that with the

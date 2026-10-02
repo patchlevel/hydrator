@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Metadata;
 
+use Patchlevel\Hydrator\Attribute\Context;
 use Patchlevel\Hydrator\Attribute\Ignore;
 use Patchlevel\Hydrator\Attribute\Lazy;
 use Patchlevel\Hydrator\Attribute\NormalizedName;
@@ -131,6 +132,7 @@ final class AttributeMetadataFactory implements MetadataFactory
                 $type,
                 $fieldName,
                 $this->getNormalizer($reflectionProperty, $type),
+                context: $this->getContext($reflectionProperty),
             );
         }
 
@@ -158,6 +160,18 @@ final class AttributeMetadataFactory implements MetadataFactory
         }
 
         return $attributeReflectionList[0]->newInstance()->name();
+    }
+
+    /** @return array<string, mixed> */
+    private function getContext(ReflectionProperty $reflectionProperty): array
+    {
+        $context = [];
+
+        foreach ($reflectionProperty->getAttributes(Context::class) as $attributeReflection) {
+            $context = [...$context, ...$attributeReflection->newInstance()->context];
+        }
+
+        return $context;
     }
 
     private function hasIgnore(ReflectionProperty $reflectionProperty): bool
