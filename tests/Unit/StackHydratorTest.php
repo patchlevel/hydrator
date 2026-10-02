@@ -43,6 +43,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWithInlineNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWithNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWrapper;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\PropertyContextDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Skill;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\StatusWithNormalizer;
@@ -125,6 +126,28 @@ final class StackHydratorTest extends TestCase
         $data = $this->hydrator->extract($dto, ['prefix' => 'ctx-']);
 
         self::assertSame(['value' => 'ctx-value'], $data);
+    }
+
+    public function testExtractMergesPropertyContext(): void
+    {
+        $dto = new PropertyContextDto('value', 'repeated', 'plain');
+
+        $data = $this->hydrator->extract($dto, ['prefix' => 'ctx-']);
+
+        self::assertSame(
+            ['value' => 'attr-value', 'repeated' => 'second-repeated', 'plain' => 'ctx-plain'],
+            $data,
+        );
+    }
+
+    public function testExtractWithOnlyPropertyContext(): void
+    {
+        $dto = new PropertyContextDto('value', 'repeated', 'plain');
+
+        self::assertSame(
+            ['value' => 'attr-value', 'repeated' => 'second-repeated', 'plain' => 'plain'],
+            $this->hydrator->extract($dto),
+        );
     }
 
     public function testExtractCircularReference(): void
@@ -262,6 +285,31 @@ final class StackHydratorTest extends TestCase
         );
 
         self::assertSame('value-ctx', $event->value);
+    }
+
+    public function testHydrateMergesPropertyContext(): void
+    {
+        $dto = $this->hydrator->hydrate(
+            PropertyContextDto::class,
+            ['value' => 'value', 'repeated' => 'repeated', 'plain' => 'plain'],
+            ['suffix' => '-ctx'],
+        );
+
+        self::assertSame('value-attr', $dto->value);
+        self::assertSame('repeated-second', $dto->repeated);
+        self::assertSame('plain-ctx', $dto->plain);
+    }
+
+    public function testHydrateWithOnlyPropertyContext(): void
+    {
+        $dto = $this->hydrator->hydrate(
+            PropertyContextDto::class,
+            ['value' => 'value', 'repeated' => 'repeated', 'plain' => 'plain'],
+        );
+
+        self::assertSame('value-attr', $dto->value);
+        self::assertSame('repeated-second', $dto->repeated);
+        self::assertSame('plain', $dto->plain);
     }
 
     public function testHydrateUnknownClass(): void

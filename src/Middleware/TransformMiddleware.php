@@ -61,7 +61,14 @@ final class TransformMiddleware implements Middleware
             if ($propertyMetadata->normalizer) {
                 try {
                     /** @psalm-suppress MixedAssignment */
-                    $value = $propertyMetadata->normalizer->denormalize($data[$propertyMetadata->fieldName], $context);
+                    $value = $propertyMetadata->normalizer->denormalize(
+                        $data[$propertyMetadata->fieldName],
+                        match (true) {
+                            $propertyMetadata->context === [] => $context,
+                            $context === [] => $propertyMetadata->context,
+                            default => [...$context, ...$propertyMetadata->context],
+                        },
+                    );
                 } catch (Throwable $e) {
                     throw new DenormalizationFailure(
                         $metadata->className,
@@ -115,7 +122,11 @@ final class TransformMiddleware implements Middleware
                         /** @psalm-suppress MixedAssignment */
                         $data[$propertyMetadata->fieldName] = $propertyMetadata->normalizer->normalize(
                             $propertyMetadata->getValue($object),
-                            $context,
+                            match (true) {
+                                $propertyMetadata->context === [] => $context,
+                                $context === [] => $propertyMetadata->context,
+                                default => [...$context, ...$propertyMetadata->context],
+                            },
                         );
                     } catch (CircularReference $e) {
                         throw $e;

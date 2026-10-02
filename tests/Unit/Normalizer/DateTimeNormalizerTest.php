@@ -66,4 +66,31 @@ final class DateTimeNormalizerTest extends TestCase
         $normalizer = new DateTimeNormalizer(format: DateTime::RFC822);
         $this->assertEquals(new DateTime('2015-02-13 22:34:32+01:00'), $normalizer->denormalize('Fri, 13 Feb 15 22:34:32 +0100', []));
     }
+
+    public function testNormalizeWithContextFormat(): void
+    {
+        $normalizer = new DateTimeNormalizer(format: DateTime::RFC822);
+        $this->assertEquals(
+            '2015-02-13',
+            $normalizer->normalize(new DateTime('2015-02-13 22:34:32+01:00'), [DateTimeNormalizer::FORMAT => 'Y-m-d']),
+        );
+    }
+
+    public function testDenormalizeWithContextFormat(): void
+    {
+        $normalizer = new DateTimeNormalizer(format: DateTime::RFC822);
+        $this->assertEquals(
+            new DateTime('2015-02-13 22:34:32+01:00'),
+            $normalizer->denormalize('2015-02-13 22:34:32+01:00', [DateTimeNormalizer::FORMAT => 'Y-m-d H:i:sP']),
+        );
+    }
+
+    public function testIgnoreInvalidContextFormat(): void
+    {
+        $normalizer = new DateTimeNormalizer();
+        $this->assertEquals(
+            '2015-02-13T22:34:32+01:00',
+            $normalizer->normalize(new DateTime('2015-02-13 22:34:32+01:00'), [DateTimeNormalizer::FORMAT => 123]),
+        );
+    }
 }

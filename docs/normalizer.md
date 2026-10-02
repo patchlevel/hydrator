@@ -109,10 +109,26 @@ final class Profile
 You can read about how the format is structured in the [php docs](https://www.php.net/manual/en/datetime.format.php).
 :::
 
+The format can also be changed through the [context](hydrator.md#context) with
+the `DateTimeImmutableNormalizer::FORMAT` key. It takes precedence over the
+format of the normalizer, for a single call or with the `Context` attribute for
+a single property.
+
+```php
+use Patchlevel\Hydrator\Attribute\Context;
+use Patchlevel\Hydrator\Normalizer\DateTimeImmutableNormalizer;
+
+final class Profile
+{
+    #[Context([DateTimeImmutableNormalizer::FORMAT => 'Y-m-d'])]
+    public DateTimeImmutable $birthday;
+}
+```
 ## DateTime
 
 The `DateTimeNormalizer` works exactly like the `DateTimeImmutableNormalizer`,
-only for `DateTime` objects. The default format is `DateTime::ATOM`.
+only for `DateTime` objects. The default format is `DateTime::ATOM`, and it
+reads the same context key, also available as `DateTimeNormalizer::FORMAT`.
 
 ```php
 use Patchlevel\Hydrator\Normalizer\DateTimeNormalizer;
