@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator;
 
+use Closure;
 use Patchlevel\Hydrator\Guesser\ChainGuesser;
 use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\EnrichingMetadataFactory;
 use Patchlevel\Hydrator\Metadata\MetadataEnricher;
+use Patchlevel\Hydrator\Metadata\MetadataFactory;
 use Patchlevel\Hydrator\Metadata\Psr16MetadataFactory;
 use Patchlevel\Hydrator\Metadata\Psr6MetadataFactory;
 use Patchlevel\Hydrator\Middleware\Middleware;
@@ -32,6 +34,9 @@ final class StackHydratorBuilder
     private array $guessers = [];
 
     private CacheItemPoolInterface|CacheInterface|null $cache = null;
+
+    /** @var (Closure(MetadataFactory, list<Middleware>, bool): StackHydrator)|null */
+    private Closure|null $hydratorFactory = null;
 
     /** @return $this */
     public function addMiddleware(Middleware $middleware, int $priority = Extension::PRIORITY_BEFORE_TRANSFORM): static
@@ -78,14 +83,28 @@ final class StackHydratorBuilder
         return $this;
     }
 
+    /**
+     * Replaces how the hydrator is created. This exists for the GeneratedHydrator of the generated middleware
+     * extension, the StackHydrator itself is not meant to be extended (see its @final annotation).
+     *
+     * @param Closure(MetadataFactory, list<Middleware>, bool): StackHydrator $factory receives the metadata factory, the middlewares and the default lazy flag
+     *
+     * @return $this
+     */
+    public function setHydratorFactory(Closure $factory): static
+    {
+        if ($this->hydratorFactory !== null) {
+            throw new HydratorFactoryAlreadySet();
+        }
+
+        $this->hydratorFactory = $factory;
+
+        return $this;
+    }
+
     public function build(): StackHydrator
     {
-        $metadataFactory = new EnrichingMetadataFactory(
-            new AttributeMetadataFactory(
-                guesser: new ChainGuesser($this->guessers()),
-            ),
-            $this->metadataEnrichers(),
-        );
+        $metadataFactory = $this->getMetadataFactory();
 
         if ($this->cache instanceof CacheItemPoolInterface) {
             $metadataFactory = new Psr6MetadataFactory($metadataFactory, $this->cache);
@@ -93,6 +112,10 @@ final class StackHydratorBuilder
 
         if ($this->cache instanceof CacheInterface) {
             $metadataFactory = new Psr16MetadataFactory($metadataFactory, $this->cache);
+        }
+
+        if ($this->hydratorFactory !== null) {
+            return ($this->hydratorFactory)($metadataFactory, $this->middlewares(), $this->defaultLazy);
         }
 
         return new StackHydrator(
@@ -129,5 +152,15 @@ final class StackHydratorBuilder
         krsort($this->metadataEnrichers);
 
         return array_merge(...$this->metadataEnrichers);
+    }
+
+    public function getMetadataFactory(): MetadataFactory
+    {
+        return new EnrichingMetadataFactory(
+            new AttributeMetadataFactory(
+                guesser: new ChainGuesser($this->guessers()),
+            ),
+            $this->metadataEnrichers(),
+        );
     }
 }

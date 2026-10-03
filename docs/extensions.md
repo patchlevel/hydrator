@@ -23,7 +23,7 @@ $hydrator = (new StackHydratorBuilder())
 ```
 ## Built-in extensions
 
-The library ships with four extensions out of the box:
+The library ships with five extensions out of the box:
 
 | Extension | Purpose |
 | --- | --- |
@@ -31,6 +31,7 @@ The library ships with four extensions out of the box:
 | `LifecycleExtension` | [Lifecycle hooks](lifecycle-hooks.md), run code before and after the extract and hydrate process. |
 | `CryptographyExtension` | [Cryptography](cryptography.md), encrypt and decrypt sensitive data with crypto-shredding. |
 | `UpcastExtension` | [Upcasting](upcasting.md), reshape outdated stored data while it is hydrated. |
+| `GeneratedMiddlewareExtension` | [Generated code](generated-code.md), generated mapping code for a fixed set of classes on top of the `CoreExtension`. |
 
 ## Middleware
 
@@ -175,4 +176,5 @@ final class AuditExtension implements Extension
 * [How to run code before extract and after hydrate](lifecycle-hooks.md)
 * [How to encrypt sensitive data](cryptography.md)
 * [How to reshape outdated stored data](upcasting.md)
+* [How to speed up hydration with generated code](generated-code.md)
 * [How to cache the metadata](caching.md)

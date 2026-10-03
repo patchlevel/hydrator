@@ -183,3 +183,4 @@ value does not fit the property type.
 * [How normalizers convert complex types](normalizer.md)
 * [How to hydrate objects lazily](lazy.md)
 * [How to hook into the hydration process](extensions.md)
+* [How to speed up hydration with generated code](generated-code.md)
