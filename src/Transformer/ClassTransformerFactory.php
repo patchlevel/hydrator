@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Transformer;
 
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
+use Patchlevel\Hydrator\StackHydrator;
 
 /**
  * Provides the transformer of a class. Factories are registered with
@@ -17,10 +18,11 @@ interface ClassTransformerFactory
      * Called once per class and hydrator, the transformer is cached by the hydrator.
      *
      * @param ClassMetadata<T> $metadata
+     * @param StackHydrator    $hydrator the hydrator which asks, for the metadata of other classes and its configuration
      *
      * @return ClassTransformer|null null if this factory is not responsible for the class
      *
      * @template T of object
      */
-    public function create(ClassMetadata $metadata): ClassTransformer|null;
+    public function create(ClassMetadata $metadata, StackHydrator $hydrator): ClassTransformer|null;
 }

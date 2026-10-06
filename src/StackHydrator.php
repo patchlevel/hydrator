@@ -23,7 +23,10 @@ use function is_array;
 
 use const PHP_VERSION_ID;
 
-final class StackHydrator implements Hydrator
+/**
+ * Also a metadata factory: it returns the metadata it works with, including all guessers, enrichers and the cache.
+ */
+final class StackHydrator implements Hydrator, MetadataFactory
 {
     /** @var array<class-string, ClassMetadata> */
     private array $classMetadata = [];
@@ -60,6 +63,17 @@ final class StackHydrator implements Hydrator
         }
 
         $this->hasSkippableMiddlewares = $hasSkippableMiddlewares;
+    }
+
+    /** @return list<Middleware> */
+    public function middlewares(): array
+    {
+        return $this->middlewares;
+    }
+
+    public function defaultLazy(): bool
+    {
+        return $this->defaultLazy;
     }
 
     /**
@@ -162,7 +176,7 @@ final class StackHydrator implements Hydrator
     private function transformer(ClassMetadata $metadata): ClassTransformer
     {
         return $this->transformers[$metadata->className]
-            ??= $this->transformerFactory->create($metadata)
+            ??= $this->transformerFactory->create($metadata, $this)
             ?? throw new ClassNotSupported($metadata->className);
     }
 

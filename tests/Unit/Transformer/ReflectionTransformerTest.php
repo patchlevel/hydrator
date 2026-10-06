@@ -6,6 +6,7 @@ namespace Patchlevel\Hydrator\Tests\Unit\Transformer;
 
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
+use Patchlevel\Hydrator\StackHydrator;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Skill;
 use Patchlevel\Hydrator\Transformer\ReflectionTransformer;
 use Patchlevel\Hydrator\Transformer\ReflectionTransformerFactory;
@@ -40,7 +41,7 @@ final class ReflectionTransformerTest extends TestCase
     public function testFactoryCreatesReflectionTransformer(): void
     {
         $factory = new ReflectionTransformerFactory();
-        $transformer = $factory->create((new AttributeMetadataFactory())->metadata(Skill::class));
+        $transformer = $factory->create((new AttributeMetadataFactory())->metadata(Skill::class), new StackHydrator());
 
         self::assertEquals(new Skill('php'), $transformer->hydrate(['name' => 'php'], []));
     }

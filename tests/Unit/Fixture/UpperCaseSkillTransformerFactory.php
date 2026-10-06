@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Tests\Unit\Fixture;
 
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
+use Patchlevel\Hydrator\StackHydrator;
 use Patchlevel\Hydrator\Transformer\ClassTransformer;
 use Patchlevel\Hydrator\Transformer\ClassTransformerFactory;
 
@@ -17,7 +18,7 @@ final class UpperCaseSkillTransformerFactory implements ClassTransformerFactory
 {
     public int $created = 0;
 
-    public function create(ClassMetadata $metadata): ClassTransformer|null
+    public function create(ClassMetadata $metadata, StackHydrator $hydrator): ClassTransformer|null
     {
         if ($metadata->className !== Skill::class) {
             return null;

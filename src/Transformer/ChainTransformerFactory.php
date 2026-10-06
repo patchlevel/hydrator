@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Transformer;
 
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
+use Patchlevel\Hydrator\StackHydrator;
 
 final readonly class ChainTransformerFactory implements ClassTransformerFactory
 {
@@ -14,10 +15,10 @@ final readonly class ChainTransformerFactory implements ClassTransformerFactory
     ) {
     }
 
-    public function create(ClassMetadata $metadata): ClassTransformer|null
+    public function create(ClassMetadata $metadata, StackHydrator $hydrator): ClassTransformer|null
     {
         foreach ($this->factories as $factory) {
-            $transformer = $factory->create($metadata);
+            $transformer = $factory->create($metadata, $hydrator);
 
             if ($transformer !== null) {
                 return $transformer;

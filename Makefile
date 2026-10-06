@@ -34,6 +34,10 @@ static: phpstan cs                                               				## run stat
 
 test: phpunit                                                                   ## run tests
 
+.PHONY: snapshot
+snapshot: vendor                                                                ## regenerate the snapshots of the generated transformers
+	UPDATE_SNAPSHOTS=1 vendor/bin/phpunit --no-coverage --filter testGeneratedCodeMatchesSnapshot
+
 .PHONY: benchmark
 benchmark: vendor                                                               ## run benchmarks
 	vendor/bin/phpbench run tests/Benchmark --report=default
