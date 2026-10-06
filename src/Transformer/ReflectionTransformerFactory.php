@@ -25,6 +25,6 @@ final class ReflectionTransformerFactory implements ClassTransformerFactory
      */
     public function create(ClassMetadata $metadata, TransformerResolver $resolver): ReflectionTransformer
     {
-        return new ReflectionTransformer($metadata, $this->callStack);
+        return new ReflectionTransformer($metadata, $this->callStack, $resolver);
     }
 }

@@ -40,6 +40,7 @@ final class CodeEmitter
     {
         $plan = $this->plan;
         $initialize = [];
+        $nestedInits = [];
 
         foreach ($plan->properties as $property) {
             if ($property->defaultSlot !== null) {
@@ -61,24 +62,26 @@ final class CodeEmitter
             $flag = $property->flag;
             $nested = $property->nested;
 
+            $this->properties[] = sprintf('public ClassTransformer|HydrateHandler|null $hh%d = null;', $flag);
+            $this->properties[] = sprintf('public ClassTransformer|ExtractHandler|null $he%d = null;', $flag);
             $this->properties[] = sprintf('public bool $ih%d = false;', $flag);
             $this->properties[] = sprintf('public bool $ie%d = false;', $flag);
-            $initialize[] = sprintf('$h%d = $this->nested($this->n%d, \\%s::class, Direction::Hydrate);', $flag, $property->slot, $nested->class);
-            $initialize[] = sprintf('$e%d = $this->nested($this->n%d, \\%s::class, Direction::Extract);', $flag, $property->slot, $nested->class);
-            $initialize[] = sprintf('$this->ih%1$d = $h%1$d !== null;', $flag);
-            $initialize[] = sprintf('$this->ie%1$d = $e%1$d !== null;', $flag);
-            $initialize[] = sprintf('if ($this->ih%1$d || $this->ie%1$d) { $this->x%2$d = $h%1$d ?? $e%1$d; }', $flag, $nested->slot);
+            $initialize[] = sprintf('$this->hh%d = $this->handler($this->n%d, \\%s::class, Direction::Hydrate);', $flag, $property->slot, $nested->class);
+            $initialize[] = sprintf('$this->he%d = $this->handler($this->n%d, \\%s::class, Direction::Extract);', $flag, $property->slot, $nested->class);
+            // generated transformers of nested classes are mapped in place, all others are called through their handler
+            $initialize[] = sprintf('$this->ih%1$d = $this->hh%1$d instanceof GeneratedTransformer;', $flag);
+            $initialize[] = sprintf('$this->ie%1$d = $this->he%1$d instanceof GeneratedTransformer;', $flag);
+            $this->properties[] = sprintf('public Closure|null $nh%d = null;', $flag);
+            $this->properties[] = sprintf('public Closure|null $ne%d = null;', $flag);
+            $nestedInits[] = sprintf('if ($this->ih%1$d) { $this->hh%1$d->init(); $this->nh%1$d = $this->hh%1$d->nestedHydrator; }', $flag);
+            $nestedInits[] = sprintf('if ($this->ie%1$d) { $this->he%1$d->init(); $this->ne%1$d = $this->he%1$d->nestedExtractor; }', $flag);
 
             if ($property->inner === null) {
                 continue;
             }
 
             $this->properties[] = sprintf('public ObjectNormalizer $n%d;', $property->inner);
-            $initialize[] = sprintf('if ($this->ih%1$d || $this->ie%1$d) { $this->n%2$d = $this->n%3$d->innerNormalizer(); }', $flag, $property->inner, $property->slot);
-        }
-
-        foreach ($plan->nested() as $slot => $nested) {
-            $this->properties[] = sprintf('public GeneratedTransformer $x%d;', $slot);
+            $initialize[] = sprintf('if ($this->hh%1$d !== null || $this->he%1$d !== null) { $this->n%2$d = $this->n%3$d->innerNormalizer(); }', $flag, $property->inner, $property->slot);
         }
 
         [$hydrate, $hydrateHelpers] = $this->hydrateBody();
@@ -88,6 +91,9 @@ final class CodeEmitter
             $initialize[] = $helper;
         }
 
+        // the nested entry points: called directly by the transformers of other classes, without the entry checks
+        $nestedHydrate = "\$object = \$this->reflection->newInstanceWithoutConstructor();\n\n" . self::withInline($hydrate, 'true');
+        $nestedExtract = self::withInline($extract, 'true');
         if ($plan->scopedHydrate) {
             $this->properties[] = 'public Closure $h;';
             $initialize[] = Templates::render(Templates::CLOSURE, [
@@ -112,9 +118,36 @@ final class CodeEmitter
             $extract = 'return ($this->e)($object, $context, $inline);';
         }
 
-        foreach ($plan->nested() as $slot => $nested) {
-            // the nested transformers are initialized last, they may lead back to this one
-            $initialize[] = sprintf('if (isset($this->x%1$d)) { $this->x%1$d->init(); }', $slot);
+        if ($plan->scopedHydrate) {
+            $initialize[] = Templates::render(Templates::CLOSURE, [
+                'slot' => 'nestedHydrator',
+                'signature' => 'array $data, array $context',
+                'return' => 'object',
+                'body' => $nestedHydrate,
+                'class' => $plan->className(),
+            ]);
+            $nestedHydrate = 'return ($this->nestedHydrator)($data, $context);';
+        }
+
+        if ($plan->scopedExtract) {
+            $initialize[] = Templates::render(Templates::CLOSURE, [
+                'slot' => 'nestedExtractor',
+                'signature' => 'object $object, array $context',
+                'return' => 'array',
+                'body' => $nestedExtract,
+                'class' => $plan->className(),
+            ]);
+            $nestedExtract = 'return ($this->nestedExtractor)($object, $context);';
+        }
+
+        $nestedMethods = [
+            Templates::render(Templates::NESTED_HYDRATE, ['body' => $nestedHydrate]),
+            Templates::render(Templates::NESTED_EXTRACT, ['body' => $nestedExtract]),
+        ];
+
+        // the nested transformers are initialized last, they may lead back to this one
+        foreach ($nestedInits as $init) {
+            $initialize[] = $init;
         }
 
         $code = Templates::render(Templates::TRANSFORMER, [
@@ -127,8 +160,7 @@ final class CodeEmitter
             // points are only called if they can
             'hydrate' => self::withInline($hydrate, $plan->nested() === [] ? 'false' : Templates::OWNER),
             'extract' => self::withInline($extract, $plan->nested() === [] ? 'false' : Templates::OWNER),
-            'hydrateNested' => self::withInline($hydrate, 'true'),
-            'extractNested' => self::withInline($extract, 'true'),
+            'nestedMethods' => implode("\n\n", $nestedMethods),
             'initialize' => $initialize === [] ? '// nothing to resolve' : implode("\n", $initialize),
             'recursive' => $this->recursive(),
         ]);
@@ -170,9 +202,8 @@ final class CodeEmitter
             }
 
             $checks[] = sprintf(
-                '($this->ie%d ? $this->x%d->recursive() : self::mayRecurse($this->n%d))',
+                '($this->ie%1$d ? $this->he%1$d->recursive() : self::mayRecurse($this->n%2$d))',
                 $property->flag,
-                $property->nested->slot,
                 $property->slot,
             );
         }
@@ -248,7 +279,6 @@ final class CodeEmitter
                 'field' => $field,
                 'flag' => (string)$property->flag,
                 'slot' => (string)$property->slot,
-                'nested' => $this->nestedCall($property, 'hydrateNested'),
             ]),
             ValueKind::NestedArray => Templates::render(Templates::DENORMALIZE_ARRAY, [
                 'variable' => $variable,
@@ -256,7 +286,6 @@ final class CodeEmitter
                 'flag' => (string)$property->flag,
                 'slot' => (string)$property->slot,
                 'inner' => (string)$property->inner,
-                'nested' => $this->nestedCall($property, 'hydrateNested'),
             ]),
         };
 
@@ -362,7 +391,6 @@ final class CodeEmitter
                 'name' => $name,
                 'flag' => (string)$property->flag,
                 'slot' => (string)$property->slot,
-                'nested' => $this->nestedCall($property, 'extractNested'),
                 'check' => self::instanceCheck('$value', $property),
             ]),
             ValueKind::NestedArray => Templates::render(Templates::NORMALIZE_ARRAY, [
@@ -371,7 +399,6 @@ final class CodeEmitter
                 'flag' => (string)$property->flag,
                 'slot' => (string)$property->slot,
                 'inner' => (string)$property->inner,
-                'nested' => $this->nestedCall($property, 'extractNested'),
                 'check' => self::instanceCheck('$item', $property),
             ]),
         };
@@ -397,12 +424,5 @@ final class CodeEmitter
         }
 
         return sprintf('%1$s instanceof \\%2$s && %1$s::class === \\%2$s::class', $variable, $nested->class);
-    }
-
-    private function nestedCall(PropertyPlan $property, string $method): string
-    {
-        assert($property->nested !== null);
-
-        return sprintf('$this->x%d->%s', $property->nested->slot, $method);
     }
 }

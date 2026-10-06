@@ -187,10 +187,14 @@ asked last, so every class without its own transformer is transformed with
 reflection.
 
 The `TransformerResolver` gives the transformer insight into the hydrator which
-created it. With `direct()` it asks whether the hydrator would call the
-transformer of a nested class directly, without a middleware, a class
-normalizer or a lazy proxy. Only then a transformer may map nested objects in
-place, like the [generated transformers](generated-code.md) do.
+created it. With `hydrateHandler()` and `extractHandler()` it gets what the
+hydrator does for a nested class, and can call it directly instead of going
+through the normalizer and the hydrator again. With `direct()` it asks whether
+the hydrator would call the transformer of a nested class directly, without a
+middleware, a class normalizer or a lazy proxy. Only then a transformer may map
+nested objects in place, like the [generated transformers](generated-code.md)
+do. Use the handlers only for calls of `hydrator()`: a hydrator which wraps it
+has to see the nested objects.
 :::warning
 Use the resolver once the transformer is used, not inside `create()`. The
 hydrator caches the transformer only after `create()` returned.

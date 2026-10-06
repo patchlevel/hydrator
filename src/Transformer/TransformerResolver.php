@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Transformer;
 
+use Patchlevel\Hydrator\Handler\ExtractHandler;
+use Patchlevel\Hydrator\Handler\HydrateHandler;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Metadata\ClassNotFound;
@@ -30,6 +32,30 @@ interface TransformerResolver
      * @template T of object
      */
     public function metadata(string $class): ClassMetadata;
+
+    /**
+     * What the hydrator does to hydrate an object of the class. Calling it behaves exactly like calling the hydrator,
+     * as long as the call came from {@see self::hydrator()}, without the detour through the normalizer and the
+     * hydrator itself.
+     *
+     * @param class-string $class
+     *
+     * @return ClassTransformer|HydrateHandler the transformer, if nothing else has to run for the class
+     *
+     * @throws ClassNotFound
+     */
+    public function hydrateHandler(string $class): ClassTransformer|HydrateHandler;
+
+    /**
+     * What the hydrator does to extract an object of exactly this class, see {@see self::hydrateHandler()}.
+     *
+     * @param class-string $class
+     *
+     * @return ClassTransformer|ExtractHandler the transformer, if nothing else has to run for the class
+     *
+     * @throws ClassNotFound
+     */
+    public function extractHandler(string $class): ClassTransformer|ExtractHandler;
 
     /**
      * The transformer the hydrator calls directly for the class in this direction: the class has no class

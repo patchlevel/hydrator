@@ -5,13 +5,10 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Extension\Generated;
 
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
-use Patchlevel\Hydrator\Normalizer\ArrayNormalizer;
-use Patchlevel\Hydrator\Normalizer\InvalidType;
+use Patchlevel\Hydrator\Metadata\NestedObject;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
-use Patchlevel\Hydrator\Normalizer\ObjectNormalizer;
 use ReflectionClass;
 
-use function class_exists;
 use function hash;
 use function serialize;
 use function substr;
@@ -73,32 +70,17 @@ final class ClassFingerprint
      */
     public static function nested(Normalizer $normalizer): array|null
     {
-        $array = false;
+        $nested = NestedObject::of($normalizer);
 
-        if ($normalizer instanceof ArrayNormalizer) {
-            $array = true;
-            $normalizer = $normalizer->innerNormalizer();
-        }
-
-        if (!$normalizer instanceof ObjectNormalizer) {
-            return null;
-        }
-
-        try {
-            $class = $normalizer->className();
-        } catch (InvalidType) {
-            return null;
-        }
-
-        if (!class_exists($class)) {
+        if ($nested === null) {
             return null;
         }
 
         return [
-            'class' => $class,
-            'array' => $array,
+            'class' => $nested->className,
+            'array' => $nested->list,
             // the generated code checks the exact class of nested objects, which is cheaper for final classes
-            'final' => (new ReflectionClass($class))->isFinal(),
+            'final' => (new ReflectionClass($nested->className))->isFinal(),
         ];
     }
 }
