@@ -42,7 +42,7 @@ use Patchlevel\Hydrator\StackHydratorBuilder;
 $hydrator = (new StackHydratorBuilder())
     ->useExtension(new CoreExtension())
     ->addGuesser(new NameGuesser())
-    ->build();
+    ->buildHydrator();
 ```
 :::note
 The guessers are queried in order of their priority, and the first match wins.
@@ -66,7 +66,7 @@ $hydrator = (new StackHydratorBuilder())
         Name::class => NameNormalizer::class,
         Email::class => EmailNormalizer::class,
     ]))
-    ->build();
+    ->buildHydrator();
 ```
 :::note
 The `MappedGuesser` instantiates the normalizer class without arguments, so the

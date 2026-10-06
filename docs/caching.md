@@ -20,7 +20,7 @@ use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 $hydrator = (new StackHydratorBuilder())
     ->useExtension(new CoreExtension())
     ->setCache(new FilesystemAdapter())
-    ->build();
+    ->buildHydrator();
 ```
 :::note
 Internally the builder wraps the metadata factory in a `Psr6MetadataFactory` or

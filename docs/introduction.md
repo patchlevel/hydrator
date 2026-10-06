@@ -20,6 +20,7 @@ And if customization is required, it can be done easily using attributes.
 * [Lifecycle hooks](lifecycle-hooks.md) before extracting and after hydrating.
 * Encrypt and decrypt sensitive data with the [cryptography](cryptography.md) extension (crypto-shredding).
 * [Upcast](upcasting.md) outdated stored data while it is hydrated.
+* [Trace](tracing.md) every hydrate and extract call, for example in the Symfony profiler.
 * [Cache](caching.md) the metadata with any PSR-6 or PSR-16 cache.
 
 ## Installation

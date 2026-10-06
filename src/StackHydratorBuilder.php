@@ -17,6 +17,7 @@ use Psr\SimpleCache\CacheInterface;
 
 use function array_merge;
 use function krsort;
+use function ksort;
 
 final class StackHydratorBuilder
 {
@@ -30,6 +31,9 @@ final class StackHydratorBuilder
 
     /** @var array<int, list<Guesser>> */
     private array $guessers = [];
+
+    /** @var array<int, list<HydratorDecorator>> */
+    private array $decorators = [];
 
     private CacheItemPoolInterface|CacheInterface|null $cache = null;
 
@@ -57,6 +61,18 @@ final class StackHydratorBuilder
         return $this;
     }
 
+    /**
+     * Decorators with a higher priority are wrapped around the ones with a lower priority.
+     *
+     * @return $this
+     */
+    public function addDecorator(HydratorDecorator $decorator, int $priority = 0): static
+    {
+        $this->decorators[$priority][] = $decorator;
+
+        return $this;
+    }
+
     public function enableDefaultLazy(bool $lazy = true): static
     {
         $this->defaultLazy = $lazy;
@@ -78,7 +94,30 @@ final class StackHydratorBuilder
         return $this;
     }
 
+    /** Builds the hydrator with all registered decorators. */
+    public function buildHydrator(): Hydrator
+    {
+        $stack = $this->buildStackHydrator();
+        $hydrator = $stack;
+
+        foreach ($this->decorators() as $decorator) {
+            $hydrator = $decorator->decorate($hydrator, $stack);
+        }
+
+        return $hydrator;
+    }
+
+    /**
+     * Builds the plain stack hydrator, registered decorators are not applied.
+     *
+     * @deprecated use buildHydrator() instead, which also applies the decorators
+     */
     public function build(): StackHydrator
+    {
+        return $this->buildStackHydrator();
+    }
+
+    private function buildStackHydrator(): StackHydrator
     {
         $metadataFactory = new EnrichingMetadataFactory(
             new AttributeMetadataFactory(
@@ -129,5 +168,13 @@ final class StackHydratorBuilder
         krsort($this->metadataEnrichers);
 
         return array_merge(...$this->metadataEnrichers);
+    }
+
+    /** @return list<HydratorDecorator> in the order they are applied, the innermost first */
+    public function decorators(): array
+    {
+        ksort($this->decorators);
+
+        return array_merge(...$this->decorators);
     }
 }

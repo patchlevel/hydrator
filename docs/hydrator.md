@@ -18,8 +18,15 @@ use Patchlevel\Hydrator\StackHydratorBuilder;
 
 $hydrator = (new StackHydratorBuilder())
     ->useExtension(new CoreExtension())
-    ->build();
+    ->buildHydrator();
 ```
+:::note
+`buildHydrator()` returns a `Hydrator`. Extensions can wrap the
+`StackHydrator` in [decorators](extensions.md#decorators), so type hint
+against the `Hydrator` interface. The older `build()` is deprecated, it
+returns the plain `StackHydrator` without decorators.
+:::
+
 If you don't need any extensions, you can also instantiate the `StackHydrator`
 directly, it defaults to the same middleware and guesser:
 

@@ -17,7 +17,7 @@ use Patchlevel\Hydrator\StackHydratorBuilder;
 $hydrator = (new StackHydratorBuilder())
     ->useExtension(new CoreExtension())
     ->useExtension(new LifecycleExtension())
-    ->build();
+    ->buildHydrator();
 ```
 ## Hooks
 

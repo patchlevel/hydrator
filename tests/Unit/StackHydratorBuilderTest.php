@@ -7,6 +7,8 @@ namespace Patchlevel\Hydrator\Tests\Unit;
 use Patchlevel\Hydrator\Extension;
 use Patchlevel\Hydrator\Guesser\ChainGuesser;
 use Patchlevel\Hydrator\Guesser\Guesser;
+use Patchlevel\Hydrator\Hydrator;
+use Patchlevel\Hydrator\HydratorDecorator;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\EnrichingMetadataFactory;
 use Patchlevel\Hydrator\Metadata\MetadataEnricher;
@@ -158,5 +160,62 @@ final class StackHydratorBuilderTest extends TestCase
         $factory = $reflection->getValue($hydrator);
 
         self::assertInstanceOf(Psr16MetadataFactory::class, $factory);
+    }
+
+    public function testBuildHydratorWithoutDecorators(): void
+    {
+        $builder = new StackHydratorBuilder();
+        $builder->addMiddleware($this->createMock(Middleware::class));
+
+        self::assertInstanceOf(StackHydrator::class, $builder->buildHydrator());
+    }
+
+    public function testBuildHydratorAppliesDecoratorsByPriority(): void
+    {
+        $inner = $this->createMock(Hydrator::class);
+        $outer = $this->createMock(Hydrator::class);
+        $stack = null;
+
+        $innerDecorator = $this->createMock(HydratorDecorator::class);
+        $innerDecorator
+            ->expects($this->once())
+            ->method('decorate')
+            ->willReturnCallback(static function (Hydrator $hydrator, StackHydrator $stackHydrator) use ($inner, &$stack): Hydrator {
+                self::assertSame($stackHydrator, $hydrator);
+                $stack = $stackHydrator;
+
+                return $inner;
+            });
+
+        $outerDecorator = $this->createMock(HydratorDecorator::class);
+        $outerDecorator
+            ->expects($this->once())
+            ->method('decorate')
+            ->willReturnCallback(static function (Hydrator $hydrator, StackHydrator $stackHydrator) use ($inner, $outer, &$stack): Hydrator {
+                self::assertSame($inner, $hydrator);
+                self::assertSame($stack, $stackHydrator);
+
+                return $outer;
+            });
+
+        $builder = new StackHydratorBuilder();
+        $builder->addMiddleware($this->createMock(Middleware::class));
+        $builder->addDecorator($outerDecorator, 10);
+        $builder->addDecorator($innerDecorator, -10);
+
+        self::assertSame([$innerDecorator, $outerDecorator], $builder->decorators());
+        self::assertSame($outer, $builder->buildHydrator());
+    }
+
+    public function testBuildIgnoresDecorators(): void
+    {
+        $decorator = $this->createMock(HydratorDecorator::class);
+        $decorator->expects($this->never())->method('decorate');
+
+        $builder = new StackHydratorBuilder();
+        $builder->addMiddleware($this->createMock(Middleware::class));
+        $builder->addDecorator($decorator);
+
+        $builder->build();
     }
 }

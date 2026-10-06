@@ -19,11 +19,11 @@ use Patchlevel\Hydrator\StackHydratorBuilder;
 $hydrator = (new StackHydratorBuilder())
     ->useExtension(new CoreExtension())
     ->useExtension(new LifecycleExtension())
-    ->build();
+    ->buildHydrator();
 ```
 ## Built-in extensions
 
-The library ships with four extensions out of the box:
+The library ships with five extensions out of the box:
 
 | Extension | Purpose |
 | --- | --- |
@@ -31,6 +31,7 @@ The library ships with four extensions out of the box:
 | `LifecycleExtension` | [Lifecycle hooks](lifecycle-hooks.md), run code before and after the extract and hydrate process. |
 | `CryptographyExtension` | [Cryptography](cryptography.md), encrypt and decrypt sensitive data with crypto-shredding. |
 | `UpcastExtension` | [Upcasting](upcasting.md), reshape outdated stored data while it is hydrated. |
+| `TracingExtension` | [Tracing](tracing.md), measure every hydrate and extract call. |
 
 ## Middleware
 
@@ -152,6 +153,43 @@ extras) can be [cached](caching.md), everything you store in `extras` must be
 serializable.
 :::
 
+## Decorators
+
+A decorator wraps the whole hydrator instead of a single step inside the
+stack. Use it for things which concern the call as a whole, like
+[tracing](tracing.md) or logging. A decorator implements `HydratorDecorator`
+and returns a new `Hydrator` around the given one. It also receives the
+innermost `StackHydrator`, in case it needs its metadata.
+
+```php
+use Patchlevel\Hydrator\Hydrator;
+use Patchlevel\Hydrator\HydratorDecorator;
+use Patchlevel\Hydrator\StackHydrator;
+
+final class AuditDecorator implements HydratorDecorator
+{
+    public function __construct(
+        private readonly AuditLog $auditLog,
+    ) {
+    }
+
+    public function decorate(Hydrator $hydrator, StackHydrator $stack): Hydrator
+    {
+        return new AuditHydrator($hydrator, $this->auditLog);
+    }
+}
+```
+```php
+$builder->addDecorator(new AuditDecorator($auditLog));
+```
+Decorators also accept a priority, a decorator with a higher priority is
+wrapped around the ones with a lower priority.
+
+:::warning
+Decorators are only applied by `buildHydrator()`. The deprecated `build()`
+returns the plain `StackHydrator`.
+:::
+
 ## Writing your own extension
 
 An extension implements the `Extension` interface and configures the builder.
@@ -175,4 +213,4 @@ final class AuditExtension implements Extension
 * [How to run code before extract and after hydrate](lifecycle-hooks.md)
 * [How to encrypt sensitive data](cryptography.md)
 * [How to reshape outdated stored data](upcasting.md)
-* [How to cache the metadata](caching.md)
+* [How to trace the hydrator](tracing.md)
