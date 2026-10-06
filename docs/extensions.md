@@ -23,22 +23,14 @@ $hydrator = (new StackHydratorBuilder())
 ```
 ## Built-in extensions
 
-<<<<<<< HEAD
-The library ships with three extensions out of the box:
-=======
-The library ships with six extensions out of the box:
->>>>>>> cc48981 (Add hydrator generation extension, update benchmarks)
+The library ships with four extensions out of the box:
 
 | Extension | Purpose |
 | --- | --- |
 | `LifecycleExtension` | [Lifecycle hooks](lifecycle-hooks.md), run code before and after the extract and hydrate process. |
 | `CryptographyExtension` | [Cryptography](cryptography.md), encrypt and decrypt sensitive data with crypto-shredding. |
 | `UpcastExtension` | [Upcasting](upcasting.md), reshape outdated stored data while it is hydrated. |
-<<<<<<< HEAD
-=======
-| `TracingExtension` | [Tracing](tracing.md), measure every hydrate and extract call. |
-| `GeneratedMiddlewareExtension` | [Generated code](generated-code.md), generated mapping code for a fixed set of classes on top of the `CoreExtension`. |
->>>>>>> cc48981 (Add hydrator generation extension, update benchmarks)
+| `GeneratedTransformerExtension` | [Generated code](generated-code.md), use generated mapping code instead of reflection. |
 
 ## Middleware
 
@@ -171,10 +163,11 @@ transformer for a class, for example generated code.
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Transformer\ClassTransformer;
 use Patchlevel\Hydrator\Transformer\ClassTransformerFactory;
+use Patchlevel\Hydrator\Transformer\TransformerResolver;
 
 final class MoneyTransformerFactory implements ClassTransformerFactory
 {
-    public function create(ClassMetadata $metadata): ClassTransformer|null
+    public function create(ClassMetadata $metadata, TransformerResolver $resolver): ClassTransformer|null
     {
         if ($metadata->className !== Money::class) {
             return null;
@@ -192,6 +185,16 @@ cached by the hydrator. Factories also accept a priority, a factory with a
 higher priority is asked first. The `ReflectionTransformerFactory` is always
 asked last, so every class without its own transformer is transformed with
 reflection.
+
+The `TransformerResolver` gives the transformer insight into the hydrator which
+created it. With `direct()` it asks whether the hydrator would call the
+transformer of a nested class directly, without a middleware, a class
+normalizer or a lazy proxy. Only then a transformer may map nested objects in
+place, like the [generated transformers](generated-code.md) do.
+:::warning
+Use the resolver once the transformer is used, not inside `create()`. The
+hydrator caches the transformer only after `create()` returned.
+:::
 
 ## Writing your own extension
 

@@ -23,7 +23,7 @@ final class ReflectionTransformerFactory implements ClassTransformerFactory
      *
      * @template T of object
      */
-    public function create(ClassMetadata $metadata): ReflectionTransformer
+    public function create(ClassMetadata $metadata, TransformerResolver $resolver): ReflectionTransformer
     {
         return new ReflectionTransformer($metadata, $this->callStack);
     }

@@ -7,7 +7,7 @@ namespace Patchlevel\Hydrator\Extension\Generated;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 
 /**
- * A class handled by the generated middleware together with the plans of its properties.
+ * A class together with the plans of its properties, its transformer is generated from it.
  *
  * @internal
  */
@@ -19,7 +19,6 @@ final class ClassPlan
      * @param bool               $scopedExtract extract code must run in the scope of the class
      */
     public function __construct(
-        public readonly int $index,
         public readonly ClassMetadata $metadata,
         public readonly array $properties,
         public readonly bool $scopedHydrate,
@@ -43,5 +42,21 @@ final class ClassPlan
         }
 
         return true;
+    }
+
+    /** @return array<int, NestedPlan> slot => nested class whose objects may be mapped in place */
+    public function nested(): array
+    {
+        $nested = [];
+
+        foreach ($this->properties as $property) {
+            if ($property->nested === null) {
+                continue;
+            }
+
+            $nested[$property->nested->slot] = $property->nested;
+        }
+
+        return $nested;
     }
 }

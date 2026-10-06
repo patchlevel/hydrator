@@ -8,15 +8,15 @@ use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Metadata\ClassNotFound;
 use Patchlevel\Hydrator\Metadata\MetadataFactory;
-use Patchlevel\Hydrator\Middleware\AllMiddlewaresSkipped;
-use Patchlevel\Hydrator\Middleware\HydratorAwareMiddleware;
 use Patchlevel\Hydrator\Middleware\Middleware;
 use Patchlevel\Hydrator\Middleware\Next;
 use Patchlevel\Hydrator\Middleware\Skip;
 use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
 use Patchlevel\Hydrator\Transformer\ClassTransformer;
 use Patchlevel\Hydrator\Transformer\ClassTransformerFactory;
+use Patchlevel\Hydrator\Transformer\Direction;
 use Patchlevel\Hydrator\Transformer\ReflectionTransformerFactory;
+use Patchlevel\Hydrator\Transformer\TransformerResolver;
 use ReflectionClass;
 
 use function array_key_exists;
@@ -25,8 +25,7 @@ use function is_array;
 
 use const PHP_VERSION_ID;
 
-/** @final this is only not final anymore because of bc reasons for the generated hydrator. DONT extend this class! */
-class StackHydrator implements Hydrator
+final class StackHydrator implements Hydrator
 {
     /** @var array<class-string, ClassMetadata> */
     private array $classMetadata = [];
@@ -40,7 +39,23 @@ class StackHydrator implements Hydrator
     /** @var array<class-string, ClassTransformer> */
     private array $transformers = [];
 
+    /** @var array<class-string, ClassTransformer|false> false if the hydrator does more than calling the transformer */
+    private array $directHydrate = [];
+
+    /** @var array<class-string, ClassTransformer|false> false if the hydrator does more than calling the transformer */
+    private array $directExtract = [];
+
     private readonly bool $hasSkippableMiddlewares;
+
+    private readonly TransformerResolver $resolver;
+
+    /**
+     * The context of calls without context, built once: adding the hydrator to an empty context on every call would
+     * allocate a new array each time.
+     *
+     * @var array<string, mixed>
+     */
+    private readonly array $context;
 
     /**
      * @param list<Middleware>        $middlewares        run before the data is transformed, in this order
@@ -57,27 +72,14 @@ class StackHydrator implements Hydrator
         foreach ($middlewares as $middleware) {
             if ($middleware instanceof SkippableMiddleware) {
                 $hasSkippableMiddlewares = true;
-            }
 
-            if (!$middleware instanceof HydratorAwareMiddleware) {
-                continue;
+                break;
             }
-
-            $middleware->setHydrator($this);
         }
 
         $this->hasSkippableMiddlewares = $hasSkippableMiddlewares;
-    }
-
-    /** @return list<Middleware> */
-    public function middlewares(): array
-    {
-        return $this->middlewares;
-    }
-
-    public function defaultLazy(): bool
-    {
-        return $this->defaultLazy;
+        $this->resolver = new StackTransformerResolver($this, $this->direct(...));
+        $this->context = [self::HYDRATOR => $this];
     }
 
     /**
@@ -90,14 +92,53 @@ class StackHydrator implements Hydrator
      */
     public function hydrate(string $class, mixed $data, array $context = []): object
     {
-        $context[self::HYDRATOR] ??= $this;
+        if ($context === []) {
+            $context = $this->context;
+        } else {
+            $context[self::HYDRATOR] ??= $this;
+        }
 
+        $transformer = $this->directHydrate[$class] ?? false;
+
+        // nothing else to do for this class, the transformer is called right away
+        if ($transformer !== false && is_array($data)) {
+            $object = $transformer->hydrate($data, $context);
+            assert($object instanceof $class);
+
+            return $object;
+        }
+
+        return $this->hydrateClass($class, $data, $context);
+    }
+
+    /**
+     * The path for classes seen the first time and for classes which need more than the transformer, kept out of
+     * {@see self::hydrate()} to keep the direct path small.
+     *
+     * @param class-string<T>      $class
+     * @param array<string, mixed> $context
+     *
+     * @return T
+     *
+     * @template T of object
+     */
+    private function hydrateClass(string $class, mixed $data, array $context): object
+    {
         try {
-            /** @var ClassMetadata<T> $metadata */
-            $metadata = $this->classMetadata[$class] ?? $this->metadata($class);
+            $transformer = $this->directHydrate[$class] ?? $this->direct($class, Direction::Hydrate);
         } catch (ClassNotFound $e) {
             throw new ClassNotSupported($class, $e);
         }
+
+        if ($transformer !== false && is_array($data)) {
+            $object = $transformer->hydrate($data, $context);
+            assert($object instanceof $class);
+
+            return $object;
+        }
+
+        /** @var ClassMetadata<T> $metadata the metadata is already loaded */
+        $metadata = $this->classMetadata[$class];
 
         if ($metadata->normalizer) {
             $return = $metadata->normalizer->denormalize($data, $context);
@@ -113,9 +154,7 @@ class StackHydrator implements Hydrator
             throw new ArrayDataRequired($class);
         }
 
-        $lazy = PHP_VERSION_ID >= 80400 && ($metadata->lazy ?? $this->defaultLazy);
-
-        if (!$lazy) {
+        if (!$this->lazy($metadata)) {
             return $this->hydrateWithMiddlewares($metadata, $data, $context);
         }
 
@@ -131,21 +170,78 @@ class StackHydrator implements Hydrator
      */
     public function extract(object $object, array $context = []): mixed
     {
-        $context[self::HYDRATOR] ??= $this;
+        if ($context === []) {
+            $context = $this->context;
+        } else {
+            $context[self::HYDRATOR] ??= $this;
+        }
 
-        $metadata = $this->metadata($object::class);
+        $transformer = $this->directExtract[$object::class] ?? false;
+
+        // nothing else to do for this class, the transformer is called right away
+        if ($transformer !== false) {
+            return $transformer->extract($object, $context);
+        }
+
+        return $this->extractClass($object, $context);
+    }
+
+    /**
+     * The path for classes seen the first time and for classes which need more than the transformer, kept out of
+     * {@see self::extract()} to keep the direct path small.
+     *
+     * @param array<string, mixed> $context
+     */
+    private function extractClass(object $object, array $context): mixed
+    {
+        $transformer = $this->directExtract[$object::class] ?? $this->direct($object::class, Direction::Extract);
+
+        if ($transformer !== false) {
+            return $transformer->extract($object, $context);
+        }
+
+        $metadata = $this->classMetadata[$object::class];
 
         if ($metadata->normalizer) {
             return $metadata->normalizer->normalize($object, $context);
         }
 
-        $middlewares = $this->middlewaresFor($metadata, Skip::Extract);
-        $transformer = $this->transformer($metadata);
+        return (new Next($this->middlewaresFor($metadata, Direction::Extract), $this->transformer($metadata)))
+            ->extract($metadata, $object, $context);
+    }
 
-        // without middlewares the transformer is called without building the stack
-        return $middlewares === []
-            ? $transformer->extract($object, $context)
-            : (new Next($middlewares, $transformer))->extract($metadata, $object, $context);
+    /**
+     * Decided once per class and direction: the transformer can be called directly if the class has no class
+     * normalizer, is not lazy and no middleware runs for it.
+     *
+     * @param class-string $class
+     *
+     * @throws ClassNotFound
+     */
+    private function direct(string $class, Direction $direction): ClassTransformer|false
+    {
+        $metadata = $this->metadata($class);
+        $direct = false;
+
+        if (
+            $metadata->normalizer === null
+            && ($direction === Direction::Extract || !$this->lazy($metadata))
+            && $this->middlewaresFor($metadata, $direction) === []
+        ) {
+            $direct = $this->transformer($metadata);
+        }
+
+        if ($direction === Direction::Hydrate) {
+            return $this->directHydrate[$class] = $direct;
+        }
+
+        return $this->directExtract[$class] = $direct;
+    }
+
+    /** @param ClassMetadata<object> $metadata */
+    private function lazy(ClassMetadata $metadata): bool
+    {
+        return PHP_VERSION_ID >= 80400 && ($metadata->lazy ?? $this->defaultLazy);
     }
 
     /**
@@ -159,7 +255,7 @@ class StackHydrator implements Hydrator
      */
     private function hydrateWithMiddlewares(ClassMetadata $metadata, array $data, array $context): object
     {
-        $middlewares = $this->middlewaresFor($metadata, Skip::Hydrate);
+        $middlewares = $this->middlewaresFor($metadata, Direction::Hydrate);
         $transformer = $this->transformer($metadata);
 
         if ($middlewares === []) {
@@ -181,25 +277,24 @@ class StackHydrator implements Hydrator
     private function transformer(ClassMetadata $metadata): ClassTransformer
     {
         return $this->transformers[$metadata->className]
-            ??= $this->transformerFactory->create($metadata)
+            ??= $this->transformerFactory->create($metadata, $this->resolver)
             ?? throw new ClassNotSupported($metadata->className);
     }
 
     /**
-     * @param ClassMetadata<T>            $metadata
-     * @param Skip::Hydrate|Skip::Extract $direction
+     * @param ClassMetadata<T> $metadata
      *
      * @return list<Middleware>
      *
      * @template T of object
      */
-    private function middlewaresFor(ClassMetadata $metadata, Skip $direction): array
+    private function middlewaresFor(ClassMetadata $metadata, Direction $direction): array
     {
         if (!$this->hasSkippableMiddlewares) {
             return $this->middlewares;
         }
 
-        $cached = $direction === Skip::Hydrate
+        $cached = $direction === Direction::Hydrate
             ? $this->hydrateMiddlewares[$metadata->className] ?? null
             : $this->extractMiddlewares[$metadata->className] ?? null;
 
@@ -208,12 +303,13 @@ class StackHydrator implements Hydrator
         }
 
         $middlewares = [];
+        $skipped = $direction === Direction::Hydrate ? Skip::Hydrate : Skip::Extract;
 
         foreach ($this->middlewares as $middleware) {
             if ($middleware instanceof SkippableMiddleware) {
                 $skip = $middleware->skip($metadata);
 
-                if ($skip === $direction || $skip === Skip::Both) {
+                if ($skip === $skipped || $skip === Skip::Both) {
                     continue;
                 }
             }
@@ -221,7 +317,7 @@ class StackHydrator implements Hydrator
             $middlewares[] = $middleware;
         }
 
-        if ($direction === Skip::Hydrate) {
+        if ($direction === Direction::Hydrate) {
             return $this->hydrateMiddlewares[$metadata->className] = $middlewares;
         }
 

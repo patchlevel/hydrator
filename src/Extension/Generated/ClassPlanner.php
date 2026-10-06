@@ -5,110 +5,63 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Extension\Generated;
 
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
-use Patchlevel\Hydrator\Metadata\ClassNotFound;
-use Patchlevel\Hydrator\Metadata\MetadataFactory;
 use Patchlevel\Hydrator\Metadata\PropertyMetadata;
 use Patchlevel\Hydrator\Normalizer\ArrayNormalizer;
-use Patchlevel\Hydrator\Normalizer\InvalidType;
-use Patchlevel\Hydrator\Normalizer\Normalizer;
-use Patchlevel\Hydrator\Normalizer\ObjectNormalizer;
 use ReflectionProperty;
 
-use function array_key_exists;
-use function array_values;
-use function ksort;
-use function ltrim;
+use function count;
 
 use const PHP_VERSION_ID;
 
 /**
- * Decides which classes end up in one generated middleware and how each of their properties is handled.
+ * Decides how each property of a class is handled by its generated transformer.
  *
- * The planner accumulates the state of a single dump, create a new instance for every middleware.
+ * The planner accumulates the slots of a single class, create a new instance for every class.
  *
  * @internal
  */
 final class ClassPlanner
 {
-    /** @var array<class-string, int|null> class => index, null for classes which can not be part of the middleware */
-    private array $index = [];
-
-    /** @var array<int, ClassPlan> */
-    private array $classes = [];
-
-    private int $nextIndex = 0;
     private int $normalizerSlots = 0;
     private int $flagSlots = 0;
     private int $defaultSlots = 0;
 
-    public function __construct(
-        private readonly MetadataFactory $metadataFactory,
-    ) {
-    }
+    /** @var array<class-string, int> nested class => slot of its transformer */
+    private array $nestedSlots = [];
 
-    /**
-     * @param class-string $class
-     *
-     * @throws ClassNotGeneratable
-     */
-    public function add(string $class): void
+    /** @param ClassMetadata<object> $metadata */
+    public function plan(ClassMetadata $metadata): ClassPlan
     {
-        $class = ltrim($class, '\\');
-
-        try {
-            $metadata = $this->metadataFactory->metadata($class);
-        } catch (ClassNotFound) {
-            throw new ClassNotGeneratable($class, 'class not found');
-        }
-
-        if ($metadata->normalizer !== null) {
-            // handled by the hydrator itself, never reaches a middleware
-            return;
-        }
-
-        if (!self::generatable($metadata)) {
-            throw new ClassNotGeneratable($class, 'the class is internal, abstract or an interface');
-        }
-
-        $this->register($metadata);
-    }
-
-    /** @return list<ClassPlan> ordered by index */
-    public function plans(): array
-    {
-        ksort($this->classes);
-
-        return array_values($this->classes);
-    }
-
-    /** @return int index of the registered class */
-    private function register(ClassMetadata $metadata): int
-    {
-        $class = $metadata->className;
-        $index = $this->index[$class] ?? null;
-
-        if ($index !== null) {
-            return $index;
-        }
-
-        $index = $this->nextIndex++;
-        // reserve the index before planning the properties: nested classes may reference this class again
-        $this->index[$class] = $index;
-
         $properties = [];
 
         foreach ($metadata->properties as $property) {
-            $properties[] = $this->plan($metadata, $property);
+            $properties[] = $this->property($metadata, $property);
         }
 
         [$scopedHydrate, $scopedExtract] = self::scoped($metadata, $properties);
 
-        $this->classes[$index] = new ClassPlan($index, $metadata, $properties, $scopedHydrate, $scopedExtract);
-
-        return $index;
+        return new ClassPlan($metadata, $properties, $scopedHydrate, $scopedExtract);
     }
 
-    private function plan(ClassMetadata $metadata, PropertyMetadata $property): PropertyPlan
+    /**
+     * Constructor visibility does not matter, the generated code runs in the scope of the class. Anonymous classes
+     * have no stable name the generated code could refer to.
+     *
+     * @param ClassMetadata<object> $metadata
+     */
+    public static function generatable(ClassMetadata $metadata): bool
+    {
+        $reflection = $metadata->reflection;
+
+        return !$reflection->isInternal()
+            && !$reflection->isAbstract()
+            && !$reflection->isInterface()
+            && !$reflection->isEnum()
+            && !$reflection->isAnonymous();
+    }
+
+    /** @param ClassMetadata<object> $metadata */
+    private function property(ClassMetadata $metadata, PropertyMetadata $property): PropertyPlan
     {
         $reflection = $property->reflection;
         $declaringClass = $reflection->getDeclaringClass()->getName();
@@ -127,21 +80,16 @@ final class ClassPlanner
         if ($normalizer !== null) {
             $kind = ValueKind::Normalizer;
             $slot = $this->normalizerSlots++;
-            $nested = $this->nestedClass($normalizer);
+            $nested = ClassFingerprint::nested($normalizer);
 
             if ($nested !== null) {
-                $kind = ValueKind::NestedObject;
-            } elseif ($normalizer instanceof ArrayNormalizer) {
-                $nested = $this->nestedClass($normalizer->innerNormalizer());
+                $kind = $nested['array'] ? ValueKind::NestedArray : ValueKind::NestedObject;
+                $flag = $this->flagSlots++;
+                $this->nestedSlots[$nested['class']] ??= count($this->nestedSlots);
 
-                if ($nested !== null) {
-                    $kind = ValueKind::NestedArray;
+                if ($normalizer instanceof ArrayNormalizer) {
                     $inner = $this->normalizerSlots++;
                 }
-            }
-
-            if ($nested !== null) {
-                $flag = $this->flagSlots++;
             }
         }
 
@@ -165,7 +113,11 @@ final class ClassPlanner
             slot: $slot,
             inner: $inner,
             flag: $flag,
-            nested: $nested,
+            nested: $nested === null ? null : new NestedPlan(
+                $nested['class'],
+                $this->nestedSlots[$nested['class']],
+                $nested['final'],
+            ),
             default: $default,
             defaultSlot: $defaultSlot,
             hydrateScope: $inherited && ($reflection->isPrivate() || $reflection->isReadOnly() || self::privateSet($reflection)) ? $declaringClass : null,
@@ -173,50 +125,11 @@ final class ClassPlanner
         );
     }
 
-    /** @return int|null the index of the nested class if the normalizer is an object normalizer for an inlinable class */
-    private function nestedClass(Normalizer $normalizer): int|null
-    {
-        if (!$normalizer instanceof ObjectNormalizer) {
-            return null;
-        }
-
-        try {
-            $class = $normalizer->className();
-        } catch (InvalidType) {
-            return null;
-        }
-
-        return $this->nestedIndex($class);
-    }
-
     /**
-     * Nested classes can only be inlined if they would end up in this middleware anyway.
+     * Code runs in the scope of the class (a bound closure) only if needed, otherwise in the methods of the transformer.
      *
-     * @param class-string $class
-     */
-    private function nestedIndex(string $class): int|null
-    {
-        if (array_key_exists($class, $this->index)) {
-            return $this->index[$class];
-        }
-
-        try {
-            $metadata = $this->metadataFactory->metadata($class);
-        } catch (ClassNotFound) {
-            return $this->index[$class] = null;
-        }
-
-        if ($metadata->normalizer !== null || $metadata->lazy === true || !self::generatable($metadata)) {
-            return $this->index[$class] = null;
-        }
-
-        return $this->register($metadata);
-    }
-
-    /**
-     * Code runs in the scope of the class (a bound closure) only if needed, otherwise plain methods are used.
-     *
-     * @param list<PropertyPlan> $properties
+     * @param ClassMetadata<object> $metadata
+     * @param list<PropertyPlan>    $properties
      *
      * @return array{bool, bool} [hydrate needs the class scope, extract needs the class scope]
      */
@@ -242,14 +155,6 @@ final class ClassPlanner
         }
 
         return [$hydrate, $extract];
-    }
-
-    /** Constructor visibility does not matter, the generated code runs in the scope of the class. */
-    private static function generatable(ClassMetadata $metadata): bool
-    {
-        $reflection = $metadata->reflection;
-
-        return !$reflection->isInternal() && !$reflection->isAbstract() && !$reflection->isInterface() && !$reflection->isEnum();
     }
 
     /** Readonly and asymmetric visibility restrict writes to the class scope. */

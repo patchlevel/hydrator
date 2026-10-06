@@ -21,3 +21,7 @@ services:
 		class: Patchlevel\Hydrator\Tests\Architecture\ExceptionImplementsHydratorExceptionTest
 		tags:
 			- phpat.test
+	-
+		class: Patchlevel\Hydrator\Tests\Architecture\NoCodeGenerationAtRuntimeTest
+		tags:
+			- phpat.test

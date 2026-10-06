@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Tests\Unit\Fixture;
 
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
+use Patchlevel\Hydrator\Middleware\Next;
 use Patchlevel\Hydrator\Middleware\Skip;
 use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
-use Patchlevel\Hydrator\Middleware\Stack;
 
 final class CountingMiddleware implements SkippableMiddleware
 {
@@ -32,11 +32,11 @@ final class CountingMiddleware implements SkippableMiddleware
      *
      * @template T of object
      */
-    public function hydrate(ClassMetadata $metadata, array $data, array $context, Stack $stack): object
+    public function hydrate(ClassMetadata $metadata, array $data, array $context, Next $next): object
     {
         $this->hydrated[$metadata->className] = ($this->hydrated[$metadata->className] ?? 0) + 1;
 
-        return $stack->next()->hydrate($metadata, $data, $context, $stack);
+        return $next->hydrate($metadata, $data, $context);
     }
 
     /**
@@ -48,11 +48,11 @@ final class CountingMiddleware implements SkippableMiddleware
      *
      * @template T of object
      */
-    public function extract(ClassMetadata $metadata, object $object, array $context, Stack $stack): array
+    public function extract(ClassMetadata $metadata, object $object, array $context, Next $next): array
     {
         $this->extracted[$metadata->className] = ($this->extracted[$metadata->className] ?? 0) + 1;
 
-        return $stack->next()->extract($metadata, $object, $context, $stack);
+        return $next->extract($metadata, $object, $context);
     }
 
     /**

@@ -9,6 +9,7 @@ use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Skill;
 use Patchlevel\Hydrator\Transformer\ReflectionTransformer;
 use Patchlevel\Hydrator\Transformer\ReflectionTransformerFactory;
+use Patchlevel\Hydrator\Transformer\TransformerResolver;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
@@ -40,7 +41,10 @@ final class ReflectionTransformerTest extends TestCase
     public function testFactoryCreatesReflectionTransformer(): void
     {
         $factory = new ReflectionTransformerFactory();
-        $transformer = $factory->create((new AttributeMetadataFactory())->metadata(Skill::class));
+        $transformer = $factory->create(
+            (new AttributeMetadataFactory())->metadata(Skill::class),
+            $this->createStub(TransformerResolver::class),
+        );
 
         self::assertEquals(new Skill('php'), $transformer->hydrate(['name' => 'php'], []));
     }

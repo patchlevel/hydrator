@@ -4,24 +4,23 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Extension\Generated;
 
-use function array_filter;
-use function array_keys;
 use function array_unshift;
 use function assert;
 use function implode;
-use function is_int;
+use function preg_replace;
 use function sprintf;
+use function str_contains;
 use function var_export;
 
 /**
- * Turns the plans of a middleware into php code.
+ * Turns the plan of a class into the php code of its transformer.
  *
- * The generated middleware behaves like the {@see \Patchlevel\Hydrator\Middleware\TransformMiddleware}:
+ * The generated transformer behaves like the {@see \Patchlevel\Hydrator\Transformer\ReflectionTransformer}:
  * objects are instantiated without their constructor and the properties are assigned directly. Assigning
  * properties happens inside closures bound to the scope of the class, so private and readonly properties
  * work the same way as with reflection.
  *
- * The emitter accumulates the members of a single generated class, create a new instance for every middleware.
+ * The emitter accumulates the members of a single transformer, create a new instance for every class.
  *
  * @internal
  */
@@ -30,241 +29,155 @@ final class CodeEmitter
     /** @var list<string> property declarations of the generated class */
     private array $properties = [];
 
-    /** @var list<string> init methods, one per class */
-    private array $inits = [];
-
-    /** @var list<string> hydrate/extract methods which do not need the scope of a class */
-    private array $methods = [];
-
     private int $helperSlots = 0;
 
-    /** @param list<ClassPlan> $classes indexed by {@see ClassPlan::$index} */
     public function __construct(
-        private readonly array $classes,
+        private readonly ClassPlan $plan,
     ) {
     }
 
     public function emit(string $namespace, string $className): string
     {
-        $constructor = [];
-        $compiledHydrateCases = [];
-        $compiledExtractCases = [];
-        $skipCases = [];
-        $hydrateCases = [];
-        $extractCases = [];
-
-        foreach ($this->classes as $plan) {
-            $class = $plan->className();
-            $index = $plan->index;
-
-            // until the class is initialized, the closures point to a stub which initializes the class first
-            $constructor[] = sprintf(
-                '$this->h%1$d = function (array $data, array $context, object|null $object = null): object { $this->init%1$d(); return ($this->h%1$d)($data, $context, $object); };',
-                $index,
-            );
-            $constructor[] = sprintf(
-                '$this->e%1$d = function (object $object, array $context): array { $this->init%1$d(); return ($this->e%1$d)($object, $context); };',
-                $index,
-            );
-
-            $hydrateCall = $plan->scopedHydrate ? sprintf('($this->h%d)', $index) : sprintf('$this->hydrate%d', $index);
-            $extractCall = $plan->scopedExtract ? sprintf('$this->e%d', $index) : sprintf('$this->extract%d(...)', $index);
-            $compiledHydrateCases[] = Templates::render(Templates::COMPILED_CASE, ['class' => $class, 'index' => (string)$index, 'closure' => sprintf('$this->fastHydrate%d(...)', $index)]);
-            $compiledExtractCases[] = Templates::render(Templates::COMPILED_CASE, ['class' => $class, 'index' => (string)$index, 'closure' => $extractCall]);
-            $this->methods[] = Templates::render(Templates::FAST_HYDRATE, ['index' => (string)$index, 'call' => $hydrateCall]);
-
-            $skipCases[] = sprintf('\\%s::class,', $class);
-            $hydrateCases[] = $plan->scopedHydrate
-                ? sprintf('\\%s::class => ($this->h%d)($data, $populate, $object),', $class, $index)
-                : sprintf('\\%1$s::class => $this->ready%2$d ? $this->hydrate%2$d($data, $populate, $object) : ($this->h%2$d)($data, $populate, $object),', $class, $index);
-            $extractCases[] = $plan->scopedExtract
-                ? sprintf('\\%s::class => ($this->e%d)($object, $context),', $class, $index)
-                : sprintf('\\%1$s::class => $this->ready%2$d ? $this->extract%2$d($object, $context) : ($this->e%2$d)($object, $context),', $class, $index);
-
-            $this->emitClass($plan);
-        }
-
-        return Templates::render(Templates::MIDDLEWARE, [
-            'namespace' => $namespace,
-            'className' => $className,
-            'version' => (string)MiddlewareGenerator::VERSION,
-            'properties' => implode("\n", $this->properties),
-            'constructor' => implode("\n", $constructor),
-            'skipCases' => implode("\n", $skipCases),
-            'compiledHydrateCases' => implode("\n", $compiledHydrateCases),
-            'compiledExtractCases' => implode("\n", $compiledExtractCases),
-            'hydrateCases' => implode("\n", $hydrateCases),
-            'extractCases' => implode("\n", $extractCases),
-            'inits' => implode("\n\n", $this->inits),
-            'methods' => implode("\n\n", $this->methods),
-        ]);
-    }
-
-    /** Emits the properties, the init method and the hydrate/extract code of one class. */
-    private function emitClass(ClassPlan $plan): void
-    {
-        $class = $plan->className();
-        $index = $plan->index;
-
-        $this->declareProperties($plan);
-
-        $init = [];
-        $nestedClasses = [];
-
-        $init[] = sprintf('$metadata = $this->metadata(\\%s::class, %s);', $class, var_export(ClassFingerprint::of($plan->metadata), true));
-        $init[] = sprintf('$this->r%d = $metadata->reflection;', $index);
+        $plan = $this->plan;
+        $initialize = [];
 
         foreach ($plan->properties as $property) {
             if ($property->defaultSlot !== null) {
-                $init[] = sprintf('$this->d%d = $this->promotedDefault($metadata, %s);', $property->defaultSlot, var_export($property->name, true));
+                $this->properties[] = sprintf('public ReflectionParameter $d%d;', $property->defaultSlot);
+                $initialize[] = sprintf('$this->d%d = $this->promotedDefault(%s);', $property->defaultSlot, var_export($property->name, true));
             }
 
             if ($property->slot === null) {
                 continue;
             }
 
-            $init[] = sprintf('$this->n%d = $this->normalizer($metadata, %s);', $property->slot, var_export($property->name, true));
+            $this->properties[] = sprintf('public Normalizer $n%d;', $property->slot);
+            $initialize[] = sprintf('$this->n%d = $this->normalizer(%s);', $property->slot, var_export($property->name, true));
 
-            if ($property->nested === null) {
+            if ($property->nested === null || $property->flag === null) {
                 continue;
             }
 
-            $nested = $this->nested($property)->className();
-            $nestedClasses[$property->nested] = true;
+            $flag = $property->flag;
+            $nested = $property->nested;
 
-            $check = $property->kind === ValueKind::NestedObject ? 'inlineObject' : 'inlineArray';
-            $init[] = sprintf('$this->ih%d = $this->%s($this->n%d, \\%s::class, Skip::Hydrate);', $property->flag, $check, $property->slot, $nested);
-            $init[] = sprintf('$this->ie%d = $this->%s($this->n%d, \\%s::class, Skip::Extract);', $property->flag, $check, $property->slot, $nested);
+            $this->properties[] = sprintf('public bool $ih%d = false;', $flag);
+            $this->properties[] = sprintf('public bool $ie%d = false;', $flag);
+            $initialize[] = sprintf('$h%d = $this->nested($this->n%d, \\%s::class, Direction::Hydrate);', $flag, $property->slot, $nested->class);
+            $initialize[] = sprintf('$e%d = $this->nested($this->n%d, \\%s::class, Direction::Extract);', $flag, $property->slot, $nested->class);
+            $initialize[] = sprintf('$this->ih%1$d = $h%1$d !== null;', $flag);
+            $initialize[] = sprintf('$this->ie%1$d = $e%1$d !== null;', $flag);
+            $initialize[] = sprintf('if ($this->ih%1$d || $this->ie%1$d) { $this->x%2$d = $h%1$d ?? $e%1$d; }', $flag, $nested->slot);
 
-            if ($property->kind !== ValueKind::NestedArray) {
+            if ($property->inner === null) {
                 continue;
             }
 
-            $init[] = sprintf('if ($this->ih%1$d || $this->ie%1$d) { $this->n%2$d = $this->n%3$d->innerNormalizer(); }', $property->flag, $property->inner, $property->slot);
+            $this->properties[] = sprintf('public ObjectNormalizer $n%d;', $property->inner);
+            $initialize[] = sprintf('if ($this->ih%1$d || $this->ie%1$d) { $this->n%2$d = $this->n%3$d->innerNormalizer(); }', $flag, $property->inner, $property->slot);
         }
 
-        [$hydrate, $hydrateHelpers] = $this->hydrateBody($plan);
-        [$extract, $extractHelpers] = $this->extractBody($plan);
-
-        foreach ($hydrateHelpers as $helper) {
-            $init[] = $helper;
+        foreach ($plan->nested() as $slot => $nested) {
+            $this->properties[] = sprintf('public GeneratedTransformer $x%d;', $slot);
         }
 
-        $init[] = $this->wrap($plan, 'h', 'hydrate', 'array $data, array $context, object|null $object = null', 'object', $hydrate, $plan->scopedHydrate);
+        [$hydrate, $hydrateHelpers] = $this->hydrateBody();
+        [$extract, $extractHelpers] = $this->extractBody();
 
-        foreach ($extractHelpers as $helper) {
-            $init[] = $helper;
+        foreach ([...$hydrateHelpers, ...$extractHelpers] as $helper) {
+            $initialize[] = $helper;
         }
 
-        $init[] = $this->wrap($plan, 'e', 'extract', 'object $object, array $context', 'array', $extract, $plan->scopedExtract);
-
-        foreach (array_keys($nestedClasses) as $nested) {
-            $init[] = sprintf('$this->init%d();', $nested);
+        if ($plan->scopedHydrate) {
+            $this->properties[] = 'public Closure $h;';
+            $initialize[] = Templates::render(Templates::CLOSURE, [
+                'slot' => 'h',
+                'signature' => 'object $object, array $data, array $context, bool $inline',
+                'return' => 'object',
+                'body' => $hydrate,
+                'class' => $plan->className(),
+            ]);
+            $hydrate = 'return ($this->h)($object, $data, $context, $inline);';
         }
 
-        if (!$plan->leaf()) {
-            $init[] = sprintf('$this->tracked%d = $this->recursive%d();', $index, $index);
-            $this->properties[] = sprintf('public bool $tracked%d = true;', $index);
-            $this->methods[] = $this->recursiveMethod($plan);
+        if ($plan->scopedExtract) {
+            $this->properties[] = 'public Closure $e;';
+            $initialize[] = Templates::render(Templates::CLOSURE, [
+                'slot' => 'e',
+                'signature' => 'object $object, array $context, bool $inline',
+                'return' => 'array',
+                'body' => $extract,
+                'class' => $plan->className(),
+            ]);
+            $extract = 'return ($this->e)($object, $context, $inline);';
         }
 
-        $this->inits[] = Templates::render(Templates::INIT, [
-            'index' => (string)$index,
-            'body' => implode("\n", $init),
+        foreach ($plan->nested() as $slot => $nested) {
+            // the nested transformers are initialized last, they may lead back to this one
+            $initialize[] = sprintf('if (isset($this->x%1$d)) { $this->x%1$d->init(); }', $slot);
+        }
+
+        $code = Templates::render(Templates::TRANSFORMER, [
+            'namespace' => $namespace,
+            'className' => $className,
+            'class' => $plan->className(),
+            'version' => (string)TransformerFiles::VERSION,
+            'properties' => implode("\n", $this->properties),
+            // the entry points of the hydrator check whether nested objects can be mapped in place, the nested entry
+            // points are only called if they can
+            'hydrate' => self::withInline($hydrate, $plan->nested() === [] ? 'false' : Templates::OWNER),
+            'extract' => self::withInline($extract, $plan->nested() === [] ? 'false' : Templates::OWNER),
+            'hydrateNested' => self::withInline($hydrate, 'true'),
+            'extractNested' => self::withInline($extract, 'true'),
+            'initialize' => $initialize === [] ? '// nothing to resolve' : implode("\n", $initialize),
+            'recursive' => $this->recursive(),
         ]);
+
+        // empty placeholders leave blank lines behind
+        $code = preg_replace(["/\n{3,}/", "/{\n\n/"], ["\n\n", "{\n"], $code);
+        assert($code !== null);
+
+        return $code;
     }
 
-    private function declareProperties(ClassPlan $plan): void
+    /** Code without nested objects does not use $inline, the code of scoped classes gets it as argument. */
+    private static function withInline(string $code, string $inline): string
     {
-        foreach ($plan->properties as $property) {
-            if ($property->slot !== null) {
-                $this->properties[] = sprintf('public Normalizer $n%d;', $property->slot);
-            }
-
-            if ($property->inner !== null) {
-                $this->properties[] = sprintf('public ObjectNormalizer $n%d;', $property->inner);
-            }
-
-            if ($property->flag !== null) {
-                $this->properties[] = sprintf('public bool $ih%d = false;', $property->flag);
-                $this->properties[] = sprintf('public bool $ie%d = false;', $property->flag);
-            }
-
-            if ($property->defaultSlot === null) {
-                continue;
-            }
-
-            $this->properties[] = sprintf('public ReflectionParameter $d%d;', $property->defaultSlot);
+        if (!str_contains($code, '$inline')) {
+            return $code;
         }
 
-        $index = $plan->index;
-
-        $this->properties[] = sprintf('public bool $ready%d = false;', $index);
-        $this->properties[] = sprintf('public bool $initializing%d = false;', $index);
-        $this->properties[] = sprintf('public bool|null $recursive%d = null;', $index);
-        $this->properties[] = sprintf('public Closure $h%d;', $index);
-        $this->properties[] = sprintf('public Closure $e%d;', $index);
-        $this->properties[] = sprintf('public ReflectionClass $r%d;', $index);
+        return sprintf("\$inline = %s;\n\n%s", $inline, $code);
     }
 
     /**
-     * Circular references are only possible through normalizers which call the hydrator again. A class whose
-     * normalizers can not reach the class itself again does not need the (expensive) call stack tracking.
-     * Unknown paths and cycles are conservatively treated as recursive.
+     * Circular references are only possible through normalizers which extract objects with the hydrator. A class
+     * whose normalizers can not reach the class itself again does not need the (expensive) call stack tracking.
      */
-    private function recursiveMethod(ClassPlan $plan): string
+    private function recursive(): string
     {
         $checks = [];
 
-        foreach ($plan->properties as $property) {
+        foreach ($this->plan->properties as $property) {
             if ($property->kind === ValueKind::Raw) {
                 continue;
             }
 
             if ($property->nested === null) {
-                $checks[] = sprintf('$this->n%d instanceof HydratorAwareNormalizer', $property->slot);
+                $checks[] = sprintf('self::mayRecurse($this->n%d)', $property->slot);
 
                 continue;
             }
 
-            $nested = $this->nested($property);
-            $recursive = $nested->leaf() ? 'false' : sprintf('$this->recursive%d()', $nested->index);
-            $checks[] = sprintf('($this->ie%d ? %s : $this->n%d instanceof HydratorAwareNormalizer)', $property->flag, $recursive, $property->slot);
+            $checks[] = sprintf(
+                '($this->ie%d ? $this->x%d->recursive() : self::mayRecurse($this->n%d))',
+                $property->flag,
+                $property->nested->slot,
+                $property->slot,
+            );
         }
 
-        return Templates::render(Templates::RECURSIVE, [
-            'index' => (string)$plan->index,
-            'checks' => implode("\n    || ", $checks),
-        ]);
-    }
-
-    /**
-     * Emits the body either as closure bound to the class scope (assigned in init) or as a plain method.
-     *
-     * @return string init code which assigns the closure
-     */
-    private function wrap(ClassPlan $plan, string $slot, string $name, string $signature, string $return, string $body, bool $scoped): string
-    {
-        $index = $plan->index;
-
-        if ($scoped) {
-            return Templates::render(Templates::CLOSURE, [
-                'slot' => $slot . $index,
-                'signature' => $signature,
-                'return' => $return,
-                'body' => $body,
-                'class' => $plan->className(),
-            ]);
-        }
-
-        $this->methods[] = Templates::render(Templates::METHOD, [
-            'name' => $name . $index,
-            'signature' => $signature,
-            'return' => $return,
-            'body' => $body,
-        ]);
-
-        return sprintf('$this->%s%d = $this->%s%d(...);', $slot, $index, $name, $index);
+        return $checks === [] ? 'false' : implode("\n            || ", $checks);
     }
 
     /**
@@ -272,19 +185,19 @@ final class CodeEmitter
      *
      * @return array{string, list<string>} body and init code of the helper closures
      */
-    private function hydrateBody(ClassPlan $plan): array
+    private function hydrateBody(): array
     {
         $main = [];
         $scoped = [];
 
-        foreach ($plan->properties as $property) {
+        foreach ($this->plan->properties as $property) {
             if ($property->hydrateScope !== null) {
-                $scoped[$property->hydrateScope][] = $this->assignment($plan, $property);
+                $scoped[$property->hydrateScope][] = $this->assignment($property);
 
                 continue;
             }
 
-            $main[] = $this->assignment($plan, $property);
+            $main[] = $this->assignment($property);
         }
 
         $helpers = [];
@@ -297,20 +210,15 @@ final class CodeEmitter
                 'scope' => $scope,
                 'body' => implode("\n", $code),
             ]);
-            $main[] = sprintf('($this->hp%d)($object, $data, $context);', $slot);
+            $main[] = sprintf('($this->hp%d)($object, $data, $context, $inline);', $slot);
         }
 
-        $body = [sprintf('$object ??= $this->r%d->newInstanceWithoutConstructor();', $plan->index)];
-        $body[] = implode("\n\n", $main);
-        $body[] = 'return $object;';
+        $main[] = 'return $object;';
 
-        return [
-            implode("\n\n", array_filter($body, static fn (string $code): bool => $code !== '')),
-            $helpers,
-        ];
+        return [implode("\n\n", $main), $helpers];
     }
 
-    private function assignment(ClassPlan $plan, PropertyPlan $property): string
+    private function assignment(PropertyPlan $property): string
     {
         $template = $property->hasDefault() ? Templates::ASSIGN_DEFAULT : Templates::ASSIGN;
 
@@ -318,14 +226,14 @@ final class CodeEmitter
             'field' => var_export($property->field, true),
             'name' => $property->name,
             'property' => var_export($property->name, true),
-            'class' => $plan->className(),
-            'value' => $this->denormalize($plan, $property, '$value'),
+            'class' => $this->plan->className(),
+            'value' => $this->denormalize($property, '$value'),
             'default' => $property->default ?? sprintf('$this->d%d->getDefaultValue()', $property->defaultSlot),
         ]);
     }
 
     /** Code which denormalizes the field into the given variable. */
-    private function denormalize(ClassPlan $plan, PropertyPlan $property, string $variable): string
+    private function denormalize(PropertyPlan $property, string $variable): string
     {
         $field = var_export($property->field, true);
 
@@ -340,7 +248,7 @@ final class CodeEmitter
                 'field' => $field,
                 'flag' => (string)$property->flag,
                 'slot' => (string)$property->slot,
-                'nested' => $this->nestedHydrateCall($property),
+                'nested' => $this->nestedCall($property, 'hydrateNested'),
             ]),
             ValueKind::NestedArray => Templates::render(Templates::DENORMALIZE_ARRAY, [
                 'variable' => $variable,
@@ -348,13 +256,13 @@ final class CodeEmitter
                 'flag' => (string)$property->flag,
                 'slot' => (string)$property->slot,
                 'inner' => (string)$property->inner,
-                'nested' => $this->nestedHydrateCall($property),
+                'nested' => $this->nestedCall($property, 'hydrateNested'),
             ]),
         };
 
         return Templates::render(Templates::DENORMALIZE, [
             'inner' => $inner,
-            'class' => $plan->className(),
+            'class' => $this->plan->className(),
             'property' => var_export($property->name, true),
             'slot' => (string)$property->slot,
         ]);
@@ -365,15 +273,15 @@ final class CodeEmitter
      *
      * @return array{string, list<string>} body and init code of the helper closures
      */
-    private function extractBody(ClassPlan $plan): array
+    private function extractBody(): array
     {
         $pre = [];
         $scoped = [];
         $fields = [];
 
-        foreach ($plan->properties as $property) {
+        foreach ($this->plan->properties as $property) {
             $field = var_export($property->field, true);
-            [$code, $expression] = $this->normalize($plan, $property);
+            [$code, $expression] = $this->normalize($property);
 
             if ($property->extractScope !== null) {
                 $scoped[$property->extractScope][] = [$property->name, $code, $expression];
@@ -416,28 +324,28 @@ final class CodeEmitter
                 'body' => implode("\n", $body),
             ]);
 
-            array_unshift($pre, sprintf('[%s] = ($this->ep%d)($object, $context);', implode(', ', $variables), $slot));
+            array_unshift($pre, sprintf('[%s] = ($this->ep%d)($object, $context, $inline);', implode(', ', $variables), $slot));
         }
 
         $variables = [
-            'index' => (string)$plan->index,
-            'class' => $plan->className(),
+            'class' => $this->plan->className(),
             'pre' => implode("\n\n", $pre),
             'fields' => implode("\n", $fields),
         ];
 
-        if ($plan->leaf()) {
+        if ($this->plan->leaf()) {
             return [Templates::render(Templates::EXTRACT_PLAIN, $variables), $helpers];
         }
 
         return [
-            Templates::render(Templates::EXTRACT_TRACKED, $variables) . "\n\n" . Templates::render(Templates::EXTRACT_PLAIN, $variables),
+            Templates::render(Templates::EXTRACT_TRACKED, $variables) . "\n\n"
+                . Templates::render(Templates::EXTRACT_PLAIN, $variables),
             $helpers,
         ];
     }
 
     /** @return array{string, string} preparing code and the expression for the normalized value */
-    private function normalize(ClassPlan $plan, PropertyPlan $property): array
+    private function normalize(PropertyPlan $property): array
     {
         $name = $property->name;
 
@@ -454,8 +362,8 @@ final class CodeEmitter
                 'name' => $name,
                 'flag' => (string)$property->flag,
                 'slot' => (string)$property->slot,
-                'nested' => $this->nestedExtractCall($property),
-                'check' => $this->instanceCheck('$value', $property),
+                'nested' => $this->nestedCall($property, 'extractNested'),
+                'check' => self::instanceCheck('$value', $property),
             ]),
             ValueKind::NestedArray => Templates::render(Templates::NORMALIZE_ARRAY, [
                 'variable' => $variable,
@@ -463,14 +371,14 @@ final class CodeEmitter
                 'flag' => (string)$property->flag,
                 'slot' => (string)$property->slot,
                 'inner' => (string)$property->inner,
-                'nested' => $this->nestedExtractCall($property),
-                'check' => $this->instanceCheck('$item', $property),
+                'nested' => $this->nestedCall($property, 'extractNested'),
+                'check' => self::instanceCheck('$item', $property),
             ]),
         };
 
         $code = Templates::render(Templates::NORMALIZE, [
             'inner' => $inner,
-            'class' => $plan->className(),
+            'class' => $this->plan->className(),
             'property' => var_export($name, true),
             'slot' => (string)$property->slot,
         ]);
@@ -478,37 +386,23 @@ final class CodeEmitter
         return [$code, $variable];
     }
 
-    /** Only exact instances are inlined, subclasses take the generic path through the hydrator. */
-    private function instanceCheck(string $variable, PropertyPlan $property): string
+    /** Only exact instances are mapped in place, subclasses take the generic path through the hydrator. */
+    private static function instanceCheck(string $variable, PropertyPlan $property): string
     {
-        $nested = $this->nested($property);
-        $class = $nested->className();
+        $nested = $property->nested;
+        assert($nested !== null);
 
-        if ($nested->metadata->reflection->isFinal()) {
-            return sprintf('%s instanceof \\%s', $variable, $class);
+        if ($nested->final) {
+            return sprintf('%s instanceof \\%s', $variable, $nested->class);
         }
 
-        return sprintf('%1$s instanceof \\%2$s && %1$s::class === \\%2$s::class', $variable, $class);
+        return sprintf('%1$s instanceof \\%2$s && %1$s::class === \\%2$s::class', $variable, $nested->class);
     }
 
-    private function nestedHydrateCall(PropertyPlan $property): string
+    private function nestedCall(PropertyPlan $property, string $method): string
     {
-        $nested = $this->nested($property);
+        assert($property->nested !== null);
 
-        return $nested->scopedHydrate ? sprintf('($this->h%d)', $nested->index) : sprintf('$this->hydrate%d', $nested->index);
-    }
-
-    private function nestedExtractCall(PropertyPlan $property): string
-    {
-        $nested = $this->nested($property);
-
-        return $nested->scopedExtract ? sprintf('($this->e%d)', $nested->index) : sprintf('$this->extract%d', $nested->index);
-    }
-
-    private function nested(PropertyPlan $property): ClassPlan
-    {
-        assert(is_int($property->nested));
-
-        return $this->classes[$property->nested];
+        return sprintf('$this->x%d->%s', $property->nested->slot, $method);
     }
 }

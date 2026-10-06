@@ -7,7 +7,8 @@ namespace Patchlevel\Hydrator\Tests\Benchmark;
 use Patchlevel\Hydrator\Extension\Cryptography\BaseCryptographer;
 use Patchlevel\Hydrator\Extension\Cryptography\CryptographyExtension;
 use Patchlevel\Hydrator\Extension\Cryptography\Store\InMemoryCipherKeyStore;
-use Patchlevel\Hydrator\Extension\Generated\GeneratedMiddlewareExtension;
+use Patchlevel\Hydrator\Extension\Generated\GeneratedTransformerExtension;
+use Patchlevel\Hydrator\Extension\Generated\GeneratedTransformerWarmer;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\StackHydratorBuilder;
 use Patchlevel\Hydrator\Tests\Benchmark\Fixture\ProfileCreated;
@@ -26,10 +27,13 @@ final class GeneratedHydratorWithCryptographyBench
     {
         $this->store = new InMemoryCipherKeyStore();
 
-        $this->hydrator = (new StackHydratorBuilder())
-            ->useExtension(new GeneratedMiddlewareExtension(__DIR__ . '/../../var/cache', [ProfileCreated::class, Skill::class], debug: true))
-            ->useExtension(new CryptographyExtension(BaseCryptographer::createWithOpenssl($this->store)))
-            ->build();
+        $builder = (new StackHydratorBuilder())
+            ->useExtension(new GeneratedTransformerExtension(__DIR__ . '/../../var/cache'))
+            ->useExtension(new CryptographyExtension(BaseCryptographer::createWithOpenssl($this->store)));
+
+        (new GeneratedTransformerWarmer($builder->metadataFactory(), __DIR__ . '/../../var/cache'))->warmup([ProfileCreated::class]);
+
+        $this->hydrator = $builder->build();
     }
 
     public function setUp(): void

@@ -41,9 +41,6 @@ final class StackHydratorBuilder
 
     private CacheItemPoolInterface|CacheInterface|null $cache = null;
 
-    /** @var (Closure(MetadataFactory, list<Middleware>, bool): StackHydrator)|null */
-    private Closure|null $hydratorFactory = null;
-
     /** @return $this */
     public function addMiddleware(Middleware $middleware, int $priority = Extension::PRIORITY_BEFORE_TRANSFORM): static
     {
@@ -107,6 +104,24 @@ final class StackHydratorBuilder
 
     public function build(): StackHydrator
     {
+        $transformerFactories = $this->transformerFactories();
+
+        return new StackHydrator(
+            $this->metadataFactory(),
+            $this->middlewares(),
+            $this->defaultLazy,
+            $transformerFactories === []
+                ? new ReflectionTransformerFactory()
+                : new ChainTransformerFactory([...$transformerFactories, new ReflectionTransformerFactory()]),
+        );
+    }
+
+    /**
+     * The metadata factory the hydrator is built with, for example to generate code or warm up caches with the same
+     * metadata the hydrator ends up with. Every call creates a new instance.
+     */
+    public function metadataFactory(): MetadataFactory
+    {
         $metadataFactory = new EnrichingMetadataFactory(
             new AttributeMetadataFactory(
                 guesser: new ChainGuesser([...$this->guessers(), new BuiltInGuesser()]),
@@ -122,16 +137,7 @@ final class StackHydratorBuilder
             $metadataFactory = new Psr16MetadataFactory($metadataFactory, $this->cache);
         }
 
-        $transformerFactories = $this->transformerFactories();
-
-        return new StackHydrator(
-            $metadataFactory,
-            $this->middlewares(),
-            $this->defaultLazy,
-            $transformerFactories === []
-                ? new ReflectionTransformerFactory()
-                : new ChainTransformerFactory([...$transformerFactories, new ReflectionTransformerFactory()]),
-        );
+        return $metadataFactory;
     }
 
     public function defaultLazy(): bool
