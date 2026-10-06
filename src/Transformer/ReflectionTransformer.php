@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Patchlevel\Hydrator\Middleware;
+namespace Patchlevel\Hydrator\Transformer;
 
 use Patchlevel\Hydrator\CircularReference;
 use Patchlevel\Hydrator\DenormalizationFailure;
@@ -17,24 +17,37 @@ use function array_key_exists;
 use function array_values;
 use function spl_object_id;
 
-final class TransformMiddleware implements Middleware
+/**
+ * Sets and reads the properties of the class with reflection, based on its metadata.
+ *
+ * @template T of object
+ */
+final class ReflectionTransformer implements ClassTransformer
 {
-    /** @var array<int, class-string> */
-    private array $callStack = [];
+    /** @param ClassMetadata<T> $metadata */
+    public function __construct(
+        private readonly ClassMetadata $metadata,
+        private readonly CallStack $callStack = new CallStack(),
+    ) {
+    }
 
     /**
-     * @param ClassMetadata<T>     $metadata
      * @param array<string, mixed> $data
      * @param array<string, mixed> $context
      *
      * @return T
-     *
-     * @template T of object
      */
-    public function hydrate(ClassMetadata $metadata, array $data, array $context, Next $next): object
+    public function hydrate(array $data, array $context): object
     {
-        $object = $context[Hydrator::OBJECT_TO_POPULATE] ?? $metadata->newInstance();
-        unset($context[Hydrator::OBJECT_TO_POPULATE]);
+        $metadata = $this->metadata;
+
+        if (isset($context[Hydrator::OBJECT_TO_POPULATE])) {
+            $object = $context[Hydrator::OBJECT_TO_POPULATE];
+            // only unset if it is there, unset() copies the context even if the key does not exist
+            unset($context[Hydrator::OBJECT_TO_POPULATE]);
+        } else {
+            $object = $metadata->newInstance();
+        }
 
         $constructorParameters = null;
 
@@ -93,23 +106,23 @@ final class TransformMiddleware implements Middleware
      *
      * @return array<string, mixed>
      */
-    public function extract(ClassMetadata $metadata, object $object, array $context, Next $next): array
+    public function extract(object $object, array $context): array
     {
         $objectId = spl_object_id($object);
 
-        if (array_key_exists($objectId, $this->callStack)) {
-            $references = array_values($this->callStack);
+        if (array_key_exists($objectId, $this->callStack->objects)) {
+            $references = array_values($this->callStack->objects);
             $references[] = $object::class;
 
             throw new CircularReference($references);
         }
 
-        $this->callStack[$objectId] = $object::class;
+        $this->callStack->objects[$objectId] = $object::class;
 
         try {
             $data = [];
 
-            foreach ($metadata->properties as $propertyMetadata) {
+            foreach ($this->metadata->properties as $propertyMetadata) {
                 if ($propertyMetadata->normalizer) {
                     try {
                         /** @psalm-suppress MixedAssignment */
@@ -132,7 +145,7 @@ final class TransformMiddleware implements Middleware
                 }
             }
         } finally {
-            unset($this->callStack[$objectId]);
+            unset($this->callStack->objects[$objectId]);
         }
 
         return $data;

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Benchmark;
 
-use Patchlevel\Hydrator\CoreExtension;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\StackHydratorBuilder;
 use Patchlevel\Hydrator\Tests\Benchmark\Fixture\ProfileCreated;
@@ -18,7 +17,6 @@ final class HydratorWithLazyBench
     public function __construct()
     {
         $this->hydrator = (new StackHydratorBuilder())
-            ->useExtension(new CoreExtension())
             ->enableDefaultLazy()
             ->build();
     }

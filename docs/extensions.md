@@ -1,33 +1,32 @@
 # Extensions
 
 The `StackHydrator` is assembled from small building blocks: middlewares that
-wrap the hydration process, [guessers](guesser.md) that resolve normalizers and
-metadata enrichers that add information to the class metadata. An extension
-bundles such building blocks so they can be registered with a single call.
+wrap the hydration process, [guessers](guesser.md) that resolve normalizers,
+metadata enrichers that add information to the class metadata and transformer
+factories that map the data to the object. An extension bundles such building
+blocks so they can be registered with a single call.
 
 ## Using extensions
 
 Extensions are registered on the `StackHydratorBuilder` with `useExtension`.
-The `CoreExtension` provides the default behaviour and should (almost) always
-be there.
+The default behaviour, the property mapping and the
+[built-in guesser](guesser.md#built-in-guesser), is always there, you don't
+have to register anything for it.
 
 ```php
-use Patchlevel\Hydrator\CoreExtension;
 use Patchlevel\Hydrator\Extension\Lifecycle\LifecycleExtension;
 use Patchlevel\Hydrator\StackHydratorBuilder;
 
 $hydrator = (new StackHydratorBuilder())
-    ->useExtension(new CoreExtension())
     ->useExtension(new LifecycleExtension())
     ->build();
 ```
 ## Built-in extensions
 
-The library ships with four extensions out of the box:
+The library ships with three extensions out of the box:
 
 | Extension | Purpose |
 | --- | --- |
-| `CoreExtension` | The default behaviour, the `TransformMiddleware` and the `BuiltInGuesser`. |
 | `LifecycleExtension` | [Lifecycle hooks](lifecycle-hooks.md), run code before and after the extract and hydrate process. |
 | `CryptographyExtension` | [Cryptography](cryptography.md), encrypt and decrypt sensitive data with crypto-shredding. |
 | `UpcastExtension` | [Upcasting](upcasting.md), reshape outdated stored data while it is hydrated. |
@@ -36,8 +35,9 @@ The library ships with four extensions out of the box:
 
 A middleware wraps the hydration and extraction process, similar to HTTP
 middlewares. It can modify the incoming data, the outgoing array or the object
-itself, and passes the call on to the rest of the stack with `$next`. The innermost
-middleware is the `TransformMiddleware`, which does the actual property mapping.
+itself, and passes the call on to the rest of the stack with `$next`. After the last
+middleware the [transformer](#transformer-factories) does the actual property
+mapping.
 
 ```php
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
@@ -60,8 +60,7 @@ final class RemoveNullValuesMiddleware implements Middleware
 }
 ```
 Middlewares are added with a priority, higher priorities run first (outermost).
-The `TransformMiddleware` from the `CoreExtension` has priority `-64`, so it
-always runs last.
+The transformation always runs last, after all middlewares.
 
 ```php
 $builder->addMiddleware(new RemoveNullValuesMiddleware(), 0);
@@ -113,9 +112,9 @@ upcaster is a `CallbackUpcaster` or carries an
 [`#[UpcasterFor]`](upcasting.md#writing-an-upcaster) attribute, it is also left
 out while hydrating classes none of them target.
 
-:::warning
-At least one middleware has to run. If every middleware skips a class, an
-`AllMiddlewaresSkipped` exception is thrown.
+:::tip
+If every middleware skips a class, the hydrator calls the transformer directly
+without building the middleware stack.
 :::
 
 ## Metadata enricher
@@ -151,6 +150,39 @@ Metadata enrichers also accept a priority. Since the metadata (including the
 extras) can be [cached](caching.md), everything you store in `extras` must be
 serializable.
 :::
+
+## Transformer factories
+
+At the end of the stack a `ClassTransformer` turns the array into the object
+and back. By default this is the `ReflectionTransformer`, which sets and reads
+the properties with reflection. A transformer factory can provide another
+transformer for a class, for example generated code.
+
+```php
+use Patchlevel\Hydrator\Metadata\ClassMetadata;
+use Patchlevel\Hydrator\Transformer\ClassTransformer;
+use Patchlevel\Hydrator\Transformer\ClassTransformerFactory;
+
+final class MoneyTransformerFactory implements ClassTransformerFactory
+{
+    public function create(ClassMetadata $metadata): ClassTransformer|null
+    {
+        if ($metadata->className !== Money::class) {
+            return null;
+        }
+
+        return new MoneyTransformer();
+    }
+}
+```
+```php
+$builder->addTransformerFactory(new MoneyTransformerFactory());
+```
+The factories are asked once per class, the first transformer wins and is
+cached by the hydrator. Factories also accept a priority, a factory with a
+higher priority is asked first. The `ReflectionTransformerFactory` is always
+asked last, so every class without its own transformer is transformed with
+reflection.
 
 ## Writing your own extension
 

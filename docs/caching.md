@@ -13,12 +13,10 @@ Pass the cache to the builder with `setCache`. Both PSR-6
 implementations are accepted.
 
 ```php
-use Patchlevel\Hydrator\CoreExtension;
 use Patchlevel\Hydrator\StackHydratorBuilder;
 use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 
 $hydrator = (new StackHydratorBuilder())
-    ->useExtension(new CoreExtension())
     ->setCache(new FilesystemAdapter())
     ->build();
 ```

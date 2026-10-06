@@ -5,17 +5,22 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Middleware;
 
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
+use Patchlevel\Hydrator\Transformer\ClassTransformer;
+
+use function assert;
 
 /**
- * The rest of the middleware stack. A middleware calls it to pass the data on to the next middleware.
+ * The rest of the middleware stack. A middleware calls it to pass the data on to the next middleware, after the last
+ * one the transformer maps the data to the object and back.
  */
 final class Next
 {
     private int $index = 0;
 
-    /** @param non-empty-list<Middleware> $middlewares */
+    /** @param list<Middleware> $middlewares */
     public function __construct(
         private readonly array $middlewares,
+        private readonly ClassTransformer $transformer,
     ) {
     }
 
@@ -30,7 +35,15 @@ final class Next
      */
     public function hydrate(ClassMetadata $metadata, array $data, array $context): object
     {
-        $middleware = $this->middlewares[$this->index] ?? throw new NoMoreMiddleware($this->middlewares);
+        $middleware = $this->middlewares[$this->index] ?? null;
+
+        if ($middleware === null) {
+            $object = $this->transformer->hydrate($data, $context);
+            assert($object instanceof $metadata->className);
+
+            return $object;
+        }
+
         $this->index++;
 
         try {
@@ -52,7 +65,12 @@ final class Next
      */
     public function extract(ClassMetadata $metadata, object $object, array $context): array
     {
-        $middleware = $this->middlewares[$this->index] ?? throw new NoMoreMiddleware($this->middlewares);
+        $middleware = $this->middlewares[$this->index] ?? null;
+
+        if ($middleware === null) {
+            return $this->transformer->extract($object, $context);
+        }
+
         $this->index++;
 
         try {
