@@ -9,6 +9,7 @@ use RuntimeException;
 
 use function sprintf;
 
+/** @deprecated if all middlewares are skipped, the data is only transformed */
 final class AllMiddlewaresSkipped extends RuntimeException implements HydratorException
 {
     /** @param class-string $className */

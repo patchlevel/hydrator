@@ -10,7 +10,7 @@ use Patchlevel\Hydrator\StackHydrator;
 /**
  * Provides an alternative transformer for a class, for example generated code. Factories are registered with
  * {@see \Patchlevel\Hydrator\StackHydratorBuilder::addTransformerFactory()}, the first one which returns a transformer
- * wins. Classes no factory feels responsible for are transformed with reflection.
+ * wins. Classes no factory is responsible for are transformed with reflection.
  */
 interface ClassTransformerFactory
 {

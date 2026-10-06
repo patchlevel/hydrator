@@ -121,12 +121,6 @@ parameters:
 			path: src/Normalizer/ObjectNormalizer.php
 
 		-
-			message: '#^Method Patchlevel\\Hydrator\\StackHydrator\:\:middlewaresFor\(\) should return non\-empty\-list\<Patchlevel\\Hydrator\\Middleware\\Middleware\> but returns list\<Patchlevel\\Hydrator\\Middleware\\Middleware\>\.$#'
-			identifier: return.type
-			count: 1
-			path: src/StackHydrator.php
-
-		-
 			message: '#^Parameter \#1 \$data of method Patchlevel\\Hydrator\\Transformer\\ClassTransformer\:\:hydrate\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
 			identifier: argument.type
 			count: 3

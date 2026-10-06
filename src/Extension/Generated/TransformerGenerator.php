@@ -24,7 +24,7 @@ use function ltrim;
 final class TransformerGenerator
 {
     /** Part of the file name, bump it whenever the generated code changes. */
-    public const VERSION = 10;
+    public const VERSION = 11;
 
     public function __construct(
         private readonly MetadataFactory $metadataFactory,

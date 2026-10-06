@@ -27,7 +27,7 @@ The library ships with six extensions out of the box:
 
 | Extension | Purpose |
 | --- | --- |
-| `CoreExtension` | The default behaviour, the `TransformMiddleware` and the `BuiltInGuesser`. |
+| `CoreExtension` | The default behaviour, the `BuiltInGuesser` for enums, dates and nested objects. |
 | `LifecycleExtension` | [Lifecycle hooks](lifecycle-hooks.md), run code before and after the extract and hydrate process. |
 | `CryptographyExtension` | [Cryptography](cryptography.md), encrypt and decrypt sensitive data with crypto-shredding. |
 | `UpcastExtension` | [Upcasting](upcasting.md), reshape outdated stored data while it is hydrated. |
@@ -38,8 +38,9 @@ The library ships with six extensions out of the box:
 
 A middleware wraps the hydration and extraction process, similar to HTTP
 middlewares. It can modify the incoming data, the outgoing array or the object
-itself, and then delegates to the next middleware on the stack. The innermost
-middleware is the `TransformMiddleware`, which does the actual property mapping.
+itself, and then delegates to the next middleware on the stack. At the end of
+the stack the hydrator does the actual property mapping with a
+[transformer](#transformer-factories).
 
 ```php
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
@@ -62,8 +63,7 @@ final class RemoveNullValuesMiddleware implements Middleware
 }
 ```
 Middlewares are added with a priority, higher priorities run first (outermost).
-The `TransformMiddleware` from the `CoreExtension` has priority `-64`, so it
-always runs last.
+The transformation always runs last, after all middlewares.
 
 ```php
 $builder->addMiddleware(new RemoveNullValuesMiddleware(), 0);
@@ -115,9 +115,9 @@ upcaster is a `CallbackUpcaster` or carries an
 [`#[UpcasterFor]`](upcasting.md#writing-an-upcaster) attribute, it is also left
 out while hydrating classes none of them target.
 
-:::warning
-At least one middleware has to run. If every middleware skips a class, an
-`AllMiddlewaresSkipped` exception is thrown.
+:::tip
+If every middleware skips a class, the hydrator calls the transformer directly
+without building the middleware stack.
 :::
 
 ## Metadata enricher
@@ -156,9 +156,9 @@ serializable.
 
 ## Transformer factories
 
-The `TransformMiddleware` at the end of the stack does not map the data itself.
-It asks the hydrator for the `ClassTransformer` of the class, which turns the
-array into the object and back. By default this is the `ReflectionTransformer`.
+At the end of the stack the hydrator turns the array into the object and back
+with the `ClassTransformer` of the class. By default this is the
+`ReflectionTransformer`.
 A transformer factory can provide another transformer for a class, the
 [generated code](generated-code.md) extension uses this to replace reflection
 with generated code.
@@ -190,9 +190,9 @@ used. Factories also accept a priority, a factory with a higher priority is
 asked first.
 
 :::tip
-If no other middleware has to run for a class, because there is none or all of
-them [skip](#skipping-middlewares) it, the hydrator calls the transformer
-directly without building the middleware stack.
+If no middleware has to run for a class, because there is none or all of them
+[skip](#skipping-middlewares) it, the hydrator calls the transformer directly
+without building the middleware stack.
 :::
 
 ## Decorators

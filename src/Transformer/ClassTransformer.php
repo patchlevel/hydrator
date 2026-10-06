@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Transformer;
 
 /**
- * Maps the data of one class to an object and back. It is the last step of the middleware stack, called by the
- * {@see \Patchlevel\Hydrator\Middleware\TransformMiddleware}, or directly by the hydrator if no other middleware has
- * to run for the class.
+ * Maps the data of one class to an object and back. It is the last step of the middleware stack, or called directly by
+ * the hydrator if no middleware has to run for the class.
  */
 interface ClassTransformer
 {

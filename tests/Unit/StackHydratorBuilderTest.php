@@ -18,6 +18,7 @@ use Patchlevel\Hydrator\Metadata\Psr6MetadataFactory;
 use Patchlevel\Hydrator\Middleware\Middleware;
 use Patchlevel\Hydrator\StackHydrator;
 use Patchlevel\Hydrator\StackHydratorBuilder;
+use Patchlevel\Hydrator\Transformer\ChainTransformerFactory;
 use Patchlevel\Hydrator\Transformer\ClassTransformerFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -56,12 +57,11 @@ final class StackHydratorBuilderTest extends TestCase
         $builder->addTransformerFactory($factory1, 10);
         $builder->addTransformerFactory($factory2, 20);
 
-        $hydrator = $builder->build();
+        $reflection = new ReflectionProperty(StackHydrator::class, 'transformerFactory');
 
-        $reflection = new ReflectionProperty(StackHydrator::class, 'transformerFactories');
-
-        self::assertSame([$factory2, $factory1], $reflection->getValue($hydrator));
+        self::assertEquals(new ChainTransformerFactory([$factory2, $factory1]), $reflection->getValue($builder->build()));
         self::assertSame([$factory2, $factory1], $builder->transformerFactories());
+        self::assertNull($reflection->getValue((new StackHydratorBuilder())->build()));
     }
 
     public function testMetadataFactoryIsTheOneOfTheHydrator(): void

@@ -8,9 +8,8 @@ resolves [normalizers](normalizer.md) from metadata.
 ## Create the hydrator
 
 The recommended way is the `StackHydratorBuilder` with the `CoreExtension`.
-The `CoreExtension` registers the `TransformMiddleware`, which does the actual
-property mapping, and the `BuiltInGuesser`, which picks normalizers for enums,
-date types and nested objects.
+The `CoreExtension` registers the `BuiltInGuesser`, which picks normalizers for
+enums, date types and nested objects.
 
 ```php
 use Patchlevel\Hydrator\CoreExtension;
@@ -28,7 +27,7 @@ works as long as no decorator is registered.
 :::
 
 If you don't need any extensions, you can also instantiate the `StackHydrator`
-directly, it defaults to the same middleware and guesser:
+directly, it behaves like the builder with only the `CoreExtension`:
 
 ```php
 use Patchlevel\Hydrator\StackHydrator;

@@ -15,13 +15,11 @@ use Patchlevel\Hydrator\DenormalizationFailure;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
-use Patchlevel\Hydrator\Middleware\AllMiddlewaresSkipped;
 use Patchlevel\Hydrator\Middleware\Middleware;
 use Patchlevel\Hydrator\Middleware\Skip;
 use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
 use Patchlevel\Hydrator\Middleware\Stack;
 use Patchlevel\Hydrator\Middleware\TransformMiddleware;
-use Patchlevel\Hydrator\MissingMiddlewares;
 use Patchlevel\Hydrator\NormalizationFailure;
 use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
 use Patchlevel\Hydrator\StackHydrator;
@@ -51,6 +49,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\StatusWithNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ValueObject;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer;
+use Patchlevel\Hydrator\Transformer\ChainTransformerFactory;
 use Patchlevel\Hydrator\Transformer\ReflectionTransformer;
 use Patchlevel\Hydrator\TypeMismatch;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -64,6 +63,7 @@ use function array_keys;
 #[CoversClass(StackHydrator::class)]
 #[CoversClass(TransformMiddleware::class)]
 #[CoversClass(ReflectionTransformer::class)]
+#[CoversClass(ChainTransformerFactory::class)]
 final class StackHydratorTest extends TestCase
 {
     private StackHydrator $hydrator;
@@ -73,15 +73,30 @@ final class StackHydratorTest extends TestCase
         $this->hydrator = new StackHydrator();
     }
 
-    public function testMissingMiddlewares(): void
+    public function testWithoutMiddlewares(): void
     {
-        $this->expectException(MissingMiddlewares::class);
-        $this->expectExceptionMessage('Missing middlewares.');
+        $hydrator = new StackHydrator(new AttributeMetadataFactory(), []);
+        $event = $hydrator->hydrate(ProfileCreated::class, ['profileId' => '1', 'email' => 'info@patchlevel.de']);
 
-        new StackHydrator(
-            new AttributeMetadataFactory(),
-            [],
-        );
+        self::assertEquals(new ProfileCreated(ProfileId::fromString('1'), Email::fromString('info@patchlevel.de')), $event);
+        self::assertSame(['profileId' => '1', 'email' => 'info@patchlevel.de'], $hydrator->extract($event));
+        self::assertSame([], $hydrator->middlewares());
+    }
+
+    public function testRegisteredTransformMiddlewareEndsTheStack(): void
+    {
+        $before = new CountingMiddleware();
+        $after = new CountingMiddleware();
+
+        $hydrator = new StackHydrator(new AttributeMetadataFactory(), [$before, new TransformMiddleware(), $after]);
+        $event = $hydrator->hydrate(ProfileCreated::class, ['profileId' => '1', 'email' => 'info@patchlevel.de']);
+        $hydrator->extract($event);
+
+        self::assertSame([$before], $hydrator->middlewares());
+        self::assertSame([ProfileCreated::class => 1], $before->hydrated);
+        self::assertSame([ProfileCreated::class => 1], $before->extracted);
+        self::assertSame([], $after->hydrated);
+        self::assertSame([], $after->extracted);
     }
 
     public function testExtract(): void
@@ -765,18 +780,18 @@ final class StackHydratorTest extends TestCase
         $middleware
             ->method('skip')
             ->willReturn(Skip::Both);
+        $middleware->expects($this->never())->method('hydrate');
+        $middleware->expects($this->never())->method('extract');
 
         $hydrator = new StackHydrator(
             new AttributeMetadataFactory(),
             [$middleware],
         );
 
-        $this->expectException(AllMiddlewaresSkipped::class);
-        $this->expectExceptionMessage(
-            'All middlewares were skipped for the class "' . ProfileCreated::class . '", at least one middleware must run.',
-        );
+        $event = $hydrator->hydrate(ProfileCreated::class, ['profileId' => '1', 'email' => 'info@patchlevel.de']);
 
-        $hydrator->hydrate(ProfileCreated::class, ['profileId' => '1', 'email' => 'info@patchlevel.de']);
+        self::assertEquals(new ProfileCreated(ProfileId::fromString('1'), Email::fromString('info@patchlevel.de')), $event);
+        self::assertSame(['profileId' => '1', 'email' => 'info@patchlevel.de'], $hydrator->extract($event));
     }
 
     public function testNestedObjectsUseRootHydrator(): void
@@ -826,8 +841,8 @@ final class StackHydratorTest extends TestCase
 
         $hydrator = new StackHydrator(
             (new StackHydratorBuilder())->useExtension(new CoreExtension())->metadataFactory(),
-            [new TransformMiddleware()],
-            transformerFactories: [$first, $second],
+            [],
+            transformerFactory: new ChainTransformerFactory([$first, $second]),
         );
 
         $event = $hydrator->hydrate(ProfileCreated::class, ['profileId' => '1', 'email' => 'info@patchlevel.de']);
@@ -850,7 +865,7 @@ final class StackHydratorTest extends TestCase
         $hydrator = new StackHydrator(
             (new StackHydratorBuilder())->useExtension(new CoreExtension())->metadataFactory(),
             [$counter, new TransformMiddleware()],
-            transformerFactories: [$factory],
+            transformerFactory: $factory,
         );
 
         $data = ['profileId' => '1', 'email' => 'info@patchlevel.de'];
@@ -881,7 +896,7 @@ final class StackHydratorTest extends TestCase
         $hydrator = new StackHydrator(
             (new StackHydratorBuilder())->useExtension(new CoreExtension())->metadataFactory(),
             [$counter, new TransformMiddleware()],
-            transformerFactories: [$factory],
+            transformerFactory: $factory,
         );
 
         $data = ['profileId' => '1', 'email' => 'info@patchlevel.de'];

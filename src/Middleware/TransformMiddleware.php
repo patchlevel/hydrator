@@ -13,8 +13,9 @@ use Patchlevel\Hydrator\Transformer\ReflectionTransformer;
 use function assert;
 
 /**
- * Turns the array into the object and back. The actual work is done by the {@see ClassTransformer} which the
- * hydrator provides for the class, reflection based if no transformer factory is registered.
+ * Turns the array into the object and back with the {@see ClassTransformer} which the hydrator provides for the class.
+ * The StackHydrator ends every stack with it, it does not have to be registered. Without a hydrator, for example in
+ * a test of a middleware, reflection is used.
  */
 final class TransformMiddleware implements Middleware, HydratorAwareMiddleware
 {

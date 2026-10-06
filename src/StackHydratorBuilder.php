@@ -13,6 +13,7 @@ use Patchlevel\Hydrator\Metadata\MetadataFactory;
 use Patchlevel\Hydrator\Metadata\Psr16MetadataFactory;
 use Patchlevel\Hydrator\Metadata\Psr6MetadataFactory;
 use Patchlevel\Hydrator\Middleware\Middleware;
+use Patchlevel\Hydrator\Transformer\ChainTransformerFactory;
 use Patchlevel\Hydrator\Transformer\ClassTransformerFactory;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\SimpleCache\CacheInterface;
@@ -168,11 +169,13 @@ final class StackHydratorBuilder
 
     private function buildStackHydrator(): StackHydrator
     {
+        $transformerFactories = $this->transformerFactories();
+
         return new StackHydrator(
             $this->metadataFactory(),
             $this->middlewares(),
             $this->defaultLazy,
-            $this->transformerFactories(),
+            $transformerFactories === [] ? null : new ChainTransformerFactory($transformerFactories),
         );
     }
 

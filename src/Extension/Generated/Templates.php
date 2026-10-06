@@ -76,7 +76,6 @@ use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Middleware\Middleware;
 use Patchlevel\Hydrator\Middleware\Skip;
 use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
-use Patchlevel\Hydrator\Middleware\TransformMiddleware;
 use Patchlevel\Hydrator\NormalizationFailure;
 use Patchlevel\Hydrator\Normalizer\ArrayNormalizer;
 use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
@@ -94,8 +93,8 @@ use TypeError;
 /** @internal */
 final class {{className}} implements ClassTransformer
 {
-    /** @var list<Middleware> all middlewares except the TransformMiddleware */
-    public array $others = [];
+    /** @var list<Middleware> */
+    public array $middlewares;
 
     public CallStack $callStack;
 
@@ -105,14 +104,7 @@ final class {{className}} implements ClassTransformer
     public function __construct(public readonly StackHydrator $hydrator)
     {
         $this->callStack = $hydrator->callStack();
-
-        foreach ($hydrator->middlewares() as $middleware) {
-            if ($middleware instanceof TransformMiddleware) {
-                continue;
-            }
-
-            $this->others[] = $middleware;
-        }
+        $this->middlewares = $hydrator->middlewares();
 
         {{constructor}}
 
@@ -175,7 +167,7 @@ final class {{className}} implements ClassTransformer
 
     /**
      * Nested objects are only inlined when this does not change the behaviour: the code of the nested class must be
-     * up to date, the class must not be lazy and every other middleware must skip it in this direction. Otherwise
+     * up to date, the class must not be lazy and every middleware must skip it in this direction. Otherwise
      * they take the regular path through the hydrator.
      */
     private function inlinable(string $class, string $fingerprint, Skip $direction): bool
@@ -199,7 +191,7 @@ final class {{className}} implements ClassTransformer
             return false;
         }
 
-        foreach ($this->others as $middleware) {
+        foreach ($this->middlewares as $middleware) {
             if (!$middleware instanceof SkippableMiddleware) {
                 return false;
             }

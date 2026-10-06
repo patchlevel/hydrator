@@ -6,7 +6,7 @@ namespace Patchlevel\Hydrator;
 
 use RuntimeException;
 
-/** @experimental */
+/** @deprecated a hydrator without middlewares is valid, it only transforms the data */
 final class MissingMiddlewares extends RuntimeException implements HydratorException
 {
     public function __construct()
