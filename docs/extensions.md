@@ -80,9 +80,9 @@ The `skip` method returns a `Skip` case: `Skip::None` to always run,
 
 ```php
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
+use Patchlevel\Hydrator\Middleware\Next;
 use Patchlevel\Hydrator\Middleware\Skip;
 use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
-use Patchlevel\Hydrator\Middleware\Next;
 
 final class RemoveNullValuesMiddleware implements SkippableMiddleware
 {
