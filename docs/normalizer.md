@@ -334,6 +334,35 @@ final class Profile
     public Name $name;
 }
 ```
+### Nested objects
+
+If your normalizer has to hydrate or extract another object, take the hydrator
+from the context. The hydrator puts itself there under the key
+`Hydrator::HYDRATOR` before it calls any normalizer. Pass the context on, so the
+nested object gets the same hydrator and context values.
+
+```php
+use Patchlevel\Hydrator\Hydrator;
+use Patchlevel\Hydrator\Normalizer\MissingHydrator;
+use Patchlevel\Hydrator\Normalizer\Normalizer;
+
+final class AddressNormalizer implements Normalizer
+{
+    public function normalize(mixed $value, array $context): mixed
+    {
+        $hydrator = $context[Hydrator::HYDRATOR] ?? throw new MissingHydrator();
+
+        return $hydrator->extract($value, $context);
+    }
+
+    public function denormalize(mixed $value, array $context): mixed
+    {
+        $hydrator = $context[Hydrator::HYDRATOR] ?? throw new MissingHydrator();
+
+        return $hydrator->hydrate(Address::class, $value, $context);
+    }
+}
+```
 ## Define a normalizer on class level
 
 Instead of specifying the normalizer on each property, you can also set the

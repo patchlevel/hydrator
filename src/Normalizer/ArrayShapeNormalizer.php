@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Normalizer;
 
 use Attribute;
-use Patchlevel\Hydrator\Hydrator;
 use Symfony\Component\TypeInfo\Type;
 use Symfony\Component\TypeInfo\Type\ArrayShapeType;
 use Symfony\Component\TypeInfo\Type\NullableType;
@@ -13,7 +12,7 @@ use Symfony\Component\TypeInfo\Type\NullableType;
 use function is_array;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
-final readonly class ArrayShapeNormalizer implements Normalizer, TypeAwareNormalizer, HydratorAwareNormalizer
+final readonly class ArrayShapeNormalizer implements Normalizer, TypeAwareNormalizer
 {
     /** @param array<array-key, Normalizer> $normalizerMap */
     public function __construct(
@@ -75,17 +74,6 @@ final readonly class ArrayShapeNormalizer implements Normalizer, TypeAwareNormal
         }
 
         return $result;
-    }
-
-    public function setHydrator(Hydrator $hydrator): void
-    {
-        foreach ($this->normalizerMap as $normalizer) {
-            if (!$normalizer instanceof HydratorAwareNormalizer) {
-                continue;
-            }
-
-            $normalizer->setHydrator($hydrator);
-        }
     }
 
     public function handleType(Type|null $type): void

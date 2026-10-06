@@ -24,6 +24,7 @@
     {
       "title": "Miscellaneous",
       "subEntries": [
+        { "title": "Upgrade from 2.x", "file": "UPGRADE-3.0.md" },
         { "title": "Upgrade from 1.x", "file": "UPGRADE-2.0md" }
       ]
     }
