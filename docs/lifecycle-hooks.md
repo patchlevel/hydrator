@@ -10,12 +10,10 @@ result. For this, the `LifecycleExtension` provides four method attributes:
 Register the `LifecycleExtension` on the builder:
 
 ```php
-use Patchlevel\Hydrator\CoreExtension;
 use Patchlevel\Hydrator\Extension\Lifecycle\LifecycleExtension;
 use Patchlevel\Hydrator\StackHydratorBuilder;
 
 $hydrator = (new StackHydratorBuilder())
-    ->useExtension(new CoreExtension())
     ->useExtension(new LifecycleExtension())
     ->build();
 ```

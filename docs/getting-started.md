@@ -47,16 +47,13 @@ the collection. How types are resolved into normalizers is explained on the
 
 ## Create the hydrator
 
-The recommended way to create a hydrator is the `StackHydratorBuilder` together
-with the `CoreExtension`, which registers the default middleware and the
-built-in normalizer guesser.
+The recommended way to create a hydrator is the `StackHydratorBuilder`. It
+already comes with the property mapping and the built-in normalizer guesser.
 
 ```php
-use Patchlevel\Hydrator\CoreExtension;
 use Patchlevel\Hydrator\StackHydratorBuilder;
 
 $hydrator = (new StackHydratorBuilder())
-    ->useExtension(new CoreExtension())
     ->build();
 ```
 :::note

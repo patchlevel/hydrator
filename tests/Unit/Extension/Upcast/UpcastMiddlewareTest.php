@@ -15,6 +15,7 @@ use Patchlevel\Hydrator\Middleware\Next;
 use Patchlevel\Hydrator\Middleware\Skip;
 use Patchlevel\Hydrator\Tests\Unit\Extension\Upcast\Fixture\UpcastFixture;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated;
+use Patchlevel\Hydrator\Transformer\ClassTransformer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
@@ -53,7 +54,7 @@ final class UpcastMiddlewareTest extends TestCase
             ->with($metadata, ['firstName' => 'Jane', 'lastName' => 'Doe', 'name' => 'Jane Doe'], [], self::isInstanceOf(Next::class))
             ->willReturn($expectedObject);
 
-        $next = new Next([$nextMiddleware]);
+        $next = new Next([$nextMiddleware], self::createStub(ClassTransformer::class));
 
         $object = $middleware->hydrate($metadata, ['firstName' => 'Jane', 'lastName' => 'Doe'], [], $next);
 
@@ -72,7 +73,7 @@ final class UpcastMiddlewareTest extends TestCase
             ->with($metadata, $object, [], self::isInstanceOf(Next::class))
             ->willReturn(['name' => 'Jane Doe']);
 
-        $next = new Next([$nextMiddleware]);
+        $next = new Next([$nextMiddleware], self::createStub(ClassTransformer::class));
 
         self::assertSame(['name' => 'Jane Doe'], $middleware->extract($metadata, $object, [], $next));
     }
@@ -179,7 +180,7 @@ final class UpcastMiddlewareTest extends TestCase
             ->with($metadata, ['name' => 'Jane Doe', 'matching' => true], [], self::isInstanceOf(Next::class))
             ->willReturn($expectedObject);
 
-        $next = new Next([$nextMiddleware]);
+        $next = new Next([$nextMiddleware], self::createStub(ClassTransformer::class));
 
         $object = $middleware->hydrate($metadata, ['name' => 'Jane Doe'], [], $next);
 

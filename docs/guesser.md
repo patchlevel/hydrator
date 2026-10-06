@@ -7,7 +7,7 @@ class itself, for example for third-party classes.
 
 ## Built-in guesser
 
-The `BuiltInGuesser` is registered by the `CoreExtension`. It resolves backed
+The `BuiltInGuesser` is always registered. It resolves backed
 enums to the `EnumNormalizer`, the date types (`DateTimeImmutable`, `DateTime`,
 `DateTimeZone`, `DateInterval`) to their normalizers and falls back to the
 `ObjectNormalizer` for everything else.
@@ -36,18 +36,16 @@ final class NameGuesser implements Guesser
 To use the guesser, add it to the builder:
 
 ```php
-use Patchlevel\Hydrator\CoreExtension;
 use Patchlevel\Hydrator\StackHydratorBuilder;
 
 $hydrator = (new StackHydratorBuilder())
-    ->useExtension(new CoreExtension())
     ->addGuesser(new NameGuesser())
     ->build();
 ```
 :::note
 The guessers are queried in order of their priority, and the first match wins.
-The built-in guesser is registered with priority `-64`, so your own guessers run
-before the fallback to the `ObjectNormalizer`.
+The built-in guesser is always asked last, so your own guessers run before the
+fallback to the `ObjectNormalizer`.
 :::
 
 ## Mapped guesser
@@ -56,12 +54,10 @@ For the common case of a simple class-to-normalizer mapping, you don't need to
 write your own guesser class, use the `MappedGuesser`:
 
 ```php
-use Patchlevel\Hydrator\CoreExtension;
 use Patchlevel\Hydrator\Guesser\MappedGuesser;
 use Patchlevel\Hydrator\StackHydratorBuilder;
 
 $hydrator = (new StackHydratorBuilder())
-    ->useExtension(new CoreExtension())
     ->addGuesser(new MappedGuesser([
         Name::class => NameNormalizer::class,
         Email::class => EmailNormalizer::class,

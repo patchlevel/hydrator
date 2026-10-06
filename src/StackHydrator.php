@@ -8,15 +8,17 @@ use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Metadata\ClassNotFound;
 use Patchlevel\Hydrator\Metadata\MetadataFactory;
-use Patchlevel\Hydrator\Middleware\AllMiddlewaresSkipped;
 use Patchlevel\Hydrator\Middleware\Middleware;
 use Patchlevel\Hydrator\Middleware\Next;
 use Patchlevel\Hydrator\Middleware\Skip;
 use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
-use Patchlevel\Hydrator\Middleware\TransformMiddleware;
+use Patchlevel\Hydrator\Transformer\ClassTransformer;
+use Patchlevel\Hydrator\Transformer\ClassTransformerFactory;
+use Patchlevel\Hydrator\Transformer\ReflectionTransformerFactory;
 use ReflectionClass;
 
 use function array_key_exists;
+use function assert;
 use function is_array;
 
 use const PHP_VERSION_ID;
@@ -26,24 +28,27 @@ final class StackHydrator implements Hydrator
     /** @var array<class-string, ClassMetadata> */
     private array $classMetadata = [];
 
-    /** @var array<class-string, non-empty-list<Middleware>> */
+    /** @var array<class-string, list<Middleware>> */
     private array $hydrateMiddlewares = [];
 
-    /** @var array<class-string, non-empty-list<Middleware>> */
+    /** @var array<class-string, list<Middleware>> */
     private array $extractMiddlewares = [];
+
+    /** @var array<class-string, ClassTransformer> */
+    private array $transformers = [];
 
     private readonly bool $hasSkippableMiddlewares;
 
-    /** @param list<Middleware> $middlewares */
+    /**
+     * @param list<Middleware>        $middlewares        run before the data is transformed, in this order
+     * @param ClassTransformerFactory $transformerFactory provides the transformer which maps the data of a class
+     */
     public function __construct(
         private readonly MetadataFactory $metadataFactory = new AttributeMetadataFactory(),
-        private readonly array $middlewares = [new TransformMiddleware()],
+        private readonly array $middlewares = [],
         private readonly bool $defaultLazy = false,
+        private readonly ClassTransformerFactory $transformerFactory = new ReflectionTransformerFactory(),
     ) {
-        if ($middlewares === []) {
-            throw new MissingMiddlewares();
-        }
-
         $hasSkippableMiddlewares = false;
 
         foreach ($middlewares as $middleware) {
@@ -89,26 +94,12 @@ final class StackHydrator implements Hydrator
             throw new ArrayDataRequired($class);
         }
 
-        if (PHP_VERSION_ID < 80400) {
-            $next = new Next($this->middlewaresFor($metadata, Skip::Hydrate));
-
-            return $next->hydrate($metadata, $data, $context);
-        }
-
-        $lazy = $metadata->lazy ?? $this->defaultLazy;
-
-        if (!$lazy) {
-            $next = new Next($this->middlewaresFor($metadata, Skip::Hydrate));
-
-            return $next->hydrate($metadata, $data, $context);
+        if (PHP_VERSION_ID < 80400 || !($metadata->lazy ?? $this->defaultLazy)) {
+            return $this->hydrateWithMiddlewares($metadata, $data, $context);
         }
 
         return (new ReflectionClass($class))->newLazyProxy(
-            function () use ($metadata, $data, $context): object {
-                $next = new Next($this->middlewaresFor($metadata, Skip::Hydrate));
-
-                return $next->hydrate($metadata, $data, $context);
-            },
+            fn (): object => $this->hydrateWithMiddlewares($metadata, $data, $context),
         );
     }
 
@@ -127,16 +118,58 @@ final class StackHydrator implements Hydrator
             return $metadata->normalizer->normalize($object, $context);
         }
 
-        $next = new Next($this->middlewaresFor($metadata, Skip::Extract));
+        $middlewares = $this->middlewaresFor($metadata, Skip::Extract);
+        $transformer = $this->transformer($metadata);
 
-        return $next->extract($metadata, $object, $context);
+        if ($middlewares === []) {
+            return $transformer->extract($object, $context);
+        }
+
+        return (new Next($middlewares, $transformer))->extract($metadata, $object, $context);
+    }
+
+    /**
+     * @param ClassMetadata<T>     $metadata
+     * @param array<string, mixed> $data
+     * @param array<string, mixed> $context
+     *
+     * @return T
+     *
+     * @template T of object
+     */
+    private function hydrateWithMiddlewares(ClassMetadata $metadata, array $data, array $context): object
+    {
+        $middlewares = $this->middlewaresFor($metadata, Skip::Hydrate);
+        $transformer = $this->transformer($metadata);
+
+        if ($middlewares === []) {
+            // no middleware runs for this class, the transformer is called without building the stack
+            $object = $transformer->hydrate($data, $context);
+            assert($object instanceof $metadata->className);
+
+            return $object;
+        }
+
+        return (new Next($middlewares, $transformer))->hydrate($metadata, $data, $context);
+    }
+
+    /**
+     * @param ClassMetadata<T> $metadata
+     *
+     * @template T of object
+     */
+    private function transformer(ClassMetadata $metadata): ClassTransformer
+    {
+        return $this->transformers[$metadata->className]
+            ??= $this->transformerFactory->create($metadata)
+            ?? throw new ClassNotSupported($metadata->className);
     }
 
     /**
      * @param ClassMetadata<T>            $metadata
      * @param Skip::Hydrate|Skip::Extract $direction
      *
-     * @return non-empty-list<Middleware>
+     * @return list<Middleware>
      *
      * @template T of object
      */
@@ -166,10 +199,6 @@ final class StackHydrator implements Hydrator
             }
 
             $middlewares[] = $middleware;
-        }
-
-        if ($middlewares === []) {
-            throw new AllMiddlewaresSkipped($metadata->className);
         }
 
         if ($direction === Skip::Hydrate) {

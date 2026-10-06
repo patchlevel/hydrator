@@ -12,6 +12,7 @@ use Patchlevel\Hydrator\Middleware\Middleware;
 use Patchlevel\Hydrator\Middleware\Next;
 use Patchlevel\Hydrator\Middleware\Skip;
 use Patchlevel\Hydrator\Tests\Unit\Extension\Lifecycle\Fixture\LifecycleFixture;
+use Patchlevel\Hydrator\Transformer\ClassTransformer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use stdClass;
@@ -64,7 +65,7 @@ final class LifecycleMiddlewareTest extends TestCase
             }
         };
 
-        $next = new Next([$innerMiddleware]);
+        $next = new Next([$innerMiddleware], self::createStub(ClassTransformer::class));
 
         $object = $middleware->hydrate($metadata, ['name' => 'foo'], [], $next);
 
@@ -115,7 +116,7 @@ final class LifecycleMiddlewareTest extends TestCase
             }
         };
 
-        $next = new Next([$innerMiddleware]);
+        $next = new Next([$innerMiddleware], self::createStub(ClassTransformer::class));
         $object = new LifecycleFixture('foo');
 
         $data = $middleware->extract($metadata, $object, [], $next);

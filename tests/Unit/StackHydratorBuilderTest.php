@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Tests\Unit;
 
 use Patchlevel\Hydrator\Extension;
+use Patchlevel\Hydrator\Guesser\BuiltInGuesser;
 use Patchlevel\Hydrator\Guesser\ChainGuesser;
 use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
@@ -15,6 +16,11 @@ use Patchlevel\Hydrator\Metadata\Psr6MetadataFactory;
 use Patchlevel\Hydrator\Middleware\Middleware;
 use Patchlevel\Hydrator\StackHydrator;
 use Patchlevel\Hydrator\StackHydratorBuilder;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
+use Patchlevel\Hydrator\Transformer\ChainTransformerFactory;
+use Patchlevel\Hydrator\Transformer\ClassTransformerFactory;
+use Patchlevel\Hydrator\Transformer\ReflectionTransformerFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Cache\CacheItemPoolInterface;
@@ -98,7 +104,7 @@ final class StackHydratorBuilderTest extends TestCase
         $reflection = new ReflectionProperty(ChainGuesser::class, 'guessers');
         $guessers = $reflection->getValue($guesser);
 
-        self::assertSame([$guesser2, $guesser1], $guessers);
+        self::assertEquals([$guesser2, $guesser1, new BuiltInGuesser()], $guessers);
         self::assertSame([$guesser2, $guesser1], $builder->guessers());
     }
 
@@ -158,5 +164,45 @@ final class StackHydratorBuilderTest extends TestCase
         $factory = $reflection->getValue($hydrator);
 
         self::assertInstanceOf(Psr16MetadataFactory::class, $factory);
+    }
+
+    public function testAddTransformerFactoryWithPriority(): void
+    {
+        $factory1 = $this->createMock(ClassTransformerFactory::class);
+        $factory2 = $this->createMock(ClassTransformerFactory::class);
+
+        $builder = new StackHydratorBuilder();
+        $builder->addTransformerFactory($factory1, 10);
+        $builder->addTransformerFactory($factory2, 20);
+
+        $reflection = new ReflectionProperty(StackHydrator::class, 'transformerFactory');
+
+        self::assertSame([$factory2, $factory1], $builder->transformerFactories());
+        self::assertEquals(
+            new ChainTransformerFactory([$factory2, $factory1, new ReflectionTransformerFactory()]),
+            $reflection->getValue($builder->build()),
+        );
+    }
+
+    public function testReflectionWithoutTransformerFactories(): void
+    {
+        $reflection = new ReflectionProperty(StackHydrator::class, 'transformerFactory');
+
+        self::assertInstanceOf(ReflectionTransformerFactory::class, $reflection->getValue((new StackHydratorBuilder())->build()));
+    }
+
+    public function testBuiltInGuesserWithoutRegistration(): void
+    {
+        $hydrator = (new StackHydratorBuilder())->build();
+
+        $object = $hydrator->hydrate(InferNormalizerDto::class, [
+            'status' => 'draft',
+            'dateTimeImmutable' => '2015-02-13T22:34:32+01:00',
+            'dateTime' => '2015-02-13T22:34:32+01:00',
+            'dateTimeZone' => 'EDT',
+            'array' => ['foo'],
+        ]);
+
+        self::assertSame(Status::Draft, $object->status);
     }
 }

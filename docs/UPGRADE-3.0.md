@@ -3,6 +3,34 @@ searchable: false
 ---
 # Upgrade 3.0
 
+## Builder
+
+### CoreExtension
+
+The `CoreExtension` has been removed. The property mapping and the
+`BuiltInGuesser` are now always part of the hydrator, remove the registration.
+
+before:
+
+```php
+use Patchlevel\Hydrator\CoreExtension;
+use Patchlevel\Hydrator\StackHydratorBuilder;
+
+$hydrator = (new StackHydratorBuilder())
+    ->useExtension(new CoreExtension())
+    ->build();
+```
+after:
+
+```php
+use Patchlevel\Hydrator\StackHydratorBuilder;
+
+$hydrator = (new StackHydratorBuilder())
+    ->build();
+```
+The `BuiltInGuesser` is always asked after all guessers you register with
+`addGuesser()`, regardless of their priority.
+
 ## Normalizer
 
 ### HydratorAwareNormalizer
@@ -207,7 +235,7 @@ final class AuditMiddleware implements Middleware
 }
 ```
 In tests, where a middleware is called on its own, pass a `Next` with the
-following middlewares instead of a `Stack`.
+following middlewares and the transformer instead of a `Stack`.
 
 before:
 
@@ -221,10 +249,42 @@ after:
 
 ```php
 use Patchlevel\Hydrator\Middleware\Next;
-use Patchlevel\Hydrator\Middleware\TransformMiddleware;
+use Patchlevel\Hydrator\Transformer\ReflectionTransformer;
 
-$object = $middleware->hydrate($metadata, $data, [], new Next([new TransformMiddleware()]));
+$object = $middleware->hydrate($metadata, $data, [], new Next([], new ReflectionTransformer($metadata)));
 ```
+### TransformMiddleware
+
+The `TransformMiddleware` has been removed. The hydrator maps the data with a
+`ClassTransformer` after all middlewares, the `ReflectionTransformer` by
+default. Remove the `TransformMiddleware` if you pass the middlewares to the
+`StackHydrator` yourself. `Extension::PRIORITY_TRANSFORM` has been removed as
+well.
+
+before:
+
+```php
+use Patchlevel\Hydrator\Middleware\TransformMiddleware;
+use Patchlevel\Hydrator\StackHydrator;
+
+$hydrator = new StackHydrator(middlewares: [new AuditMiddleware(), new TransformMiddleware()]);
+```
+after:
+
+```php
+use Patchlevel\Hydrator\StackHydrator;
+
+$hydrator = new StackHydrator(middlewares: [new AuditMiddleware()]);
+```
+If you replaced the `TransformMiddleware` with your own mapping, implement a
+`ClassTransformerFactory` instead and register it with
+`StackHydratorBuilder::addTransformerFactory()`.
+
+### Removed exceptions
+
+`MissingMiddlewares`, `AllMiddlewaresSkipped` and `NoMoreMiddleware` have been
+removed. A hydrator without middlewares is valid, and a class which every
+middleware skips is only transformed. Remove the `catch` blocks for them.
 ## Caching
 
 The serialized form of the normalizers changed. Clear the

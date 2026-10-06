@@ -11,13 +11,11 @@ Register the `UpcastExtension` on the builder and pass it a list of upcasters.
 Each upcaster receives the raw data array and returns a reshaped array.
 
 ```php
-use Patchlevel\Hydrator\CoreExtension;
 use Patchlevel\Hydrator\Extension\Upcast\CallbackUpcaster;
 use Patchlevel\Hydrator\Extension\Upcast\UpcastExtension;
 use Patchlevel\Hydrator\StackHydratorBuilder;
 
 $hydrator = (new StackHydratorBuilder())
-    ->useExtension(new CoreExtension())
     ->useExtension(new UpcastExtension(
         beforeTransform: [
             CallbackUpcaster::forClass(

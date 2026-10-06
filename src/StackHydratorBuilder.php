@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator;
 
+use Patchlevel\Hydrator\Guesser\BuiltInGuesser;
 use Patchlevel\Hydrator\Guesser\ChainGuesser;
 use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
@@ -12,6 +13,9 @@ use Patchlevel\Hydrator\Metadata\MetadataEnricher;
 use Patchlevel\Hydrator\Metadata\Psr16MetadataFactory;
 use Patchlevel\Hydrator\Metadata\Psr6MetadataFactory;
 use Patchlevel\Hydrator\Middleware\Middleware;
+use Patchlevel\Hydrator\Transformer\ChainTransformerFactory;
+use Patchlevel\Hydrator\Transformer\ClassTransformerFactory;
+use Patchlevel\Hydrator\Transformer\ReflectionTransformerFactory;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\SimpleCache\CacheInterface;
 
@@ -31,6 +35,9 @@ final class StackHydratorBuilder
     /** @var array<int, list<Guesser>> */
     private array $guessers = [];
 
+    /** @var array<int, list<ClassTransformerFactory>> */
+    private array $transformerFactories = [];
+
     private CacheItemPoolInterface|CacheInterface|null $cache = null;
 
     /** @return $this */
@@ -49,10 +56,26 @@ final class StackHydratorBuilder
         return $this;
     }
 
-    /** @return $this */
+    /**
+     * Guessers with a higher priority are asked first, the {@see BuiltInGuesser} is always asked last.
+     *
+     * @return $this
+     */
     public function addGuesser(Guesser $guesser, int $priority = 0): static
     {
         $this->guessers[$priority][] = $guesser;
+
+        return $this;
+    }
+
+    /**
+     * Factories with a higher priority are asked first, the {@see ReflectionTransformerFactory} is always asked last.
+     *
+     * @return $this
+     */
+    public function addTransformerFactory(ClassTransformerFactory $factory, int $priority = 0): static
+    {
+        $this->transformerFactories[$priority][] = $factory;
 
         return $this;
     }
@@ -82,7 +105,7 @@ final class StackHydratorBuilder
     {
         $metadataFactory = new EnrichingMetadataFactory(
             new AttributeMetadataFactory(
-                guesser: new ChainGuesser($this->guessers()),
+                guesser: new ChainGuesser([...$this->guessers(), new BuiltInGuesser()]),
             ),
             $this->metadataEnrichers(),
         );
@@ -95,10 +118,15 @@ final class StackHydratorBuilder
             $metadataFactory = new Psr16MetadataFactory($metadataFactory, $this->cache);
         }
 
+        $transformerFactories = $this->transformerFactories();
+
         return new StackHydrator(
             $metadataFactory,
             $this->middlewares(),
             $this->defaultLazy,
+            $transformerFactories === []
+                ? new ReflectionTransformerFactory()
+                : new ChainTransformerFactory([...$transformerFactories, new ReflectionTransformerFactory()]),
         );
     }
 
@@ -121,6 +149,14 @@ final class StackHydratorBuilder
         krsort($this->guessers);
 
         return array_merge(...$this->guessers);
+    }
+
+    /** @return list<ClassTransformerFactory> without the reflection fallback */
+    public function transformerFactories(): array
+    {
+        krsort($this->transformerFactories);
+
+        return array_merge(...$this->transformerFactories);
     }
 
     /** @return list<MetadataEnricher> */

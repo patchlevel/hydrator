@@ -17,12 +17,13 @@ use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Middleware\Middleware;
 use Patchlevel\Hydrator\Middleware\Next;
 use Patchlevel\Hydrator\Middleware\Skip;
-use Patchlevel\Hydrator\Middleware\TransformMiddleware;
 use Patchlevel\Hydrator\Tests\Unit\Extension\Cryptography\Fixture\SensitiveDataProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Extension\Cryptography\Fixture\SensitiveDataProfileCreatedFallbackCallback;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
+use Patchlevel\Hydrator\Transformer\ClassTransformer;
+use Patchlevel\Hydrator\Transformer\ReflectionTransformer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
@@ -41,7 +42,7 @@ final class CryptographyMiddlewareTest extends TestCase
             $this->metadata(SensitiveDataProfileCreated::class),
             ['id' => null, 'email' => 'encrypted'],
             [],
-            new Next([new TransformMiddleware()]),
+            new Next([], new ReflectionTransformer($this->metadata(SensitiveDataProfileCreated::class))),
         );
     }
 
@@ -57,7 +58,7 @@ final class CryptographyMiddlewareTest extends TestCase
             $this->metadata(SensitiveDataProfileCreated::class),
             ['email' => 'encrypted'],
             [],
-            new Next([new TransformMiddleware()]),
+            new Next([], new ReflectionTransformer($this->metadata(SensitiveDataProfileCreated::class))),
         );
     }
 
@@ -77,7 +78,7 @@ final class CryptographyMiddlewareTest extends TestCase
         $metadata = $this->metadata(ProfileCreated::class);
 
         $otherMiddleware = $this->createMock(Middleware::class);
-        $next = new Next([$otherMiddleware]);
+        $next = new Next([$otherMiddleware], self::createStub(ClassTransformer::class));
 
         $otherMiddleware
             ->expects($this->once())
@@ -105,7 +106,7 @@ final class CryptographyMiddlewareTest extends TestCase
         $metadata = $this->metadata(SensitiveDataProfileCreated::class);
 
         $otherMiddleware = $this->createMock(Middleware::class);
-        $next = new Next([$otherMiddleware]);
+        $next = new Next([$otherMiddleware], self::createStub(ClassTransformer::class));
 
         $otherMiddleware
             ->expects($this->once())
@@ -143,7 +144,7 @@ final class CryptographyMiddlewareTest extends TestCase
         $metadata = $this->metadata(ProfileCreated::class);
 
         $otherMiddleware = $this->createMock(Middleware::class);
-        $next = new Next([$otherMiddleware]);
+        $next = new Next([$otherMiddleware], self::createStub(ClassTransformer::class));
 
         $otherMiddleware
             ->expects($this->once())
@@ -175,7 +176,7 @@ final class CryptographyMiddlewareTest extends TestCase
             $this->metadata(SensitiveDataProfileCreated::class),
             ['id' => 'foo', 'email' => 'encrypted'],
             [],
-            new Next([new TransformMiddleware()]),
+            new Next([], new ReflectionTransformer($this->metadata(SensitiveDataProfileCreated::class))),
         );
 
         self::assertInstanceOf(SensitiveDataProfileCreated::class, $result);
@@ -195,7 +196,7 @@ final class CryptographyMiddlewareTest extends TestCase
             $this->metadata(SensitiveDataProfileCreated::class),
             ['id' => 'foo', 'email' => 'encrypted'],
             [],
-            new Next([new TransformMiddleware()]),
+            new Next([], new ReflectionTransformer($this->metadata(SensitiveDataProfileCreated::class))),
         );
 
         self::assertInstanceOf(SensitiveDataProfileCreated::class, $result);
@@ -215,7 +216,7 @@ final class CryptographyMiddlewareTest extends TestCase
             $this->metadata(SensitiveDataProfileCreatedFallbackCallback::class),
             ['id' => 'foo', 'email' => 'encrypted'],
             [],
-            new Next([new TransformMiddleware()]),
+            new Next([], new ReflectionTransformer($this->metadata(SensitiveDataProfileCreatedFallbackCallback::class))),
         );
 
         self::assertInstanceOf(SensitiveDataProfileCreatedFallbackCallback::class, $result);
@@ -235,7 +236,7 @@ final class CryptographyMiddlewareTest extends TestCase
             $this->metadata(SensitiveDataProfileCreated::class),
             ['id' => 'foo', 'email' => 'encrypted'],
             [],
-            new Next([new TransformMiddleware()]),
+            new Next([], new ReflectionTransformer($this->metadata(SensitiveDataProfileCreated::class))),
         );
 
         self::assertInstanceOf(SensitiveDataProfileCreated::class, $result);
