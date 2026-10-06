@@ -108,12 +108,18 @@ final class StackHydratorBuilder
     }
 
     /**
-     * Builds the plain stack hydrator, registered decorators are not applied.
+     * Builds the plain stack hydrator. Fails if decorators are registered, since they can not be applied here.
      *
      * @deprecated use buildHydrator() instead, which also applies the decorators
+     *
+     * @throws DecoratorsNotApplied
      */
     public function build(): StackHydrator
     {
+        if ($this->decorators !== []) {
+            throw new DecoratorsNotApplied();
+        }
+
         return $this->buildStackHydrator();
     }
 

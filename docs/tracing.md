@@ -35,7 +35,8 @@ example `hydrate App\Profile\Event\ProfileCreated`, in the category
 
 :::warning
 The decorators are only applied by `buildHydrator()`. The deprecated `build()`
-returns the plain `StackHydrator` without tracing.
+throws a `DecoratorsNotApplied` exception as soon as an extension registers a
+decorator, like the `TracingExtension` does.
 :::
 
 ## Write your own tracer

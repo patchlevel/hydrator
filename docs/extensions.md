@@ -187,7 +187,7 @@ wrapped around the ones with a lower priority.
 
 :::warning
 Decorators are only applied by `buildHydrator()`. The deprecated `build()`
-returns the plain `StackHydrator`.
+throws a `DecoratorsNotApplied` exception as soon as a decorator is registered.
 :::
 
 ## Writing your own extension

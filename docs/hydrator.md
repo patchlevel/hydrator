@@ -23,8 +23,8 @@ $hydrator = (new StackHydratorBuilder())
 :::note
 `buildHydrator()` returns a `Hydrator`. Extensions can wrap the
 `StackHydrator` in [decorators](extensions.md#decorators), so type hint
-against the `Hydrator` interface. The older `build()` is deprecated, it
-returns the plain `StackHydrator` without decorators.
+against the `Hydrator` interface. The older `build()` is deprecated, it only
+works as long as no decorator is registered.
 :::
 
 If you don't need any extensions, you can also instantiate the `StackHydrator`

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Unit;
 
+use Patchlevel\Hydrator\DecoratorsNotApplied;
 use Patchlevel\Hydrator\Extension;
 use Patchlevel\Hydrator\Guesser\ChainGuesser;
 use Patchlevel\Hydrator\Guesser\Guesser;
@@ -207,7 +208,7 @@ final class StackHydratorBuilderTest extends TestCase
         self::assertSame($outer, $builder->buildHydrator());
     }
 
-    public function testBuildIgnoresDecorators(): void
+    public function testBuildFailsWithDecorators(): void
     {
         $decorator = $this->createMock(HydratorDecorator::class);
         $decorator->expects($this->never())->method('decorate');
@@ -215,6 +216,9 @@ final class StackHydratorBuilderTest extends TestCase
         $builder = new StackHydratorBuilder();
         $builder->addMiddleware($this->createMock(Middleware::class));
         $builder->addDecorator($decorator);
+
+        $this->expectException(DecoratorsNotApplied::class);
+        $this->expectExceptionMessage('Decorators are registered but build() can not apply them, use buildHydrator() instead.');
 
         $builder->build();
     }
