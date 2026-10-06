@@ -74,7 +74,9 @@ use Patchlevel\Hydrator\Extension\Generated\HydratorNotSet;
 use Patchlevel\Hydrator\Extension\Generated\OutdatedGeneratedMiddleware;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
+use Patchlevel\Hydrator\Extension\Generated\GeneratedHydrator;
 use Patchlevel\Hydrator\Extension\Generated\GeneratedMiddleware;
+use Patchlevel\Hydrator\Extension\Generated\GeneratedMiddlewareSlot;
 use Patchlevel\Hydrator\Middleware\HydratorAwareMiddleware;
 use Patchlevel\Hydrator\Middleware\Middleware;
 use Patchlevel\Hydrator\Middleware\Skip;
@@ -98,7 +100,7 @@ final class {{className}} implements SkippableMiddleware, HydratorAwareMiddlewar
 {
     public StackHydrator|null $hydrator = null;
 
-    /** @var list<Middleware> all middlewares except this one and the TransformMiddleware behind it */
+    /** @var list<Middleware> all middlewares except this one, its slot and the TransformMiddleware behind it */
     public array $others = [];
 
     /** @var array<int, class-string> */
@@ -118,6 +120,10 @@ final class {{className}} implements SkippableMiddleware, HydratorAwareMiddlewar
 
         foreach ($hydrator->middlewares() as $middleware) {
             if ($middleware === $this || $middleware instanceof TransformMiddleware) {
+                continue;
+            }
+
+            if ($middleware instanceof GeneratedMiddlewareSlot && $middleware->holds($this)) {
                 continue;
             }
 
@@ -245,6 +251,13 @@ final class {{className}} implements SkippableMiddleware, HydratorAwareMiddlewar
      */
     private function inlinable(string $class, Skip $direction): bool
     {
+        // a decorator around the hydrator (e.g. tracing) has to see nested objects, they must go through the root hydrator
+        $root = $this->hydrator()->rootHydrator();
+
+        if ($root !== $this->hydrator() && !$root instanceof GeneratedHydrator) {
+            return false;
+        }
+
         try {
             $metadata = $this->hydrator()->metadata($class);
         } catch (Throwable) {

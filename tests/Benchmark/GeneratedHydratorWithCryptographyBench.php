@@ -31,7 +31,7 @@ final class GeneratedHydratorWithCryptographyBench
             ->useExtension(new CoreExtension())
             ->useExtension(new GeneratedMiddlewareExtension(__DIR__ . '/../../var/cache', [ProfileCreated::class, Skill::class], debug: true))
             ->useExtension(new CryptographyExtension(BaseCryptographer::createWithOpenssl($this->store)))
-            ->build();
+            ->buildHydrator();
     }
 
     public function setUp(): void

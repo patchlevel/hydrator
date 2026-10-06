@@ -22,7 +22,7 @@ use function ltrim;
 final class MiddlewareGenerator
 {
     /** Part of the cache key, bump it whenever the generated code changes. */
-    public const VERSION = 8;
+    public const VERSION = 9;
 
     public function __construct(
         private readonly MetadataFactory $metadataFactory,

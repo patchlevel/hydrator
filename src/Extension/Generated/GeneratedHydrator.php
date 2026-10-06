@@ -5,21 +5,20 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Extension\Generated;
 
 use Closure;
+use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\Metadata\ClassNotFound;
 use Patchlevel\Hydrator\StackHydrator;
 
-use function array_filter;
-use function array_values;
 use function assert;
 use function is_array;
 
 use const PHP_VERSION_ID;
 
 /**
- * A {@see StackHydrator} which calls the generated code directly for the classes no other middleware has to run for.
- * Everything else takes the regular path through the middleware stack.
+ * Decorates the {@see StackHydrator} and calls the generated code directly for the classes no other middleware has to
+ * run for. Everything else is passed on to the stack.
  */
-final class GeneratedHydrator extends StackHydrator
+final class GeneratedHydrator implements Hydrator
 {
     /** @var array<class-string, Closure|false> false if the class has no compiled hydrator */
     private array $hydrators = [];
@@ -27,8 +26,12 @@ final class GeneratedHydrator extends StackHydrator
     /** @var array<class-string, Closure|false> false if the class has no compiled extractor */
     private array $extractors = [];
 
-    /** @var list<GeneratedMiddleware>|null */
-    private array|null $generated = null;
+    public function __construct(
+        private readonly Hydrator $hydrator,
+        private readonly StackHydrator $stack,
+        private readonly GeneratedMiddleware $middleware,
+    ) {
+    }
 
     /**
      * @param class-string<T>      $class
@@ -49,7 +52,7 @@ final class GeneratedHydrator extends StackHydrator
             return $object;
         }
 
-        return parent::hydrate($class, $data, $context);
+        return $this->hydrator->hydrate($class, $data, $context);
     }
 
     /** @param array<string, mixed> $context */
@@ -61,11 +64,23 @@ final class GeneratedHydrator extends StackHydrator
             return $extractor($object, $context);
         }
 
-        return parent::extract($object, $context);
+        return $this->hydrator->extract($object, $context);
+    }
+
+    /** @internal */
+    public function stack(): StackHydrator
+    {
+        return $this->stack;
+    }
+
+    /** @internal */
+    public function middleware(): GeneratedMiddleware
+    {
+        return $this->middleware;
     }
 
     /**
-     * Decided once per class: the class must not use a class normalizer or a lazy proxy, and a generated
+     * Decided once per class: the class must not use a class normalizer or a lazy proxy, and the generated
      * middleware must handle it exclusively. Everything else is left to the stack.
      *
      * @param class-string $class
@@ -73,52 +88,27 @@ final class GeneratedHydrator extends StackHydrator
     private function compileHydrator(string $class): Closure|false
     {
         try {
-            $metadata = $this->metadata($class);
+            $metadata = $this->stack->metadata($class);
         } catch (ClassNotFound) {
             return $this->hydrators[$class] = false;
         }
 
-        if ($metadata->normalizer !== null || (PHP_VERSION_ID >= 80400 && ($metadata->lazy ?? $this->defaultLazy()))) {
+        if ($metadata->normalizer !== null || (PHP_VERSION_ID >= 80400 && ($metadata->lazy ?? $this->stack->defaultLazy()))) {
             return $this->hydrators[$class] = false;
         }
 
-        foreach ($this->generated() as $middleware) {
-            $hydrator = $middleware->compiledHydrator($metadata);
-
-            if ($hydrator !== null) {
-                return $this->hydrators[$class] = $hydrator;
-            }
-        }
-
-        return $this->hydrators[$class] = false;
+        return $this->hydrators[$class] = $this->middleware->compiledHydrator($metadata) ?? false;
     }
 
     /** @param class-string $class */
     private function compileExtractor(string $class): Closure|false
     {
-        $metadata = $this->metadata($class);
+        $metadata = $this->stack->metadata($class);
 
         if ($metadata->normalizer !== null) {
             return $this->extractors[$class] = false;
         }
 
-        foreach ($this->generated() as $middleware) {
-            $extractor = $middleware->compiledExtractor($metadata);
-
-            if ($extractor !== null) {
-                return $this->extractors[$class] = $extractor;
-            }
-        }
-
-        return $this->extractors[$class] = false;
-    }
-
-    /** @return list<GeneratedMiddleware> */
-    private function generated(): array
-    {
-        return $this->generated ??= array_values(array_filter(
-            $this->middlewares(),
-            static fn ($middleware): bool => $middleware instanceof GeneratedMiddleware,
-        ));
+        return $this->extractors[$class] = $this->middleware->compiledExtractor($metadata) ?? false;
     }
 }

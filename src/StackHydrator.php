@@ -23,8 +23,7 @@ use function is_array;
 
 use const PHP_VERSION_ID;
 
-/** @final this is only not final anymore because of bc reasons for the generated hydrator. DONT extend this class! */
-class StackHydrator implements Hydrator
+final class StackHydrator implements Hydrator
 {
     /** @var array<class-string, ClassMetadata> */
     private array $classMetadata = [];
@@ -80,6 +79,16 @@ class StackHydrator implements Hydrator
         foreach ($this->classMetadata as $metadata) {
             $this->injectHydrator($metadata);
         }
+    }
+
+    /**
+     * The outermost hydrator, which wraps this one with all decorators. This one, if no decorator is registered.
+     *
+     * @internal
+     */
+    public function rootHydrator(): Hydrator
+    {
+        return $this->rootHydrator;
     }
 
     /** @return list<Middleware> */

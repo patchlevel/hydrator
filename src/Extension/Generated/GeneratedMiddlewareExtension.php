@@ -6,12 +6,8 @@ namespace Patchlevel\Hydrator\Extension\Generated;
 
 use Patchlevel\Hydrator\Extension;
 use Patchlevel\Hydrator\Metadata\MetadataFactory;
-use Patchlevel\Hydrator\Middleware\Middleware;
-use Patchlevel\Hydrator\Middleware\TransformMiddleware;
-use Patchlevel\Hydrator\StackHydrator;
 use Patchlevel\Hydrator\StackHydratorBuilder;
 
-use function array_splice;
 use function assert;
 use function class_exists;
 use function file_exists;
@@ -25,6 +21,8 @@ use function sprintf;
 use function substr;
 use function uniqid;
 use function unlink;
+
+use const PHP_INT_MIN;
 
 final class GeneratedMiddlewareExtension implements Extension
 {
@@ -44,20 +42,20 @@ final class GeneratedMiddlewareExtension implements Extension
     ) {
     }
 
+    /**
+     * The generated code is loaded when the hydrator is built, not here: extensions registered later may still add
+     * guessers and enrichers, and the generated code has to match the metadata the hydrator ends up with.
+     * The decorator has the lowest priority, so it is the innermost and all other decorators wrap it.
+     */
     public function configure(StackHydratorBuilder $builder): void
     {
-        // the code is generated when the hydrator is built, not here: extensions registered later may still add
-        // guessers and enrichers, and the generated code has to match the metadata the hydrator ends up with
-        $builder->setHydratorFactory(
-            fn (MetadataFactory $metadataFactory, array $middlewares, bool $defaultLazy): StackHydrator => new GeneratedHydrator(
-                $metadataFactory,
-                $this->addMiddleware($middlewares, $this->middleware($metadataFactory)),
-                $defaultLazy,
-            ),
-        );
+        $slot = new GeneratedMiddlewareSlot();
+
+        $builder->addMiddleware($slot, Extension::PRIORITY_TRANSFORM + 1);
+        $builder->addDecorator(new GeneratedDecorator($slot, $this->middleware(...)), PHP_INT_MIN);
     }
 
-    private function middleware(MetadataFactory $metadataFactory): Middleware
+    private function middleware(MetadataFactory $metadataFactory): GeneratedMiddleware
     {
         $className = $this->className ?? $this->defaultClassName();
         $fqcn = self::NAMESPACE . '\\' . $className;
@@ -67,32 +65,9 @@ final class GeneratedMiddlewareExtension implements Extension
         }
 
         $middleware = new $fqcn();
-        assert($middleware instanceof Middleware);
+        assert($middleware instanceof GeneratedMiddleware);
 
         return $middleware;
-    }
-
-    /**
-     * The generated middleware runs right before the TransformMiddleware, like a middleware registered with
-     * Extension::PRIORITY_TRANSFORM + 1 would.
-     *
-     * @param list<Middleware> $middlewares
-     *
-     * @return list<Middleware>
-     */
-    private function addMiddleware(array $middlewares, Middleware $generated): array
-    {
-        foreach ($middlewares as $index => $middleware) {
-            if ($middleware instanceof TransformMiddleware) {
-                array_splice($middlewares, $index, 0, [$generated]);
-
-                return $middlewares;
-            }
-        }
-
-        $middlewares[] = $generated;
-
-        return $middlewares;
     }
 
     public function defaultClassName(): string

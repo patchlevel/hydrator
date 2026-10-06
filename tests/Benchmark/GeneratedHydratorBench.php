@@ -30,7 +30,7 @@ final class GeneratedHydratorBench
                 ],
                 debug: true,
             ))
-            ->build();
+            ->buildHydrator();
     }
 
     public function setUp(): void

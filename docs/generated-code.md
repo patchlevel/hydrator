@@ -29,15 +29,21 @@ $hydrator = (new StackHydratorBuilder())
             NameChanged::class,
         ],
     ))
-    ->build();
+    ->buildHydrator();
 ```
 :::note
-The builder returns a `GeneratedHydrator` instead of the plain `StackHydrator`.
-It is a `StackHydrator` in every respect, but for the generated classes it
-calls the generated code directly and skips the middleware stack entirely, as
-long as no other middleware has to run for the class (see
-[Nested objects](#nested-objects) for how that is decided). Everything else
-takes the regular path.
+The extension registers a [decorator](extensions.md#decorators) around the
+`StackHydrator`. For the generated classes it calls the generated code directly
+and skips the middleware stack entirely, as long as no other middleware has to
+run for the class (see [Nested objects](#nested-objects) for how that is
+decided). Everything else is passed on to the `StackHydrator`. The decorator
+has the lowest priority, so other decorators like [tracing](tracing.md) are
+always wrapped around it.
+:::
+
+:::warning
+The extension requires `buildHydrator()`. The deprecated `build()` can not
+apply decorators and throws a `DecoratorsNotApplied` exception.
 :::
 
 :::success
@@ -91,6 +97,11 @@ is made per class and per direction: with the
 [cryptography](cryptography.md) extension for example, value objects without
 sensitive data are inlined while classes with sensitive data still go through
 the stack.
+
+Inlining would also hide nested objects from [decorators](extensions.md#decorators),
+so nothing is inlined as soon as another decorator is registered. With the
+[tracing](tracing.md) extension, every nested object goes through the tracer
+and shows up in the traces, at the cost of the inlining.
 
 :::note
 Nested classes with a class level normalizer or [lazy](lazy.md) classes are
