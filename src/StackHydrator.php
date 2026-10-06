@@ -94,7 +94,9 @@ final class StackHydrator implements Hydrator
             throw new ArrayDataRequired($class);
         }
 
-        if (PHP_VERSION_ID < 80400 || !($metadata->lazy ?? $this->defaultLazy)) {
+        $lazy = PHP_VERSION_ID >= 80400 && ($metadata->lazy ?? $this->defaultLazy);
+
+        if (!$lazy) {
             return $this->hydrateWithMiddlewares($metadata, $data, $context);
         }
 
@@ -121,11 +123,10 @@ final class StackHydrator implements Hydrator
         $middlewares = $this->middlewaresFor($metadata, Skip::Extract);
         $transformer = $this->transformer($metadata);
 
-        if ($middlewares === []) {
-            return $transformer->extract($object, $context);
-        }
-
-        return (new Next($middlewares, $transformer))->extract($metadata, $object, $context);
+        // without middlewares the transformer is called without building the stack
+        return $middlewares === []
+            ? $transformer->extract($object, $context)
+            : (new Next($middlewares, $transformer))->extract($metadata, $object, $context);
     }
 
     /**

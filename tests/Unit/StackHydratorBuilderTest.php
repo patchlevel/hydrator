@@ -205,4 +205,18 @@ final class StackHydratorBuilderTest extends TestCase
 
         self::assertSame(Status::Draft, $object->status);
     }
+
+    public function testTransformerFactoryDefaultPriority(): void
+    {
+        $low = $this->createMock(ClassTransformerFactory::class);
+        $default = $this->createMock(ClassTransformerFactory::class);
+        $high = $this->createMock(ClassTransformerFactory::class);
+
+        $builder = new StackHydratorBuilder();
+        $builder->addTransformerFactory($low, -1);
+        $builder->addTransformerFactory($default);
+        $builder->addTransformerFactory($high, 1);
+
+        self::assertSame([$high, $default, $low], $builder->transformerFactories());
+    }
 }
