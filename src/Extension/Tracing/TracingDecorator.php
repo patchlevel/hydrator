@@ -6,7 +6,6 @@ namespace Patchlevel\Hydrator\Extension\Tracing;
 
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\HydratorDecorator;
-use Patchlevel\Hydrator\StackHydrator;
 
 final class TracingDecorator implements HydratorDecorator
 {
@@ -15,7 +14,7 @@ final class TracingDecorator implements HydratorDecorator
     ) {
     }
 
-    public function decorate(Hydrator $hydrator, StackHydrator $stack): Hydrator
+    public function decorate(Hydrator $hydrator): Hydrator
     {
         return new TracingHydrator($hydrator, $this->tracer);
     }

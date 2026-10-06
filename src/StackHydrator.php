@@ -16,9 +16,14 @@ use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
 use Patchlevel\Hydrator\Middleware\Stack;
 use Patchlevel\Hydrator\Middleware\TransformMiddleware;
 use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
+use Patchlevel\Hydrator\Transformer\CallStack;
+use Patchlevel\Hydrator\Transformer\ClassTransformer;
+use Patchlevel\Hydrator\Transformer\ClassTransformerFactory;
+use Patchlevel\Hydrator\Transformer\ReflectionTransformer;
 use ReflectionClass;
 
 use function array_key_exists;
+use function assert;
 use function is_array;
 
 use const PHP_VERSION_ID;
@@ -34,20 +39,37 @@ final class StackHydrator implements Hydrator
     /** @var array<class-string, non-empty-list<Middleware>> */
     private array $extractMiddlewares = [];
 
+    /** @var array<class-string, ClassTransformer> */
+    private array $transformers = [];
+
+    /** @var array<class-string, ClassTransformer> classes which only need the transformation, so the stack is skipped */
+    private array $directHydrators = [];
+
+    /** @var array<class-string, ClassTransformer> classes which only need the transformation, so the stack is skipped */
+    private array $directExtractors = [];
+
+    private readonly CallStack $callStack;
+
     private readonly bool $hasSkippableMiddlewares;
 
     /** The hydrator which is passed to the normalizers to hydrate and extract nested objects. */
     private Hydrator $rootHydrator;
 
-    /** @param list<Middleware> $middlewares */
+    /**
+     * @param list<Middleware>              $middlewares
+     * @param list<ClassTransformerFactory> $transformerFactories asked in this order, reflection is the fallback
+     */
     public function __construct(
         private readonly MetadataFactory $metadataFactory = new AttributeMetadataFactory(),
         private readonly array $middlewares = [new TransformMiddleware()],
         private readonly bool $defaultLazy = false,
+        private readonly array $transformerFactories = [],
     ) {
         if ($middlewares === []) {
             throw new MissingMiddlewares();
         }
+
+        $this->callStack = new CallStack();
 
         $hasSkippableMiddlewares = false;
 
@@ -112,6 +134,15 @@ final class StackHydrator implements Hydrator
      */
     public function hydrate(string $class, mixed $data, array $context = []): object
     {
+        $direct = $this->directHydrators[$class] ?? null;
+
+        if ($direct !== null && is_array($data)) {
+            $object = $direct->hydrate($data, $context);
+            assert($object instanceof $class);
+
+            return $object;
+        }
+
         try {
             /** @var ClassMetadata<T> $metadata */
             $metadata = $this->classMetadata[$class] ?? $this->metadata($class);
@@ -133,16 +164,18 @@ final class StackHydrator implements Hydrator
             throw new ArrayDataRequired($class);
         }
 
-        if (PHP_VERSION_ID < 80400) {
+        if (PHP_VERSION_ID < 80400 || !($metadata->lazy ?? $this->defaultLazy)) {
             $middlewares = $this->middlewaresFor($metadata, Skip::Hydrate);
 
-            return $middlewares[0]->hydrate($metadata, $data, $context, new Stack($middlewares, 1));
-        }
+            if (!isset($middlewares[1]) && $middlewares[0] instanceof TransformMiddleware) {
+                // only the transformation runs for this class, from now on it is called without the stack
+                $transformer = $this->directHydrators[$class] = $this->transformer($metadata);
 
-        $lazy = $metadata->lazy ?? $this->defaultLazy;
+                $object = $transformer->hydrate($data, $context);
+                assert($object instanceof $class);
 
-        if (!$lazy) {
-            $middlewares = $this->middlewaresFor($metadata, Skip::Hydrate);
+                return $object;
+            }
 
             return $middlewares[0]->hydrate($metadata, $data, $context, new Stack($middlewares, 1));
         }
@@ -150,6 +183,14 @@ final class StackHydrator implements Hydrator
         return (new ReflectionClass($class))->newLazyProxy(
             function () use ($metadata, $data, $context): object {
                 $middlewares = $this->middlewaresFor($metadata, Skip::Hydrate);
+
+                if (!isset($middlewares[1]) && $middlewares[0] instanceof TransformMiddleware) {
+                    // not cached as direct hydrator, every call has to create a lazy proxy again
+                    $object = $this->transformer($metadata)->hydrate($data, $context);
+                    assert($object instanceof $metadata->className);
+
+                    return $object;
+                }
 
                 return $middlewares[0]->hydrate($metadata, $data, $context, new Stack($middlewares, 1));
             },
@@ -163,6 +204,12 @@ final class StackHydrator implements Hydrator
      */
     public function extract(object $object, array $context = []): mixed
     {
+        $direct = $this->directExtractors[$object::class] ?? null;
+
+        if ($direct !== null) {
+            return $direct->extract($object, $context);
+        }
+
         $metadata = $this->classMetadata[$object::class] ?? $this->metadata($object::class);
 
         if ($metadata->normalizer) {
@@ -171,7 +218,52 @@ final class StackHydrator implements Hydrator
 
         $middlewares = $this->middlewaresFor($metadata, Skip::Extract);
 
+        if (!isset($middlewares[1]) && $middlewares[0] instanceof TransformMiddleware) {
+            // only the transformation runs for this class, from now on it is called without the stack
+            $transformer = $this->directExtractors[$object::class] = $this->transformer($metadata);
+
+            return $transformer->extract($object, $context);
+        }
+
         return $middlewares[0]->extract($metadata, $object, $context, new Stack($middlewares, 1));
+    }
+
+    /**
+     * The transformer of the class, created once by the first factory which supports the class.
+     *
+     * @internal used by the {@see TransformMiddleware}
+     *
+     * @param ClassMetadata<T> $metadata
+     *
+     * @template T of object
+     */
+    public function transformer(ClassMetadata $metadata): ClassTransformer
+    {
+        $transformer = $this->transformers[$metadata->className] ?? null;
+
+        if ($transformer !== null) {
+            return $transformer;
+        }
+
+        foreach ($this->transformerFactories as $factory) {
+            $transformer = $factory->create($metadata, $this);
+
+            if ($transformer !== null) {
+                return $this->transformers[$metadata->className] = $transformer;
+            }
+        }
+
+        return $this->transformers[$metadata->className] = new ReflectionTransformer($metadata, $this->callStack);
+    }
+
+    /**
+     * The objects which are currently extracted, transformers share it to detect circular references.
+     *
+     * @internal
+     */
+    public function callStack(): CallStack
+    {
+        return $this->callStack;
     }
 
     /**

@@ -30,6 +30,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle1Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle2Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle3Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ContextAwareDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\CountingMiddleware;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DefaultDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DummyMiddleware;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
@@ -44,11 +45,13 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWithInlineNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWithNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWrapper;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\RecordingTransformerFactory;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Skill;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\StatusWithNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ValueObject;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer;
+use Patchlevel\Hydrator\Transformer\ReflectionTransformer;
 use Patchlevel\Hydrator\TypeMismatch;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\RequiresPhp;
@@ -56,8 +59,11 @@ use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use ReflectionProperty;
 
+use function array_keys;
+
 #[CoversClass(StackHydrator::class)]
 #[CoversClass(TransformMiddleware::class)]
+#[CoversClass(ReflectionTransformer::class)]
 final class StackHydratorTest extends TestCase
 {
     private StackHydrator $hydrator;
@@ -811,5 +817,172 @@ final class StackHydratorTest extends TestCase
 
         $this->hydrator->setRootHydrator($root);
         $this->hydrator->extract($wrapper);
+    }
+
+    public function testTransformerFactoriesAreAskedInOrder(): void
+    {
+        $first = new RecordingTransformerFactory([ProfileCreated::class]);
+        $second = new RecordingTransformerFactory([ProfileCreated::class, ParentDto::class]);
+
+        $hydrator = new StackHydrator(
+            (new StackHydratorBuilder())->useExtension(new CoreExtension())->metadataFactory(),
+            [new TransformMiddleware()],
+            transformerFactories: [$first, $second],
+        );
+
+        $event = $hydrator->hydrate(ProfileCreated::class, ['profileId' => '1', 'email' => 'info@patchlevel.de']);
+        $hydrator->extract($event);
+        $hydrator->hydrate(ParentDto::class, ['profileId' => '1', 'email' => 'info@patchlevel.de']);
+
+        self::assertSame([ProfileCreated::class], $first->created);
+        self::assertSame(['hydrate ' . ProfileCreated::class, 'extract ' . ProfileCreated::class], $first->calls);
+        self::assertSame([ParentDto::class], $second->created);
+        self::assertSame(['hydrate ' . ParentDto::class], $second->calls);
+        self::assertInstanceOf(ReflectionTransformer::class, $hydrator->transformer($hydrator->metadata(Skill::class)));
+        self::assertSame($hydrator->transformer($hydrator->metadata(Skill::class)), $hydrator->transformer($hydrator->metadata(Skill::class)));
+    }
+
+    public function testTransformerIsCalledWithoutStackIfNoOtherMiddlewareRuns(): void
+    {
+        $counter = new CountingMiddleware([ProfileCreated::class => Skip::Both]);
+        $factory = new RecordingTransformerFactory([ProfileCreated::class]);
+
+        $hydrator = new StackHydrator(
+            (new StackHydratorBuilder())->useExtension(new CoreExtension())->metadataFactory(),
+            [$counter, new TransformMiddleware()],
+            transformerFactories: [$factory],
+        );
+
+        $data = ['profileId' => '1', 'email' => 'info@patchlevel.de'];
+
+        $event = $hydrator->hydrate(ProfileCreated::class, $data);
+        self::assertEquals($event, $hydrator->hydrate(ProfileCreated::class, $data));
+        self::assertSame($data, $hydrator->extract($event));
+        self::assertSame($data, $hydrator->extract($event));
+
+        self::assertSame([ProfileCreated::class], $factory->created);
+        self::assertCount(4, $factory->calls);
+        self::assertSame([], $counter->hydrated);
+
+        $direct = (new ReflectionProperty(StackHydrator::class, 'directHydrators'))->getValue($hydrator);
+        self::assertIsArray($direct);
+        self::assertSame([ProfileCreated::class], array_keys($direct));
+
+        $direct = (new ReflectionProperty(StackHydrator::class, 'directExtractors'))->getValue($hydrator);
+        self::assertIsArray($direct);
+        self::assertSame([ProfileCreated::class], array_keys($direct));
+    }
+
+    public function testTransformerIsCalledThroughStackIfOtherMiddlewaresRun(): void
+    {
+        $counter = new CountingMiddleware();
+        $factory = new RecordingTransformerFactory([ProfileCreated::class]);
+
+        $hydrator = new StackHydrator(
+            (new StackHydratorBuilder())->useExtension(new CoreExtension())->metadataFactory(),
+            [$counter, new TransformMiddleware()],
+            transformerFactories: [$factory],
+        );
+
+        $data = ['profileId' => '1', 'email' => 'info@patchlevel.de'];
+
+        $event = $hydrator->hydrate(ProfileCreated::class, $data);
+        $hydrator->hydrate(ProfileCreated::class, $data);
+        $hydrator->extract($event);
+        $hydrator->extract($event);
+
+        self::assertSame([ProfileCreated::class => 2], $counter->hydrated);
+        self::assertSame([ProfileCreated::class => 2], $counter->extracted);
+        self::assertCount(4, $factory->calls);
+    }
+
+    public function testDirectTransformerStillRequiresArrayData(): void
+    {
+        $this->hydrator->hydrate(ProfileCreated::class, ['profileId' => '1', 'email' => 'info@patchlevel.de']);
+
+        $this->expectException(ArrayDataRequired::class);
+
+        $this->hydrator->hydrate(ProfileCreated::class, 'foo');
+    }
+
+    #[RequiresPhp('>=8.4')]
+    public function testLazyClassesAreNeverHydratedDirectly(): void
+    {
+        $data = ['profileId' => '1', 'email' => 'info@patchlevel.de'];
+        $reflection = new ReflectionClass(LazyProfileCreated::class);
+
+        $first = $this->hydrator->hydrate(LazyProfileCreated::class, $data);
+        $reflection->initializeLazyObject($first);
+        $second = $this->hydrator->hydrate(LazyProfileCreated::class, $data);
+
+        self::assertTrue($reflection->isUninitializedLazyObject($second));
+    }
+
+    public function testTransformMiddlewareWithoutHydratorUsesReflection(): void
+    {
+        $middleware = new TransformMiddleware();
+        $metadata = (new AttributeMetadataFactory())->metadata(Skill::class);
+
+        $skill = $middleware->hydrate($metadata, ['name' => 'php'], [], new Stack([$middleware]));
+
+        self::assertEquals(new Skill('php'), $skill);
+        self::assertSame(['name' => 'php'], $middleware->extract($metadata, $skill, [], new Stack([$middleware])));
+    }
+
+    public function testOtherMiddlewareAloneIsNotSkipped(): void
+    {
+        $middleware = new class implements Middleware {
+            /**
+             * @param ClassMetadata<T>     $metadata
+             * @param array<string, mixed> $data
+             * @param array<string, mixed> $context
+             *
+             * @return T
+             *
+             * @template T of object
+             */
+            public function hydrate(ClassMetadata $metadata, array $data, array $context, Stack $stack): object
+            {
+                $object = $metadata->newInstance();
+                (new ReflectionProperty($object, 'name'))->setValue($object, 'from middleware');
+
+                return $object;
+            }
+
+            /**
+             * @param array<string, mixed> $context
+             *
+             * @return array<string, mixed>
+             */
+            public function extract(ClassMetadata $metadata, object $object, array $context, Stack $stack): array
+            {
+                return ['name' => 'from middleware'];
+            }
+        };
+
+        $hydrator = new StackHydrator(middlewares: [$middleware]);
+
+        self::assertEquals(new Skill('from middleware'), $hydrator->hydrate(Skill::class, ['name' => 'php']));
+        self::assertEquals(new Skill('from middleware'), $hydrator->hydrate(Skill::class, ['name' => 'php']));
+        self::assertSame(['name' => 'from middleware'], $hydrator->extract(new Skill('php')));
+        self::assertSame(['name' => 'from middleware'], $hydrator->extract(new Skill('php')));
+    }
+
+    #[RequiresPhp('>=8.4')]
+    public function testLazyClassWithOtherMiddleware(): void
+    {
+        $counter = new CountingMiddleware();
+        $hydrator = new StackHydrator(
+            (new StackHydratorBuilder())->useExtension(new CoreExtension())->metadataFactory(),
+            [$counter, new TransformMiddleware()],
+        );
+
+        $event = $hydrator->hydrate(LazyProfileCreated::class, ['profileId' => '1', 'email' => 'info@patchlevel.de']);
+        self::assertSame([], $counter->hydrated);
+
+        (new ReflectionClass(LazyProfileCreated::class))->initializeLazyObject($event);
+
+        self::assertSame([LazyProfileCreated::class => 1], $counter->hydrated);
+        self::assertSame('info@patchlevel.de', $event->email->toString());
     }
 }

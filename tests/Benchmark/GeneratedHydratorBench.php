@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Tests\Benchmark;
 
 use Patchlevel\Hydrator\CoreExtension;
-use Patchlevel\Hydrator\Extension\Generated\GeneratedMiddlewareExtension;
+use Patchlevel\Hydrator\Extension\Generated\GeneratedTransformerExtension;
+use Patchlevel\Hydrator\Extension\Generated\TransformerCompiler;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\StackHydratorBuilder;
 use Patchlevel\Hydrator\Tests\Benchmark\Fixture\ProfileCreated;
@@ -20,17 +21,15 @@ final class GeneratedHydratorBench
 
     public function __construct()
     {
-        $this->hydrator = (new StackHydratorBuilder())
+        $cachePath = __DIR__ . '/../../var/cache';
+
+        $builder = (new StackHydratorBuilder())
             ->useExtension(new CoreExtension())
-            ->useExtension(new GeneratedMiddlewareExtension(
-                __DIR__ . '/../../var/cache',
-                [
-                    ProfileCreated::class,
-                    Skill::class,
-                ],
-                debug: true,
-            ))
-            ->buildHydrator();
+            ->useExtension(new GeneratedTransformerExtension($cachePath));
+
+        (new TransformerCompiler($builder->metadataFactory(), $cachePath))->compile([ProfileCreated::class]);
+
+        $this->hydrator = $builder->buildHydrator();
     }
 
     public function setUp(): void

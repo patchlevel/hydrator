@@ -17,11 +17,12 @@ use Patchlevel\Hydrator\Extension\Cryptography\CryptographyExtension;
 use Patchlevel\Hydrator\Extension\Generated\ClassPlan;
 use Patchlevel\Hydrator\Extension\Generated\ClassPlanner;
 use Patchlevel\Hydrator\Extension\Generated\CodeEmitter;
-use Patchlevel\Hydrator\Extension\Generated\GeneratedHydrator;
-use Patchlevel\Hydrator\Extension\Generated\GeneratedMiddlewareExtension;
-use Patchlevel\Hydrator\Extension\Generated\MiddlewareGenerator;
+use Patchlevel\Hydrator\Extension\Generated\GeneratedTransformerExtension;
+use Patchlevel\Hydrator\Extension\Generated\GeneratedTransformerFactory;
 use Patchlevel\Hydrator\Extension\Generated\PropertyPlan;
 use Patchlevel\Hydrator\Extension\Generated\Templates;
+use Patchlevel\Hydrator\Extension\Generated\TransformerFiles;
+use Patchlevel\Hydrator\Extension\Generated\TransformerGenerator;
 use Patchlevel\Hydrator\Extension\Generated\ValueKind;
 use Patchlevel\Hydrator\Extension\Lifecycle\LifecycleExtension;
 use Patchlevel\Hydrator\Extension\Upcast\CallbackUpcaster;
@@ -29,9 +30,9 @@ use Patchlevel\Hydrator\Extension\Upcast\Upcaster;
 use Patchlevel\Hydrator\Extension\Upcast\UpcastExtension;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
+use Patchlevel\Hydrator\Metadata\MetadataEnricher;
 use Patchlevel\Hydrator\Middleware\Middleware;
 use Patchlevel\Hydrator\Middleware\Skip;
-use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
 use Patchlevel\Hydrator\Middleware\Stack;
 use Patchlevel\Hydrator\NormalizationFailure;
 use Patchlevel\Hydrator\StackHydrator;
@@ -65,6 +66,8 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\StatusWithNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ValueObject;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer;
+use Patchlevel\Hydrator\Transformer\ClassTransformer;
+use Patchlevel\Hydrator\Transformer\ReflectionTransformer;
 use Patchlevel\Hydrator\TypeMismatch;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\RequiresPhp;
@@ -72,19 +75,22 @@ use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
 use function array_filter;
-use function array_values;
 use function get_object_vars;
+use function glob;
 use function preg_match;
 use function sys_get_temp_dir;
+use function uniqid;
+use function unlink;
 
 use const ARRAY_FILTER_USE_KEY;
-use const PHP_VERSION_ID;
 
 /**
- * Mirrors the StackHydratorTest: the generated middleware must behave exactly like the TransformMiddleware.
+ * Mirrors the StackHydratorTest: the generated transformer must behave exactly like the ReflectionTransformer.
  */
-#[CoversClass(GeneratedMiddlewareExtension::class)]
-#[CoversClass(MiddlewareGenerator::class)]
+#[CoversClass(GeneratedTransformerExtension::class)]
+#[CoversClass(GeneratedTransformerFactory::class)]
+#[CoversClass(TransformerFiles::class)]
+#[CoversClass(TransformerGenerator::class)]
 #[CoversClass(ClassPlanner::class)]
 #[CoversClass(ClassPlan::class)]
 #[CoversClass(PropertyPlan::class)]
@@ -93,6 +99,7 @@ use const PHP_VERSION_ID;
 #[CoversClass(Templates::class)]
 final class GeneratedStackHydratorTest extends TestCase
 {
+    /** Classes covered by the snapshot of the generated code. */
     public const CLASSES = [
         ProfileCreated::class,
         ParentDto::class,
@@ -119,45 +126,40 @@ final class GeneratedStackHydratorTest extends TestCase
 
     public function setUp(): void
     {
+        self::clearCache();
+
         $this->hydrator = $this->builder()->buildHydrator();
     }
 
-    /**
-     * Closures in attributes (used by the inline normalizer fixture) are only supported since PHP 8.5.
-     *
-     * @return list<class-string>
-     */
-    private static function supportedClasses(): array
+    private function builder(): StackHydratorBuilder
     {
-        if (PHP_VERSION_ID >= 80500) {
-            return self::CLASSES;
-        }
-
-        return array_values(array_filter(
-            self::CLASSES,
-            static fn (string $class): bool => $class !== ProfileCreatedWithInlineNormalizer::class,
-        ));
+        return (new StackHydratorBuilder())->useExtension(new CoreExtension())->useExtension($this->extension());
     }
 
-    /** @param list<class-string>|null $classes */
-    private function builder(array|null $classes = null): StackHydratorBuilder
+    private function extension(): GeneratedTransformerExtension
     {
-        return (new StackHydratorBuilder())->useExtension(new CoreExtension())->useExtension($this->extension($classes));
-    }
-
-    /** @param list<class-string>|null $classes */
-    private function extension(array|null $classes = null): GeneratedMiddlewareExtension
-    {
-        return new GeneratedMiddlewareExtension(
-            self::cachePath(),
-            $classes ?? self::supportedClasses(),
-            debug: true,
-        );
+        return new GeneratedTransformerExtension(self::cachePath(), autoGenerate: true);
     }
 
     public static function cachePath(): string
     {
         return sys_get_temp_dir() . '/patchlevel-hydrator-tests';
+    }
+
+    /** Removes the generated files, the generator may have changed since they were written. */
+    public static function clearCache(): void
+    {
+        foreach (glob(self::cachePath() . '/*.php') ?: [] as $file) {
+            unlink($file);
+        }
+    }
+
+    /** @param class-string $class */
+    private static function transformer(Hydrator $hydrator, string $class): ClassTransformer
+    {
+        self::assertInstanceOf(StackHydrator::class, $hydrator);
+
+        return $hydrator->transformer($hydrator->metadata($class));
     }
 
     public function testExtract(): void
@@ -688,7 +690,7 @@ final class GeneratedStackHydratorTest extends TestCase
     public function testHydrateAsymmetricVisibility(): void
     {
         $data = ['name' => 'foo', 'age' => 12, 'note' => 'note'];
-        $hydrator = $this->builder([AsymmetricVisibilityDto::class])->buildHydrator();
+        $hydrator = $this->builder()->buildHydrator();
 
         $dto = $hydrator->hydrate(AsymmetricVisibilityDto::class, $data);
 
@@ -706,17 +708,41 @@ final class GeneratedStackHydratorTest extends TestCase
         self::assertSame(12, $dto->age());
     }
 
-    public function testHydrateUnknownClassFallsBackToTransformMiddleware(): void
+    public function testHydrateWithoutGeneratedCodeFallsBackToReflection(): void
     {
-        $hydrator = $this->builder([ProfileCreated::class])->buildHydrator();
+        // a unique field name gives the class a fingerprint no transformer was generated or loaded for yet
+        $field = uniqid('email_');
+
+        $hydrator = (new StackHydratorBuilder())
+            ->useExtension(new CoreExtension())
+            ->useExtension(new GeneratedTransformerExtension(self::cachePath()))
+            ->addMetadataEnricher(new class ($field) implements MetadataEnricher {
+                public function __construct(private readonly string $field)
+                {
+                }
+
+                public function enrich(ClassMetadata $classMetadata): void
+                {
+                    $property = $classMetadata->properties['email'] ?? null;
+
+                    if ($property === null) {
+                        return;
+                    }
+
+                    $property->fieldName = $this->field;
+                }
+            })
+            ->buildHydrator();
 
         $event = $hydrator->hydrate(
             ParentDto::class,
-            ['profileId' => '1', 'email' => 'info@patchlevel.de'],
+            ['profileId' => '1', $field => 'info@patchlevel.de'],
         );
 
         self::assertEquals(new ParentDto(ProfileId::fromString('1'), Email::fromString('info@patchlevel.de')), $event);
-        self::assertEquals(['profileId' => '1', 'email' => 'info@patchlevel.de'], $hydrator->extract($event));
+        self::assertEquals(['profileId' => '1', $field => 'info@patchlevel.de'], $hydrator->extract($event));
+        self::assertInstanceOf(ReflectionTransformer::class, self::transformer($hydrator, ParentDto::class));
+        self::assertSame([], glob(self::cachePath() . '/*.php'));
     }
 
     #[RequiresPhp('>=8.4')]
@@ -843,17 +869,20 @@ final class GeneratedStackHydratorTest extends TestCase
     }
 
     /**
-     * Reads the inlining decisions of the generated middleware.
+     * Reads the inlining decisions of the generated transformer.
+     *
+     * @param class-string $class
      *
      * @return array<string, bool> flag name => inlined
      */
-    private static function inlined(Hydrator $hydrator): array
+    private static function inlined(Hydrator $hydrator, string $class = NestedLifecycleDto::class): array
     {
-        self::assertInstanceOf(GeneratedHydrator::class, $hydrator);
+        $transformer = self::transformer($hydrator, $class);
+        self::assertNotInstanceOf(ReflectionTransformer::class, $transformer);
 
         /** @var array<string, bool> $flags */
         $flags = array_filter(
-            get_object_vars($hydrator->middleware()),
+            get_object_vars($transformer),
             static fn (string $name): bool => preg_match('/^i[he]\d+$/', $name) === 1,
             ARRAY_FILTER_USE_KEY,
         );
@@ -863,7 +892,7 @@ final class GeneratedStackHydratorTest extends TestCase
 
     public function testNestedObjectsAreInlinedWithoutOtherMiddlewares(): void
     {
-        $hydrator = $this->builder([NestedLifecycleDto::class])->buildHydrator();
+        $hydrator = $this->builder()->buildHydrator();
         $data = ['child' => ['name' => 'a'], 'items' => [['name' => 'b']]];
 
         self::assertSame($data, $hydrator->extract($hydrator->hydrate(NestedLifecycleDto::class, $data)));
@@ -876,7 +905,7 @@ final class GeneratedStackHydratorTest extends TestCase
 
         $hydrator = (new StackHydratorBuilder())
             ->useExtension(new CoreExtension())
-            ->useExtension($this->extension([NestedLifecycleDto::class]))
+            ->useExtension($this->extension())
             ->addMiddleware($counter)
             ->buildHydrator();
 
@@ -905,7 +934,7 @@ final class GeneratedStackHydratorTest extends TestCase
 
         $hydrator = (new StackHydratorBuilder())
             ->useExtension(new CoreExtension())
-            ->useExtension($this->extension([NestedLifecycleDto::class]))
+            ->useExtension($this->extension())
             ->useExtension(new UpcastExtension([$upcaster]))
             ->buildHydrator();
 
@@ -916,7 +945,7 @@ final class GeneratedStackHydratorTest extends TestCase
         // callback upcasters for other classes do not prevent inlining
         $hydrator = (new StackHydratorBuilder())
             ->useExtension(new CoreExtension())
-            ->useExtension($this->extension([NestedLifecycleDto::class]))
+            ->useExtension($this->extension())
             ->useExtension(new UpcastExtension([CallbackUpcaster::forClass(ProfileCreated::class, static fn (array $data): array => $data)]))
             ->buildHydrator();
 
@@ -924,45 +953,31 @@ final class GeneratedStackHydratorTest extends TestCase
         self::assertSame(['ih0' => true, 'ie0' => true, 'ih1' => true, 'ie1' => true], self::inlined($hydrator));
     }
 
-    public function testCompiledClosures(): void
+    public function testGeneratedTransformerIsUsed(): void
     {
-        $hydrator = $this->builder([ProfileCreated::class])->buildHydrator();
+        $hydrator = $this->builder()->buildHydrator();
 
-        self::assertInstanceOf(GeneratedHydrator::class, $hydrator);
-        $middleware = $hydrator->middleware();
-        $stack = $hydrator->stack();
+        $transformer = self::transformer($hydrator, ProfileCreated::class);
 
-        self::assertNotNull($middleware->compiledHydrator($stack->metadata(ProfileCreated::class)));
-        self::assertNotNull($middleware->compiledExtractor($stack->metadata(ProfileCreated::class)));
-        self::assertNull($middleware->compiledHydrator($stack->metadata(ParentDto::class)));
-        self::assertNull($middleware->compiledExtractor($stack->metadata(ParentDto::class)));
-
-        // with a middleware which does not skip the class, the stack has to run
-        $hydrator = (new StackHydratorBuilder())
-            ->useExtension(new CoreExtension())
-            ->useExtension($this->extension([ProfileCreated::class]))
-            ->addMiddleware(new CountingMiddleware())
-            ->buildHydrator();
-
-        self::assertInstanceOf(GeneratedHydrator::class, $hydrator);
-        $middleware = $hydrator->middleware();
-        $stack = $hydrator->stack();
-
-        self::assertNull($middleware->compiledHydrator($stack->metadata(ProfileCreated::class)));
-        self::assertNull($middleware->compiledExtractor($stack->metadata(ProfileCreated::class)));
+        self::assertStringStartsWith(TransformerFiles::NAMESPACE . '\\ProfileCreatedTransformer_', $transformer::class);
     }
 
-    public function testUnknownClassesAreSkipped(): void
+    public function testStackRunsWithOtherMiddlewares(): void
     {
-        $hydrator = $this->builder([ProfileCreated::class])->buildHydrator();
+        $counter = new CountingMiddleware();
 
-        self::assertInstanceOf(GeneratedHydrator::class, $hydrator);
-        $middleware = $hydrator->middleware();
-        $stack = $hydrator->stack();
+        $hydrator = (new StackHydratorBuilder())
+            ->useExtension(new CoreExtension())
+            ->useExtension($this->extension())
+            ->addMiddleware($counter)
+            ->buildHydrator();
 
-        self::assertInstanceOf(SkippableMiddleware::class, $middleware);
-        self::assertSame(Skip::None, $middleware->skip($stack->metadata(ProfileCreated::class)));
-        self::assertSame(Skip::Both, $middleware->skip($stack->metadata(ParentDto::class)));
+        $event = $hydrator->hydrate(ProfileCreated::class, ['profileId' => '1', 'email' => 'info@patchlevel.de']);
+        $hydrator->extract($event);
+
+        self::assertSame([ProfileCreated::class => 1], $counter->hydrated);
+        self::assertSame([ProfileCreated::class => 1], $counter->extracted);
+        self::assertNotInstanceOf(ReflectionTransformer::class, self::transformer($hydrator, ProfileCreated::class));
     }
 
     public function testNestedObjectsAreNotInlinedWithNonSkippableMiddleware(): void

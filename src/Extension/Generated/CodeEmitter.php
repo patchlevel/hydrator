@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Extension\Generated;
 
 use function array_filter;
-use function array_keys;
 use function array_unshift;
 use function assert;
 use function implode;
@@ -14,14 +13,14 @@ use function sprintf;
 use function var_export;
 
 /**
- * Turns the plans of a middleware into php code.
+ * Turns the plans of a transformer into php code.
  *
- * The generated middleware behaves like the {@see \Patchlevel\Hydrator\Middleware\TransformMiddleware}:
+ * The generated transformer behaves like the {@see \Patchlevel\Hydrator\Transformer\ReflectionTransformer}:
  * objects are instantiated without their constructor and the properties are assigned directly. Assigning
  * properties happens inside closures bound to the scope of the class, so private and readonly properties
  * work the same way as with reflection.
  *
- * The emitter accumulates the members of a single generated class, create a new instance for every middleware.
+ * The emitter accumulates the members of a single generated class, create a new instance for every transformer.
  *
  * @internal
  */
@@ -44,17 +43,12 @@ final class CodeEmitter
     ) {
     }
 
+    /** The first plan is the class of the transformer, the others are nested classes which can be inlined. */
     public function emit(string $namespace, string $className): string
     {
         $constructor = [];
-        $compiledHydrateCases = [];
-        $compiledExtractCases = [];
-        $skipCases = [];
-        $hydrateCases = [];
-        $extractCases = [];
 
         foreach ($this->classes as $plan) {
-            $class = $plan->className();
             $index = $plan->index;
 
             // until the class is initialized, the closures point to a stub which initializes the class first
@@ -67,34 +61,20 @@ final class CodeEmitter
                 $index,
             );
 
-            $hydrateCall = $plan->scopedHydrate ? sprintf('($this->h%d)', $index) : sprintf('$this->hydrate%d', $index);
-            $extractCall = $plan->scopedExtract ? sprintf('$this->e%d', $index) : sprintf('$this->extract%d(...)', $index);
-            $compiledHydrateCases[] = Templates::render(Templates::COMPILED_CASE, ['class' => $class, 'index' => (string)$index, 'closure' => sprintf('$this->fastHydrate%d(...)', $index)]);
-            $compiledExtractCases[] = Templates::render(Templates::COMPILED_CASE, ['class' => $class, 'index' => (string)$index, 'closure' => $extractCall]);
-            $this->methods[] = Templates::render(Templates::FAST_HYDRATE, ['index' => (string)$index, 'call' => $hydrateCall]);
-
-            $skipCases[] = sprintf('\\%s::class,', $class);
-            $hydrateCases[] = $plan->scopedHydrate
-                ? sprintf('\\%s::class => ($this->h%d)($data, $populate, $object),', $class, $index)
-                : sprintf('\\%1$s::class => $this->ready%2$d ? $this->hydrate%2$d($data, $populate, $object) : ($this->h%2$d)($data, $populate, $object),', $class, $index);
-            $extractCases[] = $plan->scopedExtract
-                ? sprintf('\\%s::class => ($this->e%d)($object, $context),', $class, $index)
-                : sprintf('\\%1$s::class => $this->ready%2$d ? $this->extract%2$d($object, $context) : ($this->e%2$d)($object, $context),', $class, $index);
-
             $this->emitClass($plan);
         }
 
-        return Templates::render(Templates::MIDDLEWARE, [
+        $root = $this->classes[0];
+
+        return Templates::render(Templates::TRANSFORMER, [
             'namespace' => $namespace,
             'className' => $className,
-            'version' => (string)MiddlewareGenerator::VERSION,
+            'class' => $root->className(),
+            'version' => (string)TransformerGenerator::VERSION,
             'properties' => implode("\n", $this->properties),
             'constructor' => implode("\n", $constructor),
-            'skipCases' => implode("\n", $skipCases),
-            'compiledHydrateCases' => implode("\n", $compiledHydrateCases),
-            'compiledExtractCases' => implode("\n", $compiledExtractCases),
-            'hydrateCases' => implode("\n", $hydrateCases),
-            'extractCases' => implode("\n", $extractCases),
+            'hydrateCall' => $this->nestedHydrateCall($root),
+            'extractCall' => $this->nestedExtractCall($root),
             'inits' => implode("\n\n", $this->inits),
             'methods' => implode("\n\n", $this->methods),
         ]);
@@ -109,10 +89,11 @@ final class CodeEmitter
         $this->declareProperties($plan);
 
         $init = [];
-        $nestedClasses = [];
 
-        $init[] = sprintf('$metadata = $this->metadata(\\%s::class, %s);', $class, var_export(ClassFingerprint::of($plan->metadata), true));
+        // the fingerprint of the class is part of the file name and nested classes are checked before they are inlined
+        $init[] = sprintf('$metadata = $this->hydrator->metadata(\\%s::class);', $class);
         $init[] = sprintf('$this->r%d = $metadata->reflection;', $index);
+        $nestedInits = [];
 
         foreach ($plan->properties as $property) {
             if ($property->defaultSlot !== null) {
@@ -129,18 +110,19 @@ final class CodeEmitter
                 continue;
             }
 
-            $nested = $this->nested($property)->className();
-            $nestedClasses[$property->nested] = true;
+            $nested = $this->nested($property);
+            $fingerprint = var_export(ClassFingerprint::of($nested->metadata), true);
 
             $check = $property->kind === ValueKind::NestedObject ? 'inlineObject' : 'inlineArray';
-            $init[] = sprintf('$this->ih%d = $this->%s($this->n%d, \\%s::class, Skip::Hydrate);', $property->flag, $check, $property->slot, $nested);
-            $init[] = sprintf('$this->ie%d = $this->%s($this->n%d, \\%s::class, Skip::Extract);', $property->flag, $check, $property->slot, $nested);
+            $init[] = sprintf('$this->ih%d = $this->%s($this->n%d, \\%s::class, %s, Skip::Hydrate);', $property->flag, $check, $property->slot, $nested->className(), $fingerprint);
+            $init[] = sprintf('$this->ie%d = $this->%s($this->n%d, \\%s::class, %s, Skip::Extract);', $property->flag, $check, $property->slot, $nested->className(), $fingerprint);
 
-            if ($property->kind !== ValueKind::NestedArray) {
-                continue;
+            if ($property->kind === ValueKind::NestedArray) {
+                $init[] = sprintf('if ($this->ih%1$d || $this->ie%1$d) { $this->n%2$d = $this->n%3$d->innerNormalizer(); }', $property->flag, $property->inner, $property->slot);
             }
 
-            $init[] = sprintf('if ($this->ih%1$d || $this->ie%1$d) { $this->n%2$d = $this->n%3$d->innerNormalizer(); }', $property->flag, $property->inner, $property->slot);
+            // the nested code is only initialized if it is inlined, outdated code is never touched
+            $nestedInits[] = sprintf('if ($this->ih%1$d || $this->ie%1$d) { $this->init%2$d(); }', $property->flag, $nested->index);
         }
 
         [$hydrate, $hydrateHelpers] = $this->hydrateBody($plan);
@@ -158,8 +140,8 @@ final class CodeEmitter
 
         $init[] = $this->wrap($plan, 'e', 'extract', 'object $object, array $context', 'array', $extract, $plan->scopedExtract);
 
-        foreach (array_keys($nestedClasses) as $nested) {
-            $init[] = sprintf('$this->init%d();', $nested);
+        foreach ($nestedInits as $nestedInit) {
+            $init[] = $nestedInit;
         }
 
         if (!$plan->leaf()) {
@@ -340,7 +322,7 @@ final class CodeEmitter
                 'field' => $field,
                 'flag' => (string)$property->flag,
                 'slot' => (string)$property->slot,
-                'nested' => $this->nestedHydrateCall($property),
+                'nested' => $this->nestedHydrateCall($this->nested($property)),
             ]),
             ValueKind::NestedArray => Templates::render(Templates::DENORMALIZE_ARRAY, [
                 'variable' => $variable,
@@ -348,7 +330,7 @@ final class CodeEmitter
                 'flag' => (string)$property->flag,
                 'slot' => (string)$property->slot,
                 'inner' => (string)$property->inner,
-                'nested' => $this->nestedHydrateCall($property),
+                'nested' => $this->nestedHydrateCall($this->nested($property)),
             ]),
         };
 
@@ -454,7 +436,7 @@ final class CodeEmitter
                 'name' => $name,
                 'flag' => (string)$property->flag,
                 'slot' => (string)$property->slot,
-                'nested' => $this->nestedExtractCall($property),
+                'nested' => $this->nestedExtractCall($this->nested($property)),
                 'check' => $this->instanceCheck('$value', $property),
             ]),
             ValueKind::NestedArray => Templates::render(Templates::NORMALIZE_ARRAY, [
@@ -463,7 +445,7 @@ final class CodeEmitter
                 'flag' => (string)$property->flag,
                 'slot' => (string)$property->slot,
                 'inner' => (string)$property->inner,
-                'nested' => $this->nestedExtractCall($property),
+                'nested' => $this->nestedExtractCall($this->nested($property)),
                 'check' => $this->instanceCheck('$item', $property),
             ]),
         };
@@ -491,17 +473,13 @@ final class CodeEmitter
         return sprintf('%1$s instanceof \\%2$s && %1$s::class === \\%2$s::class', $variable, $class);
     }
 
-    private function nestedHydrateCall(PropertyPlan $property): string
+    private function nestedHydrateCall(ClassPlan $nested): string
     {
-        $nested = $this->nested($property);
-
         return $nested->scopedHydrate ? sprintf('($this->h%d)', $nested->index) : sprintf('$this->hydrate%d', $nested->index);
     }
 
-    private function nestedExtractCall(PropertyPlan $property): string
+    private function nestedExtractCall(ClassPlan $nested): string
     {
-        $nested = $this->nested($property);
-
         return $nested->scopedExtract ? sprintf('($this->e%d)', $nested->index) : sprintf('$this->extract%d', $nested->index);
     }
 

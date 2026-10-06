@@ -97,16 +97,16 @@ parameters:
 			path: src/Metadata/ClassMetadata.php
 
 		-
-			message: '#^Method Patchlevel\\Hydrator\\Middleware\\TransformMiddleware\:\:hydrate\(\) should return T of object but returns mixed\.$#'
+			message: '#^Method Patchlevel\\Hydrator\\Transformer\\ReflectionTransformer\:\:hydrate\(\) should return T of object but returns mixed\.$#'
 			identifier: return.type
 			count: 1
-			path: src/Middleware/TransformMiddleware.php
+			path: src/Transformer/ReflectionTransformer.php
 
 		-
 			message: '#^Parameter \#1 \$object of method Patchlevel\\Hydrator\\Metadata\\PropertyMetadata\:\:setValue\(\) expects object, mixed given\.$#'
 			identifier: argument.type
 			count: 2
-			path: src/Middleware/TransformMiddleware.php
+			path: src/Transformer/ReflectionTransformer.php
 
 		-
 			message: '#^Property Patchlevel\\Hydrator\\Normalizer\\EnumNormalizer\:\:\$enum \(class\-string\<BackedEnum\>\|null\) does not accept string\.$#'
@@ -124,6 +124,12 @@ parameters:
 			message: '#^Method Patchlevel\\Hydrator\\StackHydrator\:\:middlewaresFor\(\) should return non\-empty\-list\<Patchlevel\\Hydrator\\Middleware\\Middleware\> but returns list\<Patchlevel\\Hydrator\\Middleware\\Middleware\>\.$#'
 			identifier: return.type
 			count: 1
+			path: src/StackHydrator.php
+
+		-
+			message: '#^Parameter \#1 \$data of method Patchlevel\\Hydrator\\Transformer\\ClassTransformer\:\:hydrate\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
+			identifier: argument.type
+			count: 3
 			path: src/StackHydrator.php
 
 		-

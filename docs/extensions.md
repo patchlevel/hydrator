@@ -32,7 +32,7 @@ The library ships with six extensions out of the box:
 | `CryptographyExtension` | [Cryptography](cryptography.md), encrypt and decrypt sensitive data with crypto-shredding. |
 | `UpcastExtension` | [Upcasting](upcasting.md), reshape outdated stored data while it is hydrated. |
 | `TracingExtension` | [Tracing](tracing.md), measure every hydrate and extract call. |
-| `GeneratedMiddlewareExtension` | [Generated code](generated-code.md), generated mapping code for a fixed set of classes on top of the `CoreExtension`. |
+| `GeneratedTransformerExtension` | [Generated code](generated-code.md), generated mapping code instead of reflection on top of the `CoreExtension`. |
 
 ## Middleware
 
@@ -154,18 +154,57 @@ extras) can be [cached](caching.md), everything you store in `extras` must be
 serializable.
 :::
 
+## Transformer factories
+
+The `TransformMiddleware` at the end of the stack does not map the data itself.
+It asks the hydrator for the `ClassTransformer` of the class, which turns the
+array into the object and back. By default this is the `ReflectionTransformer`.
+A transformer factory can provide another transformer for a class, the
+[generated code](generated-code.md) extension uses this to replace reflection
+with generated code.
+
+```php
+use Patchlevel\Hydrator\Metadata\ClassMetadata;
+use Patchlevel\Hydrator\StackHydrator;
+use Patchlevel\Hydrator\Transformer\ClassTransformer;
+use Patchlevel\Hydrator\Transformer\ClassTransformerFactory;
+
+final class MoneyTransformerFactory implements ClassTransformerFactory
+{
+    public function create(ClassMetadata $metadata, StackHydrator $hydrator): ClassTransformer|null
+    {
+        if ($metadata->className !== Money::class) {
+            return null;
+        }
+
+        return new MoneyTransformer();
+    }
+}
+```
+```php
+$builder->addTransformerFactory(new MoneyTransformerFactory());
+```
+The factories are asked once per class, the first transformer wins and is
+cached by the hydrator. If no factory returns a transformer, reflection is
+used. Factories also accept a priority, a factory with a higher priority is
+asked first.
+
+:::tip
+If no other middleware has to run for a class, because there is none or all of
+them [skip](#skipping-middlewares) it, the hydrator calls the transformer
+directly without building the middleware stack.
+:::
+
 ## Decorators
 
 A decorator wraps the whole hydrator instead of a single step inside the
 stack. Use it for things which concern the call as a whole, like
 [tracing](tracing.md) or logging. A decorator implements `HydratorDecorator`
-and returns a new `Hydrator` around the given one. It also receives the
-innermost `StackHydrator`, in case it needs its metadata.
+and returns a new `Hydrator` around the given one.
 
 ```php
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\HydratorDecorator;
-use Patchlevel\Hydrator\StackHydrator;
 
 final class AuditDecorator implements HydratorDecorator
 {
@@ -174,7 +213,7 @@ final class AuditDecorator implements HydratorDecorator
     ) {
     }
 
-    public function decorate(Hydrator $hydrator, StackHydrator $stack): Hydrator
+    public function decorate(Hydrator $hydrator): Hydrator
     {
         return new AuditHydrator($hydrator, $this->auditLog);
     }

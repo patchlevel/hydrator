@@ -17,7 +17,7 @@ enum ValueKind
     /** A normalizer which is called at runtime. */
     case Normalizer;
 
-    /** An object normalizer for a class of the same middleware, the nested code can be called directly. */
+    /** An object normalizer for a class of the same transformer, the nested code can be called directly. */
     case NestedObject;
 
     /** An array normalizer of nested objects, the nested code can be called directly for each item. */

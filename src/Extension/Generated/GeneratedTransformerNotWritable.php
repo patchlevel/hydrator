@@ -9,10 +9,10 @@ use RuntimeException;
 
 use function sprintf;
 
-final class GeneratedMiddlewareNotWritable extends RuntimeException implements HydratorException
+final class GeneratedTransformerNotWritable extends RuntimeException implements HydratorException
 {
     public function __construct(string $file)
     {
-        parent::__construct(sprintf('The generated middleware could not be written to "%s".', $file));
+        parent::__construct(sprintf('The generated transformer could not be written to "%s".', $file));
     }
 }

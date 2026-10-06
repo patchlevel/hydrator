@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Extension\Generated;
 
 /**
- * How a single property is hydrated and extracted by the generated middleware.
+ * How a single property is hydrated and extracted by the generated transformer.
  *
  * Slots are the numeric suffixes of the properties of the generated class ($n0, $ih1, $d2, ...). They are unique
- * within one middleware.
+ * within one transformer.
  *
  * @internal
  */

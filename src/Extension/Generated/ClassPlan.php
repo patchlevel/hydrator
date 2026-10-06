@@ -7,7 +7,7 @@ namespace Patchlevel\Hydrator\Extension\Generated;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 
 /**
- * A class handled by the generated middleware together with the plans of its properties.
+ * A class handled by the generated transformer together with the plans of its properties.
  *
  * @internal
  */

@@ -9,9 +9,11 @@ use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\EnrichingMetadataFactory;
 use Patchlevel\Hydrator\Metadata\MetadataEnricher;
+use Patchlevel\Hydrator\Metadata\MetadataFactory;
 use Patchlevel\Hydrator\Metadata\Psr16MetadataFactory;
 use Patchlevel\Hydrator\Metadata\Psr6MetadataFactory;
 use Patchlevel\Hydrator\Middleware\Middleware;
+use Patchlevel\Hydrator\Transformer\ClassTransformerFactory;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\SimpleCache\CacheInterface;
 
@@ -35,6 +37,9 @@ final class StackHydratorBuilder
     /** @var array<int, list<HydratorDecorator>> */
     private array $decorators = [];
 
+    /** @var array<int, list<ClassTransformerFactory>> */
+    private array $transformerFactories = [];
+
     private CacheItemPoolInterface|CacheInterface|null $cache = null;
 
     /** @return $this */
@@ -57,6 +62,18 @@ final class StackHydratorBuilder
     public function addGuesser(Guesser $guesser, int $priority = 0): static
     {
         $this->guessers[$priority][] = $guesser;
+
+        return $this;
+    }
+
+    /**
+     * Factories with a higher priority are asked first, reflection is used if no factory provides a transformer.
+     *
+     * @return $this
+     */
+    public function addTransformerFactory(ClassTransformerFactory $factory, int $priority = 0): static
+    {
+        $this->transformerFactories[$priority][] = $factory;
 
         return $this;
     }
@@ -101,7 +118,7 @@ final class StackHydratorBuilder
         $hydrator = $stack;
 
         foreach ($this->decorators() as $decorator) {
-            $hydrator = $decorator->decorate($hydrator, $stack);
+            $hydrator = $decorator->decorate($hydrator);
         }
 
         $stack->setRootHydrator($hydrator);
@@ -125,7 +142,11 @@ final class StackHydratorBuilder
         return $this->buildStackHydrator();
     }
 
-    private function buildStackHydrator(): StackHydrator
+    /**
+     * The metadata factory with all registered guessers, enrichers and the cache, as the hydrator uses it. Useful to
+     * generate code ahead of time, see {@see \Patchlevel\Hydrator\Extension\Generated\TransformerCompiler}.
+     */
+    public function metadataFactory(): MetadataFactory
     {
         $metadataFactory = new EnrichingMetadataFactory(
             new AttributeMetadataFactory(
@@ -142,10 +163,16 @@ final class StackHydratorBuilder
             $metadataFactory = new Psr16MetadataFactory($metadataFactory, $this->cache);
         }
 
+        return $metadataFactory;
+    }
+
+    private function buildStackHydrator(): StackHydrator
+    {
         return new StackHydrator(
-            $metadataFactory,
+            $this->metadataFactory(),
             $this->middlewares(),
             $this->defaultLazy,
+            $this->transformerFactories(),
         );
     }
 
@@ -176,6 +203,14 @@ final class StackHydratorBuilder
         krsort($this->metadataEnrichers);
 
         return array_merge(...$this->metadataEnrichers);
+    }
+
+    /** @return list<ClassTransformerFactory> */
+    public function transformerFactories(): array
+    {
+        krsort($this->transformerFactories);
+
+        return array_merge(...$this->transformerFactories);
     }
 
     /** @return list<HydratorDecorator> in the order they are applied, the innermost first */

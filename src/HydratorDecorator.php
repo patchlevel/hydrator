@@ -9,9 +9,6 @@ namespace Patchlevel\Hydrator;
  */
 interface HydratorDecorator
 {
-    /**
-     * @param Hydrator      $hydrator the hydrator to wrap, either the stack hydrator or an already decorated one
-     * @param StackHydrator $stack    the innermost stack hydrator, for decorators which need its metadata
-     */
-    public function decorate(Hydrator $hydrator, StackHydrator $stack): Hydrator;
+    /** @param Hydrator $hydrator the hydrator to wrap, either the stack hydrator or an already decorated one */
+    public function decorate(Hydrator $hydrator): Hydrator;
 }

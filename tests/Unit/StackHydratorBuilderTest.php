@@ -18,6 +18,7 @@ use Patchlevel\Hydrator\Metadata\Psr6MetadataFactory;
 use Patchlevel\Hydrator\Middleware\Middleware;
 use Patchlevel\Hydrator\StackHydrator;
 use Patchlevel\Hydrator\StackHydratorBuilder;
+use Patchlevel\Hydrator\Transformer\ClassTransformerFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Cache\CacheItemPoolInterface;
@@ -43,6 +44,36 @@ final class StackHydratorBuilderTest extends TestCase
 
         self::assertSame([$middleware2, $middleware1], $middlewares);
         self::assertSame([$middleware2, $middleware1], $builder->middlewares());
+    }
+
+    public function testAddTransformerFactoryWithPriority(): void
+    {
+        $factory1 = $this->createMock(ClassTransformerFactory::class);
+        $factory2 = $this->createMock(ClassTransformerFactory::class);
+
+        $builder = new StackHydratorBuilder();
+        $builder->addMiddleware($this->createMock(Middleware::class));
+        $builder->addTransformerFactory($factory1, 10);
+        $builder->addTransformerFactory($factory2, 20);
+
+        $hydrator = $builder->build();
+
+        $reflection = new ReflectionProperty(StackHydrator::class, 'transformerFactories');
+
+        self::assertSame([$factory2, $factory1], $reflection->getValue($hydrator));
+        self::assertSame([$factory2, $factory1], $builder->transformerFactories());
+    }
+
+    public function testMetadataFactoryIsTheOneOfTheHydrator(): void
+    {
+        $builder = new StackHydratorBuilder();
+        $builder->addMiddleware($this->createMock(Middleware::class));
+        $builder->setCache($this->createMock(CacheInterface::class));
+
+        $reflection = new ReflectionProperty(StackHydrator::class, 'metadataFactory');
+
+        self::assertInstanceOf(Psr16MetadataFactory::class, $builder->metadataFactory());
+        self::assertEquals($builder->metadataFactory(), $reflection->getValue($builder->build()));
     }
 
     public function testAddMetadataEnricherWithPriority(): void
@@ -175,15 +206,13 @@ final class StackHydratorBuilderTest extends TestCase
     {
         $inner = $this->createMock(Hydrator::class);
         $outer = $this->createMock(Hydrator::class);
-        $stack = null;
 
         $innerDecorator = $this->createMock(HydratorDecorator::class);
         $innerDecorator
             ->expects($this->once())
             ->method('decorate')
-            ->willReturnCallback(static function (Hydrator $hydrator, StackHydrator $stackHydrator) use ($inner, &$stack): Hydrator {
-                self::assertSame($stackHydrator, $hydrator);
-                $stack = $stackHydrator;
+            ->willReturnCallback(static function (Hydrator $hydrator) use ($inner): Hydrator {
+                self::assertInstanceOf(StackHydrator::class, $hydrator);
 
                 return $inner;
             });
@@ -192,9 +221,8 @@ final class StackHydratorBuilderTest extends TestCase
         $outerDecorator
             ->expects($this->once())
             ->method('decorate')
-            ->willReturnCallback(static function (Hydrator $hydrator, StackHydrator $stackHydrator) use ($inner, $outer, &$stack): Hydrator {
+            ->willReturnCallback(static function (Hydrator $hydrator) use ($inner, $outer): Hydrator {
                 self::assertSame($inner, $hydrator);
-                self::assertSame($stack, $stackHydrator);
 
                 return $outer;
             });

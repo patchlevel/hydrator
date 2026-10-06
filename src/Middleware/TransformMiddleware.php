@@ -4,23 +4,36 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Middleware;
 
-use Patchlevel\Hydrator\CircularReference;
-use Patchlevel\Hydrator\DenormalizationFailure;
-use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
-use Patchlevel\Hydrator\NormalizationFailure;
-use Patchlevel\Hydrator\TypeMismatch;
-use Throwable;
-use TypeError;
+use Patchlevel\Hydrator\StackHydrator;
+use Patchlevel\Hydrator\Transformer\CallStack;
+use Patchlevel\Hydrator\Transformer\ClassTransformer;
+use Patchlevel\Hydrator\Transformer\ReflectionTransformer;
 
-use function array_key_exists;
-use function array_values;
-use function spl_object_id;
+use function assert;
 
-final class TransformMiddleware implements Middleware
+/**
+ * Turns the array into the object and back. The actual work is done by the {@see ClassTransformer} which the
+ * hydrator provides for the class, reflection based if no transformer factory is registered.
+ */
+final class TransformMiddleware implements Middleware, HydratorAwareMiddleware
 {
-    /** @var array<int, class-string> */
-    private array $callStack = [];
+    private StackHydrator|null $hydrator = null;
+
+    /** @var array<class-string, ClassTransformer> only used without a hydrator */
+    private array $transformers = [];
+
+    private readonly CallStack $callStack;
+
+    public function __construct()
+    {
+        $this->callStack = new CallStack();
+    }
+
+    public function setHydrator(StackHydrator $hydrator): void
+    {
+        $this->hydrator = $hydrator;
+    }
 
     /**
      * @param ClassMetadata<T>     $metadata
@@ -33,57 +46,8 @@ final class TransformMiddleware implements Middleware
      */
     public function hydrate(ClassMetadata $metadata, array $data, array $context, Stack $stack): object
     {
-        $object = $context[Hydrator::OBJECT_TO_POPULATE] ?? $metadata->newInstance();
-        unset($context[Hydrator::OBJECT_TO_POPULATE]);
-
-        $constructorParameters = null;
-
-        foreach ($metadata->properties as $propertyMetadata) {
-            if (!array_key_exists($propertyMetadata->fieldName, $data)) {
-                if (!$propertyMetadata->reflection->isPromoted()) {
-                    continue;
-                }
-
-                $constructorParameters ??= $metadata->promotedConstructorDefaults();
-
-                if (!array_key_exists($propertyMetadata->propertyName, $constructorParameters)) {
-                    continue;
-                }
-
-                $propertyMetadata->setValue(
-                    $object,
-                    $constructorParameters[$propertyMetadata->propertyName]->getDefaultValue(),
-                );
-
-                continue;
-            }
-
-            if ($propertyMetadata->normalizer) {
-                try {
-                    /** @psalm-suppress MixedAssignment */
-                    $value = $propertyMetadata->normalizer->denormalize($data[$propertyMetadata->fieldName], $context);
-                } catch (Throwable $e) {
-                    throw new DenormalizationFailure(
-                        $metadata->className,
-                        $propertyMetadata->propertyName,
-                        $propertyMetadata->normalizer::class,
-                        $e,
-                    );
-                }
-            } else {
-                $value = $data[$propertyMetadata->fieldName];
-            }
-
-            try {
-                $propertyMetadata->setValue($object, $value);
-            } catch (TypeError $e) {
-                throw new TypeMismatch(
-                    $metadata->className,
-                    $propertyMetadata->propertyName,
-                    $e,
-                );
-            }
-        }
+        $object = $this->transformer($metadata)->hydrate($data, $context);
+        assert($object instanceof $metadata->className);
 
         return $object;
     }
@@ -95,46 +59,15 @@ final class TransformMiddleware implements Middleware
      */
     public function extract(ClassMetadata $metadata, object $object, array $context, Stack $stack): array
     {
-        $objectId = spl_object_id($object);
+        return $this->transformer($metadata)->extract($object, $context);
+    }
 
-        if (array_key_exists($objectId, $this->callStack)) {
-            $references = array_values($this->callStack);
-            $references[] = $object::class;
-
-            throw new CircularReference($references);
+    private function transformer(ClassMetadata $metadata): ClassTransformer
+    {
+        if ($this->hydrator !== null) {
+            return $this->hydrator->transformer($metadata);
         }
 
-        $this->callStack[$objectId] = $object::class;
-
-        try {
-            $data = [];
-
-            foreach ($metadata->properties as $propertyMetadata) {
-                if ($propertyMetadata->normalizer) {
-                    try {
-                        /** @psalm-suppress MixedAssignment */
-                        $data[$propertyMetadata->fieldName] = $propertyMetadata->normalizer->normalize(
-                            $propertyMetadata->getValue($object),
-                            $context,
-                        );
-                    } catch (CircularReference $e) {
-                        throw $e;
-                    } catch (Throwable $e) {
-                        throw new NormalizationFailure(
-                            $object::class,
-                            $propertyMetadata->propertyName,
-                            $propertyMetadata->normalizer::class,
-                            $e,
-                        );
-                    }
-                } else {
-                    $data[$propertyMetadata->fieldName] = $propertyMetadata->getValue($object);
-                }
-            }
-        } finally {
-            unset($this->callStack[$objectId]);
-        }
-
-        return $data;
+        return $this->transformers[$metadata->className] ??= new ReflectionTransformer($metadata, $this->callStack);
     }
 }

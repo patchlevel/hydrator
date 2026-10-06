@@ -13,6 +13,6 @@ final class ClassNotGeneratable extends InvalidArgumentException implements Hydr
 {
     public function __construct(string $class, string $reason)
     {
-        parent::__construct(sprintf('A middleware for class "%s" can not be generated: %s', $class, $reason));
+        parent::__construct(sprintf('A transformer for class "%s" can not be generated: %s', $class, $reason));
     }
 }

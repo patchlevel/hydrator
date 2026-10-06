@@ -22,15 +22,15 @@ use function ltrim;
 use const PHP_VERSION_ID;
 
 /**
- * Decides which classes end up in one generated middleware and how each of their properties is handled.
+ * Decides which classes end up in one generated transformer and how each of their properties is handled.
  *
- * The planner accumulates the state of a single dump, create a new instance for every middleware.
+ * The planner accumulates the state of a single transformer, create a new instance for every transformer.
  *
  * @internal
  */
 final class ClassPlanner
 {
-    /** @var array<class-string, int|null> class => index, null for classes which can not be part of the middleware */
+    /** @var array<class-string, int|null> class => index, null for classes which can not be inlined */
     private array $index = [];
 
     /** @var array<int, ClassPlan> */
@@ -67,7 +67,7 @@ final class ClassPlanner
         }
 
         if (!self::generatable($metadata)) {
-            throw new ClassNotGeneratable($class, 'the class is internal, abstract or an interface');
+            throw new ClassNotGeneratable($class, 'the class is internal, abstract, anonymous or an interface');
         }
 
         $this->register($metadata);
@@ -190,7 +190,7 @@ final class ClassPlanner
     }
 
     /**
-     * Nested classes can only be inlined if they would end up in this middleware anyway.
+     * Nested classes can only be inlined if code can be generated for them.
      *
      * @param class-string $class
      */
@@ -244,12 +244,22 @@ final class ClassPlanner
         return [$hydrate, $extract];
     }
 
-    /** Constructor visibility does not matter, the generated code runs in the scope of the class. */
-    private static function generatable(ClassMetadata $metadata): bool
+    /**
+     * Constructor visibility does not matter, the generated code runs in the scope of the class.
+     *
+     * @param ClassMetadata<T> $metadata
+     *
+     * @template T of object
+     */
+    public static function generatable(ClassMetadata $metadata): bool
     {
         $reflection = $metadata->reflection;
 
-        return !$reflection->isInternal() && !$reflection->isAbstract() && !$reflection->isInterface() && !$reflection->isEnum();
+        return !$reflection->isInternal()
+            && !$reflection->isAbstract()
+            && !$reflection->isInterface()
+            && !$reflection->isEnum()
+            && !$reflection->isAnonymous();
     }
 
     /** Readonly and asymmetric visibility restrict writes to the class scope. */
