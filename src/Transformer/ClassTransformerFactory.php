@@ -16,11 +16,12 @@ interface ClassTransformerFactory
     /**
      * Called once per class and hydrator, the transformer is cached by the hydrator.
      *
-     * @param ClassMetadata<T> $metadata
+     * @param ClassMetadata<T>    $metadata
+     * @param TransformerResolver $resolver of the hydrator which asks, keep it to map nested objects in place
      *
      * @return ClassTransformer|null null if this factory is not responsible for the class
      *
      * @template T of object
      */
-    public function create(ClassMetadata $metadata): ClassTransformer|null;
+    public function create(ClassMetadata $metadata, TransformerResolver $resolver): ClassTransformer|null;
 }

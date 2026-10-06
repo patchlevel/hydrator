@@ -49,7 +49,7 @@ final class StackHydratorWithCryptographyBench
         $this->hydrator->extract($object);
     }
 
-    #[Bench\Revs(5)]
+    #[Bench\Revs(1000)]
     public function benchHydrate1Object(): void
     {
         $this->hydrator->hydrate(
@@ -65,7 +65,7 @@ final class StackHydratorWithCryptographyBench
         );
     }
 
-    #[Bench\Revs(5)]
+    #[Bench\Revs(1000)]
     public function benchExtract1Object(): void
     {
         $object = new ProfileCreated(
@@ -111,41 +111,6 @@ final class StackHydratorWithCryptographyBench
         );
 
         for ($i = 0; $i < 1_000; $i++) {
-            $this->hydrator->extract($object);
-        }
-    }
-
-    #[Bench\Revs(3)]
-    public function benchHydrate1000000Objects(): void
-    {
-        for ($i = 0; $i < 1_000_000; $i++) {
-            $this->hydrator->hydrate(
-                ProfileCreated::class,
-                [
-                    'profileId' => '1',
-                    'name' => 'foo',
-                    'skills' => [
-                        ['name' => 'php'],
-                        ['name' => 'symfony'],
-                    ],
-                ],
-            );
-        }
-    }
-
-    #[Bench\Revs(3)]
-    public function benchExtract1000000Objects(): void
-    {
-        $object = new ProfileCreated(
-            ProfileId::fromString('1'),
-            'foo',
-            [
-                new Skill('php'),
-                new Skill('symfony'),
-            ],
-        );
-
-        for ($i = 0; $i < 1_000_000; $i++) {
             $this->hydrator->extract($object);
         }
     }
