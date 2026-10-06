@@ -17,10 +17,8 @@ use function is_string;
 use function sprintf;
 
 #[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_CLASS)]
-final class ObjectMapNormalizer implements Normalizer, HydratorAwareNormalizer
+final class ObjectMapNormalizer implements Normalizer
 {
-    private Hydrator|null $hydrator = null;
-
     /** @var array<string, class-string> */
     private array $typeToClassMap;
 
@@ -32,11 +30,6 @@ final class ObjectMapNormalizer implements Normalizer, HydratorAwareNormalizer
         $this->typeToClassMap = array_flip($classToTypeMap);
     }
 
-    public function setHydrator(Hydrator $hydrator): void
-    {
-        $this->hydrator = $hydrator;
-    }
-
     /**
      * @param array<string, mixed> $context
      *
@@ -44,10 +37,6 @@ final class ObjectMapNormalizer implements Normalizer, HydratorAwareNormalizer
      */
     public function normalize(mixed $value, array $context): mixed
     {
-        if (!$this->hydrator) {
-            throw new MissingHydrator();
-        }
-
         if ($value === null) {
             return null;
         }
@@ -66,7 +55,7 @@ final class ObjectMapNormalizer implements Normalizer, HydratorAwareNormalizer
             );
         }
 
-        $data = $this->hydrator->extract($value, $context);
+        $data = self::hydrator($context)->extract($value, $context);
 
         if (!is_array($data)) {
             throw InvalidArgument::withWrongType('array<string, mixed>', $data);
@@ -84,10 +73,6 @@ final class ObjectMapNormalizer implements Normalizer, HydratorAwareNormalizer
      */
     public function denormalize(mixed $value, array $context): mixed
     {
-        if (!$this->hydrator) {
-            throw new MissingHydrator();
-        }
-
         if ($value === null) {
             return null;
         }
@@ -113,24 +98,18 @@ final class ObjectMapNormalizer implements Normalizer, HydratorAwareNormalizer
         $className = $this->typeToClassMap[$type];
         unset($value[$this->typeFieldName]);
 
-        return $this->hydrator->hydrate($className, $value, $context);
+        return self::hydrator($context)->hydrate($className, $value, $context);
     }
 
-    /**
-     * @return array{
-     *     typeToClassMap: array<string, class-string>,
-     *     classToTypeMap: array<class-string, string>,
-     *     typeFieldName: string,
-     *     hydrator: null
-     * }
-     */
-    public function __serialize(): array
+    /** @param array<string, mixed> $context */
+    private static function hydrator(array $context): Hydrator
     {
-        return [
-            'typeToClassMap' => $this->typeToClassMap,
-            'classToTypeMap' => $this->classToTypeMap,
-            'typeFieldName' => $this->typeFieldName,
-            'hydrator' => null,
-        ];
+        $hydrator = $context[Hydrator::HYDRATOR] ?? null;
+
+        if (!$hydrator instanceof Hydrator) {
+            throw new MissingHydrator();
+        }
+
+        return $hydrator;
     }
 }

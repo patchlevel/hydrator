@@ -12,6 +12,7 @@ use Patchlevel\Hydrator\CircularReference;
 use Patchlevel\Hydrator\ClassNotSupported;
 use Patchlevel\Hydrator\CoreExtension;
 use Patchlevel\Hydrator\DenormalizationFailure;
+use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Middleware\AllMiddlewaresSkipped;
@@ -22,7 +23,6 @@ use Patchlevel\Hydrator\Middleware\Stack;
 use Patchlevel\Hydrator\Middleware\TransformMiddleware;
 use Patchlevel\Hydrator\MissingMiddlewares;
 use Patchlevel\Hydrator\NormalizationFailure;
-use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
 use Patchlevel\Hydrator\StackHydrator;
 use Patchlevel\Hydrator\StackHydratorBuilder;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle1Dto;
@@ -53,7 +53,6 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\RequiresPhp;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
-use ReflectionProperty;
 
 #[CoversClass(StackHydrator::class)]
 #[CoversClass(TransformMiddleware::class)]
@@ -201,7 +200,8 @@ final class StackHydratorTest extends TestCase
             ->with(
                 $this->isInstanceOf(ClassMetadata::class),
                 $object,
-                ['context' => '123'],
+                $this->callback(static fn (array $context): bool => $context['context'] === '123'
+                    && $context[Hydrator::HYDRATOR] instanceof StackHydrator),
                 $this->isInstanceOf(Stack::class),
             )->willReturn($expect);
 
@@ -367,7 +367,8 @@ final class StackHydratorTest extends TestCase
             ->with(
                 $this->isInstanceOf(ClassMetadata::class),
                 $data,
-                ['context' => '123'],
+                $this->callback(static fn (array $context): bool => $context['context'] === '123'
+                    && $context[Hydrator::HYDRATOR] instanceof StackHydrator),
                 $this->isInstanceOf(Stack::class),
             )->willReturn($expect);
 
@@ -626,17 +627,104 @@ final class StackHydratorTest extends TestCase
         self::assertSame($metadata, $metadata2);
     }
 
-    public function testMetadataWithHydratorAwareNormalizer(): void
+    public function testHydratorIsPassedInContext(): void
     {
-        $metadata = $this->hydrator->metadata(ProfileCreatedWrapper::class);
+        $middleware = new class implements Middleware {
+            /** @var list<array<string, mixed>> */
+            public array $contexts = [];
 
-        $propertyMetadata = $metadata->propertyForField('event');
-        $normalizer = $propertyMetadata->normalizer;
+            /**
+             * @param ClassMetadata<T>     $metadata
+             * @param array<string, mixed> $data
+             * @param array<string, mixed> $context
+             *
+             * @return T
+             *
+             * @template T of object
+             */
+            public function hydrate(ClassMetadata $metadata, array $data, array $context, Stack $stack): object
+            {
+                $this->contexts[] = $context;
 
-        self::assertInstanceOf(HydratorAwareNormalizer::class, $normalizer);
+                return $stack->next()->hydrate($metadata, $data, $context, $stack);
+            }
 
-        $reflection = new ReflectionProperty($normalizer, 'hydrator');
-        self::assertSame($this->hydrator, $reflection->getValue($normalizer));
+            /**
+             * @param array<string, mixed> $context
+             *
+             * @return array<string, mixed>
+             */
+            public function extract(ClassMetadata $metadata, object $object, array $context, Stack $stack): array
+            {
+                return $stack->next()->extract($metadata, $object, $context, $stack);
+            }
+        };
+
+        $hydrator = new StackHydrator(middlewares: [$middleware, new TransformMiddleware()]);
+        $hydrator->hydrate(
+            ProfileCreatedWrapper::class,
+            ['event' => ['profileId' => '1', 'email' => 'info@patchlevel.de']],
+            ['key' => 'value'],
+        );
+
+        self::assertSame(
+            [
+                ['key' => 'value', Hydrator::HYDRATOR => $hydrator],
+                ['key' => 'value', Hydrator::HYDRATOR => $hydrator],
+            ],
+            $middleware->contexts,
+        );
+    }
+
+    public function testOuterHydratorIsUsedForNestedObjects(): void
+    {
+        $outer = new class (new StackHydrator()) implements Hydrator {
+            /** @var list<string> */
+            public array $calls = [];
+
+            public function __construct(private readonly Hydrator $inner)
+            {
+            }
+
+            /**
+             * @param class-string<T>      $class
+             * @param array<string, mixed> $context
+             *
+             * @return T
+             *
+             * @template T of object
+             */
+            public function hydrate(string $class, mixed $data, array $context = []): object
+            {
+                $context[Hydrator::HYDRATOR] ??= $this;
+                $this->calls[] = 'hydrate ' . $class;
+
+                return $this->inner->hydrate($class, $data, $context);
+            }
+
+            /** @param array<string, mixed> $context */
+            public function extract(object $object, array $context = []): mixed
+            {
+                $context[Hydrator::HYDRATOR] ??= $this;
+                $this->calls[] = 'extract ' . $object::class;
+
+                return $this->inner->extract($object, $context);
+            }
+        };
+
+        $data = ['event' => ['profileId' => '1', 'email' => 'info@patchlevel.de']];
+        $object = $outer->hydrate(ProfileCreatedWrapper::class, $data);
+
+        self::assertSame($data, $outer->extract($object));
+        self::assertSame(
+            [
+                'hydrate ' . ProfileCreatedWrapper::class,
+                'hydrate ' . ProfileCreated::class,
+                'extract ' . ProfileCreatedWrapper::class,
+                'extract ' . ProfileCreated::class,
+            ],
+            $outer->calls,
+        );
     }
 
     public function testSkippableMiddlewareIsSkipped(): void

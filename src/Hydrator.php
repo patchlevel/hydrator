@@ -9,6 +9,12 @@ interface Hydrator
     public const OBJECT_TO_POPULATE = 'object_to_populate';
 
     /**
+     * The hydrator which started the call, normalizers use it to hydrate and extract nested objects. It is set by the
+     * outermost hydrator, so a hydrator which wraps another one also sees the nested objects.
+     */
+    public const HYDRATOR = 'hydrator';
+
+    /**
      * @param class-string<T>      $class
      * @param array<string, mixed> $context
      *
