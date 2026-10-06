@@ -20,7 +20,9 @@ use function str_starts_with;
  *     normalizer: Normalizer|null,
  *     isPersonalData: bool,
  *     personalDataFallback: mixed,
- *     extras: array<string, mixed>
+ *     personalDataFallbackCallable: (callable(string, mixed):mixed)|null,
+ *     extras: array<string, mixed>,
+ *     type: Type|null
  * }
  */
 final class PropertyMetadata
@@ -115,7 +117,9 @@ final class PropertyMetadata
             'normalizer' => $this->normalizer,
             'isPersonalData' => $this->isPersonalData,
             'personalDataFallback' => $this->personalDataFallback,
+            'personalDataFallbackCallable' => $this->personalDataFallbackCallable,
             'extras' => $this->extras,
+            'type' => $this->type,
         ];
     }
 
@@ -123,10 +127,13 @@ final class PropertyMetadata
     public function __unserialize(array $data): void
     {
         $this->reflection = new ReflectionProperty($data['className'], $data['property']);
+        $this->propertyName = $data['property'];
         $this->fieldName = $data['fieldName'];
         $this->normalizer = $data['normalizer'];
         $this->isPersonalData = $data['isPersonalData'];
         $this->personalDataFallback = $data['personalDataFallback'];
+        $this->personalDataFallbackCallable = $data['personalDataFallbackCallable'];
         $this->extras = $data['extras'];
+        $this->type = $data['type'];
     }
 }
