@@ -6,9 +6,9 @@ namespace Patchlevel\Hydrator\Extension\Upcast;
 
 use Patchlevel\Hydrator\Extension\Upcast\Attribute\UpcasterFor;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
+use Patchlevel\Hydrator\Middleware\Next;
 use Patchlevel\Hydrator\Middleware\Skip;
 use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
-use Patchlevel\Hydrator\Middleware\Stack;
 use ReflectionClass;
 
 use function array_map;
@@ -34,7 +34,7 @@ final readonly class UpcastMiddleware implements SkippableMiddleware
      *
      * @template T of object
      */
-    public function hydrate(ClassMetadata $metadata, array $data, array $context, Stack $stack): object
+    public function hydrate(ClassMetadata $metadata, array $data, array $context, Next $next): object
     {
         foreach ($this->upcasters as $index => $upcaster) {
             $target = $this->targets[$index];
@@ -46,7 +46,7 @@ final readonly class UpcastMiddleware implements SkippableMiddleware
             $data = $upcaster->upcast($metadata, $data, $context);
         }
 
-        return $stack->next()->hydrate($metadata, $data, $context, $stack);
+        return $next->hydrate($metadata, $data, $context);
     }
 
     /**
@@ -58,9 +58,9 @@ final readonly class UpcastMiddleware implements SkippableMiddleware
      *
      * @template T of object
      */
-    public function extract(ClassMetadata $metadata, object $object, array $context, Stack $stack): array
+    public function extract(ClassMetadata $metadata, object $object, array $context, Next $next): array
     {
-        return $stack->next()->extract($metadata, $object, $context, $stack);
+        return $next->extract($metadata, $object, $context);
     }
 
     /**

@@ -11,8 +11,8 @@ use Patchlevel\Hydrator\Extension\Upcast\UpcastMiddleware;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Middleware\Middleware;
+use Patchlevel\Hydrator\Middleware\Next;
 use Patchlevel\Hydrator\Middleware\Skip;
-use Patchlevel\Hydrator\Middleware\Stack;
 use Patchlevel\Hydrator\Tests\Unit\Extension\Upcast\Fixture\UpcastFixture;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -50,12 +50,12 @@ final class UpcastMiddlewareTest extends TestCase
         $nextMiddleware = $this->createMock(Middleware::class);
         $nextMiddleware->expects(self::once())
             ->method('hydrate')
-            ->with($metadata, ['firstName' => 'Jane', 'lastName' => 'Doe', 'name' => 'Jane Doe'], [], self::isInstanceOf(Stack::class))
+            ->with($metadata, ['firstName' => 'Jane', 'lastName' => 'Doe', 'name' => 'Jane Doe'], [], self::isInstanceOf(Next::class))
             ->willReturn($expectedObject);
 
-        $stack = new Stack([$nextMiddleware]);
+        $next = new Next([$nextMiddleware]);
 
-        $object = $middleware->hydrate($metadata, ['firstName' => 'Jane', 'lastName' => 'Doe'], [], $stack);
+        $object = $middleware->hydrate($metadata, ['firstName' => 'Jane', 'lastName' => 'Doe'], [], $next);
 
         self::assertSame($expectedObject, $object);
     }
@@ -69,12 +69,12 @@ final class UpcastMiddlewareTest extends TestCase
         $nextMiddleware = $this->createMock(Middleware::class);
         $nextMiddleware->expects(self::once())
             ->method('extract')
-            ->with($metadata, $object, [], self::isInstanceOf(Stack::class))
+            ->with($metadata, $object, [], self::isInstanceOf(Next::class))
             ->willReturn(['name' => 'Jane Doe']);
 
-        $stack = new Stack([$nextMiddleware]);
+        $next = new Next([$nextMiddleware]);
 
-        self::assertSame(['name' => 'Jane Doe'], $middleware->extract($metadata, $object, [], $stack));
+        self::assertSame(['name' => 'Jane Doe'], $middleware->extract($metadata, $object, [], $next));
     }
 
     public function testSkipWithoutUpcasters(): void
@@ -176,12 +176,12 @@ final class UpcastMiddlewareTest extends TestCase
         $nextMiddleware = $this->createMock(Middleware::class);
         $nextMiddleware->expects(self::once())
             ->method('hydrate')
-            ->with($metadata, ['name' => 'Jane Doe', 'matching' => true], [], self::isInstanceOf(Stack::class))
+            ->with($metadata, ['name' => 'Jane Doe', 'matching' => true], [], self::isInstanceOf(Next::class))
             ->willReturn($expectedObject);
 
-        $stack = new Stack([$nextMiddleware]);
+        $next = new Next([$nextMiddleware]);
 
-        $object = $middleware->hydrate($metadata, ['name' => 'Jane Doe'], [], $stack);
+        $object = $middleware->hydrate($metadata, ['name' => 'Jane Doe'], [], $next);
 
         self::assertSame($expectedObject, $object);
     }

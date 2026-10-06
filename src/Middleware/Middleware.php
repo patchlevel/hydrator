@@ -17,7 +17,7 @@ interface Middleware
      *
      * @template T of object
      */
-    public function hydrate(ClassMetadata $metadata, array $data, array $context, Stack $stack): object;
+    public function hydrate(ClassMetadata $metadata, array $data, array $context, Next $next): object;
 
     /**
      * @param ClassMetadata<T>     $metadata
@@ -28,5 +28,5 @@ interface Middleware
      *
      * @template T of object
      */
-    public function extract(ClassMetadata $metadata, object $object, array $context, Stack $stack): array;
+    public function extract(ClassMetadata $metadata, object $object, array $context, Next $next): array;
 }

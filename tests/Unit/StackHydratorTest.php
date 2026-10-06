@@ -16,9 +16,9 @@ use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Middleware\AllMiddlewaresSkipped;
 use Patchlevel\Hydrator\Middleware\Middleware;
+use Patchlevel\Hydrator\Middleware\Next;
 use Patchlevel\Hydrator\Middleware\Skip;
 use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
-use Patchlevel\Hydrator\Middleware\Stack;
 use Patchlevel\Hydrator\Middleware\TransformMiddleware;
 use Patchlevel\Hydrator\MissingMiddlewares;
 use Patchlevel\Hydrator\NormalizationFailure;
@@ -202,7 +202,7 @@ final class StackHydratorTest extends TestCase
                 $this->isInstanceOf(ClassMetadata::class),
                 $object,
                 ['context' => '123'],
-                $this->isInstanceOf(Stack::class),
+                $this->isInstanceOf(Next::class),
             )->willReturn($expect);
 
         $hydrator = (new StackHydratorBuilder())
@@ -368,7 +368,7 @@ final class StackHydratorTest extends TestCase
                 $this->isInstanceOf(ClassMetadata::class),
                 $data,
                 ['context' => '123'],
-                $this->isInstanceOf(Stack::class),
+                $this->isInstanceOf(Next::class),
             )->willReturn($expect);
 
         $hydrator = (new StackHydratorBuilder())

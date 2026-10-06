@@ -6,7 +6,7 @@ namespace Patchlevel\Hydrator\Tests\Unit\Fixture;
 
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Middleware\Middleware;
-use Patchlevel\Hydrator\Middleware\Stack;
+use Patchlevel\Hydrator\Middleware\Next;
 
 final class DummyMiddleware implements Middleware
 {
@@ -19,9 +19,9 @@ final class DummyMiddleware implements Middleware
      *
      * @template T of object
      */
-    public function hydrate(ClassMetadata $metadata, array $data, array $context, Stack $stack): object
+    public function hydrate(ClassMetadata $metadata, array $data, array $context, Next $next): object
     {
-        return $stack->next()->hydrate($metadata, $data, $context, $stack);
+        return $next->hydrate($metadata, $data, $context);
     }
 
     /**
@@ -29,8 +29,8 @@ final class DummyMiddleware implements Middleware
      *
      * @return array<string, mixed>
      */
-    public function extract(ClassMetadata $metadata, object $object, array $context, Stack $stack): array
+    public function extract(ClassMetadata $metadata, object $object, array $context, Next $next): array
     {
-        return $stack->next()->extract($metadata, $object, $context, $stack);
+        return $next->extract($metadata, $object, $context);
     }
 }

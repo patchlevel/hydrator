@@ -9,8 +9,8 @@ use Patchlevel\Hydrator\Extension\Lifecycle\LifecycleMiddleware;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Middleware\Middleware;
+use Patchlevel\Hydrator\Middleware\Next;
 use Patchlevel\Hydrator\Middleware\Skip;
-use Patchlevel\Hydrator\Middleware\Stack;
 use Patchlevel\Hydrator\Tests\Unit\Extension\Lifecycle\Fixture\LifecycleFixture;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -41,7 +41,7 @@ final class LifecycleMiddlewareTest extends TestCase
              *
              * @template T of object
              */
-            public function hydrate(ClassMetadata $metadata, array $data, array $context, Stack $stack): object
+            public function hydrate(ClassMetadata $metadata, array $data, array $context, Next $next): object
             {
                 $name = $data['name'] ?? '';
                 assert(is_string($name));
@@ -58,15 +58,15 @@ final class LifecycleMiddlewareTest extends TestCase
              *
              * @return array<string, mixed>
              */
-            public function extract(ClassMetadata $metadata, object $object, array $context, Stack $stack): array
+            public function extract(ClassMetadata $metadata, object $object, array $context, Next $next): array
             {
                 return [];
             }
         };
 
-        $stack = new Stack([$innerMiddleware]);
+        $next = new Next([$innerMiddleware]);
 
-        $object = $middleware->hydrate($metadata, ['name' => 'foo'], [], $stack);
+        $object = $middleware->hydrate($metadata, ['name' => 'foo'], [], $next);
 
         self::assertInstanceOf(LifecycleFixture::class, $object);
         self::assertSame('foo [preHydrate] [postHydrate]', $object->name);
@@ -91,7 +91,7 @@ final class LifecycleMiddlewareTest extends TestCase
              *
              * @template T of object
              */
-            public function hydrate(ClassMetadata $metadata, array $data, array $context, Stack $stack): object
+            public function hydrate(ClassMetadata $metadata, array $data, array $context, Next $next): object
             {
                 $object = new stdClass();
 
@@ -105,7 +105,7 @@ final class LifecycleMiddlewareTest extends TestCase
              *
              * @return array<string, mixed>
              */
-            public function extract(ClassMetadata $metadata, object $object, array $context, Stack $stack): array
+            public function extract(ClassMetadata $metadata, object $object, array $context, Next $next): array
             {
                 if ($object instanceof LifecycleFixture) {
                     return ['name' => $object->name];
@@ -115,10 +115,10 @@ final class LifecycleMiddlewareTest extends TestCase
             }
         };
 
-        $stack = new Stack([$innerMiddleware]);
+        $next = new Next([$innerMiddleware]);
         $object = new LifecycleFixture('foo');
 
-        $data = $middleware->extract($metadata, $object, [], $stack);
+        $data = $middleware->extract($metadata, $object, [], $next);
 
         self::assertSame('foo [preExtract] [postExtract]', $data['name']);
     }

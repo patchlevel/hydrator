@@ -8,9 +8,9 @@ use Closure;
 use Patchlevel\Hydrator\Extension\Cryptography\Cipher\DecryptionFailed;
 use Patchlevel\Hydrator\Extension\Cryptography\Store\CipherKeyNotExists;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
+use Patchlevel\Hydrator\Middleware\Next;
 use Patchlevel\Hydrator\Middleware\Skip;
 use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
-use Patchlevel\Hydrator\Middleware\Stack;
 use Stringable;
 
 use function array_key_exists;
@@ -35,7 +35,7 @@ final class CryptographyMiddleware implements SkippableMiddleware
      *
      * @template T of object
      */
-    public function hydrate(ClassMetadata $metadata, array $data, array $context, Stack $stack): object
+    public function hydrate(ClassMetadata $metadata, array $data, array $context, Next $next): object
     {
         $context[SubjectIds::class] = $subjectIds = $this->resolveSubjectIds($metadata, $data, $context);
 
@@ -73,11 +73,10 @@ final class CryptographyMiddleware implements SkippableMiddleware
             }
         }
 
-        return $stack->next()->hydrate(
+        return $next->hydrate(
             $metadata,
             $data,
             $context,
-            $stack,
         );
     }
 
@@ -90,11 +89,11 @@ final class CryptographyMiddleware implements SkippableMiddleware
      *
      * @template T of object
      */
-    public function extract(ClassMetadata $metadata, object $object, array $context, Stack $stack): array
+    public function extract(ClassMetadata $metadata, object $object, array $context, Next $next): array
     {
         $context[SubjectIds::class] = $subjectIds = $this->resolveSubjectIds($metadata, $object, $context);
 
-        $data = $stack->next()->extract($metadata, $object, $context, $stack);
+        $data = $next->extract($metadata, $object, $context);
 
         foreach ($metadata->properties as $propertyMetadata) {
             $info = $propertyMetadata->extras[SensitiveDataInfo::class] ?? null;
