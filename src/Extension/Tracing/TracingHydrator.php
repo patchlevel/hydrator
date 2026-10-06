@@ -7,8 +7,7 @@ namespace Patchlevel\Hydrator\Extension\Tracing;
 use Patchlevel\Hydrator\Hydrator;
 
 /**
- * Traces every call on the hydrator. Nested objects are hydrated and extracted inside the call of their parent,
- * so they are part of the parent's trace.
+ * Traces every call on the hydrator. Nested objects are traced as well, inside the trace of their parent.
  */
 final class TracingHydrator implements Hydrator
 {

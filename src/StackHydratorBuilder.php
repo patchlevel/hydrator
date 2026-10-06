@@ -104,6 +104,8 @@ final class StackHydratorBuilder
             $hydrator = $decorator->decorate($hydrator, $stack);
         }
 
+        $stack->setRootHydrator($hydrator);
+
         return $hydrator;
     }
 

@@ -12,6 +12,7 @@ use Patchlevel\Hydrator\StackHydratorBuilder;
 use Patchlevel\Hydrator\Tests\Unit\Extension\Tracing\Fixture\RecordingTracer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWrapper;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -38,9 +39,37 @@ final class TracingExtensionTest extends TestCase
         self::assertEquals(new ProfileCreated(ProfileId::fromString('1'), Email::fromString('info@patchlevel.de')), $event);
         self::assertSame($data, $hydrator->extract($event));
 
-        // only the calls on the hydrator itself are traced
         self::assertSame(
             ['hydrate ' . ProfileCreated::class, 'extract ' . ProfileCreated::class],
+            $tracer->traces,
+        );
+    }
+
+    public function testNestedObjectsAreTraced(): void
+    {
+        $tracer = new RecordingTracer();
+
+        $hydrator = (new StackHydratorBuilder())
+            ->useExtension(new CoreExtension())
+            ->useExtension(new TracingExtension($tracer))
+            ->buildHydrator();
+
+        $data = ['event' => ['profileId' => '1', 'email' => 'info@patchlevel.de']];
+        $wrapper = $hydrator->hydrate(ProfileCreatedWrapper::class, $data);
+
+        self::assertEquals(
+            new ProfileCreatedWrapper(new ProfileCreated(ProfileId::fromString('1'), Email::fromString('info@patchlevel.de'))),
+            $wrapper,
+        );
+        self::assertSame($data, $hydrator->extract($wrapper));
+
+        self::assertSame(
+            [
+                'hydrate ' . ProfileCreatedWrapper::class,
+                'hydrate ' . ProfileCreated::class,
+                'extract ' . ProfileCreatedWrapper::class,
+                'extract ' . ProfileCreated::class,
+            ],
             $tracer->traces,
         );
     }

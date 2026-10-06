@@ -79,9 +79,8 @@ final class SlowCallTracer implements Tracer
 }
 ```
 :::note
-Only the calls on the hydrator itself are traced. Nested objects are hydrated
-and extracted inside the call of their parent, so their time is part of the
-parent's trace.
+Nested objects are traced as well. Their trace runs inside the trace of their
+parent, so the parent's time includes the time of its nested objects.
 :::
 
 ## Learn more

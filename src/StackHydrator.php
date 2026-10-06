@@ -35,6 +35,9 @@ final class StackHydrator implements Hydrator
 
     private readonly bool $hasSkippableMiddlewares;
 
+    /** The hydrator which is passed to the normalizers to hydrate and extract nested objects. */
+    private Hydrator $rootHydrator;
+
     /** @param list<Middleware> $middlewares */
     public function __construct(
         private readonly MetadataFactory $metadataFactory = new AttributeMetadataFactory(),
@@ -56,6 +59,21 @@ final class StackHydrator implements Hydrator
         }
 
         $this->hasSkippableMiddlewares = $hasSkippableMiddlewares;
+        $this->rootHydrator = $this;
+    }
+
+    /**
+     * Sets the hydrator which wraps this one, so nested objects also go through its decorators.
+     *
+     * @internal
+     */
+    public function setRootHydrator(Hydrator $hydrator): void
+    {
+        $this->rootHydrator = $hydrator;
+
+        foreach ($this->classMetadata as $metadata) {
+            $this->injectHydrator($metadata);
+        }
     }
 
     /**
@@ -191,14 +209,19 @@ final class StackHydrator implements Hydrator
 
         $this->classMetadata[$class] = $metadata = $this->metadataFactory->metadata($class);
 
+        $this->injectHydrator($metadata);
+
+        return $metadata;
+    }
+
+    private function injectHydrator(ClassMetadata $metadata): void
+    {
         foreach ($metadata->properties as $property) {
             if (!($property->normalizer instanceof HydratorAwareNormalizer)) {
                 continue;
             }
 
-            $property->normalizer->setHydrator($this);
+            $property->normalizer->setHydrator($this->rootHydrator);
         }
-
-        return $metadata;
     }
 }

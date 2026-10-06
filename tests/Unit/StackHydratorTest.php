@@ -12,6 +12,7 @@ use Patchlevel\Hydrator\CircularReference;
 use Patchlevel\Hydrator\ClassNotSupported;
 use Patchlevel\Hydrator\CoreExtension;
 use Patchlevel\Hydrator\DenormalizationFailure;
+use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Middleware\AllMiddlewaresSkipped;
@@ -770,5 +771,45 @@ final class StackHydratorTest extends TestCase
         );
 
         $hydrator->hydrate(ProfileCreated::class, ['profileId' => '1', 'email' => 'info@patchlevel.de']);
+    }
+
+    public function testNestedObjectsUseRootHydrator(): void
+    {
+        $nested = new ProfileCreated(ProfileId::fromString('1'), Email::fromString('info@patchlevel.de'));
+
+        $root = $this->createMock(Hydrator::class);
+        $root->expects($this->once())
+            ->method('hydrate')
+            ->with(ProfileCreated::class, ['profileId' => '1', 'email' => 'info@patchlevel.de'])
+            ->willReturn($nested);
+        $root->expects($this->once())
+            ->method('extract')
+            ->with($nested)
+            ->willReturn(['profileId' => '1', 'email' => 'info@patchlevel.de']);
+
+        $this->hydrator->setRootHydrator($root);
+
+        $data = ['event' => ['profileId' => '1', 'email' => 'info@patchlevel.de']];
+        $wrapper = $this->hydrator->hydrate(ProfileCreatedWrapper::class, $data);
+
+        self::assertSame($nested, $wrapper->profileCreated);
+        self::assertSame($data, $this->hydrator->extract($wrapper));
+    }
+
+    public function testRootHydratorIsInjectedIntoLoadedMetadata(): void
+    {
+        $nested = new ProfileCreated(ProfileId::fromString('1'), Email::fromString('info@patchlevel.de'));
+        $wrapper = new ProfileCreatedWrapper($nested);
+
+        $this->hydrator->extract($wrapper);
+
+        $root = $this->createMock(Hydrator::class);
+        $root->expects($this->once())
+            ->method('extract')
+            ->with($nested)
+            ->willReturn(['profileId' => '1', 'email' => 'info@patchlevel.de']);
+
+        $this->hydrator->setRootHydrator($root);
+        $this->hydrator->extract($wrapper);
     }
 }
