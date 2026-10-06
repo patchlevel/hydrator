@@ -23,13 +23,14 @@ $hydrator = (new StackHydratorBuilder())
 ```
 ## Built-in extensions
 
-The library ships with three extensions out of the box:
+The library ships with four extensions out of the box:
 
 | Extension | Purpose |
 | --- | --- |
 | `LifecycleExtension` | [Lifecycle hooks](lifecycle-hooks.md), run code before and after the extract and hydrate process. |
 | `CryptographyExtension` | [Cryptography](cryptography.md), encrypt and decrypt sensitive data with crypto-shredding. |
 | `UpcastExtension` | [Upcasting](upcasting.md), reshape outdated stored data while it is hydrated. |
+| `GeneratedTransformerExtension` | [Generated code](generated-code.md), generated mapping code instead of reflection. |
 
 ## Middleware
 
@@ -156,7 +157,7 @@ serializable.
 At the end of the stack a `ClassTransformer` turns the array into the object
 and back. By default this is the `ReflectionTransformer`, which sets and reads
 the properties with reflection. A transformer factory can provide another
-transformer for a class, for example generated code.
+transformer for a class, for example [generated code](generated-code.md).
 
 ```php
 use Patchlevel\Hydrator\Metadata\ClassMetadata;

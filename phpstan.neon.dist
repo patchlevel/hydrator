@@ -8,6 +8,8 @@ parameters:
 	paths:
 		- src
 		- tests
+	excludePaths:
+		- tests/Unit/Extension/Generated/Snapshot
 	reportUnmatchedIgnoredErrors: false
 
 services:
@@ -17,5 +19,9 @@ services:
 			- phpat.test
 	-
 		class: Patchlevel\Hydrator\Tests\Architecture\ExceptionImplementsHydratorExceptionTest
+		tags:
+			- phpat.test
+	-
+		class: Patchlevel\Hydrator\Tests\Architecture\NoCodeGenerationAtRuntimeTest
 		tags:
 			- phpat.test

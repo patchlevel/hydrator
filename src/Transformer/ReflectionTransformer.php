@@ -27,7 +27,6 @@ final class ReflectionTransformer implements ClassTransformer
     /** @param ClassMetadata<T> $metadata */
     public function __construct(
         private readonly ClassMetadata $metadata,
-        private readonly CallStack $callStack = new CallStack(),
     ) {
     }
 
@@ -108,16 +107,17 @@ final class ReflectionTransformer implements ClassTransformer
      */
     public function extract(object $object, array $context): array
     {
+        $callStack = CallStack::of($context);
         $objectId = spl_object_id($object);
 
-        if (array_key_exists($objectId, $this->callStack->objects)) {
-            $references = array_values($this->callStack->objects);
+        if (array_key_exists($objectId, $callStack->objects)) {
+            $references = array_values($callStack->objects);
             $references[] = $object::class;
 
             throw new CircularReference($references);
         }
 
-        $this->callStack->objects[$objectId] = $object::class;
+        $callStack->objects[$objectId] = $object::class;
 
         try {
             $data = [];
@@ -145,7 +145,7 @@ final class ReflectionTransformer implements ClassTransformer
                 }
             }
         } finally {
-            unset($this->callStack->objects[$objectId]);
+            unset($callStack->objects[$objectId]);
         }
 
         return $data;
