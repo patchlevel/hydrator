@@ -127,7 +127,7 @@ parameters:
 			path: src/StackHydrator.php
 
 		-
-			message: '#^Parameter \#2 \$data of method Patchlevel\\Hydrator\\Middleware\\Middleware\:\:hydrate\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
+			message: '#^Parameter \#2 \$data of method Patchlevel\\Hydrator\\Middleware\\Next\:\:hydrate\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
 			identifier: argument.type
 			count: 3
 			path: src/StackHydrator.php

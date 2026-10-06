@@ -17,9 +17,9 @@ use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Middleware\AllMiddlewaresSkipped;
 use Patchlevel\Hydrator\Middleware\Middleware;
+use Patchlevel\Hydrator\Middleware\Next;
 use Patchlevel\Hydrator\Middleware\Skip;
 use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
-use Patchlevel\Hydrator\Middleware\Stack;
 use Patchlevel\Hydrator\Middleware\TransformMiddleware;
 use Patchlevel\Hydrator\MissingMiddlewares;
 use Patchlevel\Hydrator\NormalizationFailure;
@@ -202,7 +202,7 @@ final class StackHydratorTest extends TestCase
                 $object,
                 $this->callback(static fn (array $context): bool => $context['context'] === '123'
                     && $context[Hydrator::HYDRATOR] instanceof StackHydrator),
-                $this->isInstanceOf(Stack::class),
+                $this->isInstanceOf(Next::class),
             )->willReturn($expect);
 
         $hydrator = (new StackHydratorBuilder())
@@ -369,7 +369,7 @@ final class StackHydratorTest extends TestCase
                 $data,
                 $this->callback(static fn (array $context): bool => $context['context'] === '123'
                     && $context[Hydrator::HYDRATOR] instanceof StackHydrator),
-                $this->isInstanceOf(Stack::class),
+                $this->isInstanceOf(Next::class),
             )->willReturn($expect);
 
         $hydrator = (new StackHydratorBuilder())
@@ -642,11 +642,11 @@ final class StackHydratorTest extends TestCase
              *
              * @template T of object
              */
-            public function hydrate(ClassMetadata $metadata, array $data, array $context, Stack $stack): object
+            public function hydrate(ClassMetadata $metadata, array $data, array $context, Next $next): object
             {
                 $this->contexts[] = $context;
 
-                return $stack->next()->hydrate($metadata, $data, $context, $stack);
+                return $next->hydrate($metadata, $data, $context);
             }
 
             /**
@@ -654,9 +654,9 @@ final class StackHydratorTest extends TestCase
              *
              * @return array<string, mixed>
              */
-            public function extract(ClassMetadata $metadata, object $object, array $context, Stack $stack): array
+            public function extract(ClassMetadata $metadata, object $object, array $context, Next $next): array
             {
-                return $stack->next()->extract($metadata, $object, $context, $stack);
+                return $next->extract($metadata, $object, $context);
             }
         };
 

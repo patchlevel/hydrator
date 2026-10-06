@@ -36,24 +36,24 @@ The library ships with four extensions out of the box:
 
 A middleware wraps the hydration and extraction process, similar to HTTP
 middlewares. It can modify the incoming data, the outgoing array or the object
-itself, and then delegates to the next middleware on the stack. The innermost
+itself, and passes the call on to the rest of the stack with `$next`. The innermost
 middleware is the `TransformMiddleware`, which does the actual property mapping.
 
 ```php
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Middleware\Middleware;
-use Patchlevel\Hydrator\Middleware\Stack;
+use Patchlevel\Hydrator\Middleware\Next;
 
 final class RemoveNullValuesMiddleware implements Middleware
 {
-    public function hydrate(ClassMetadata $metadata, array $data, array $context, Stack $stack): object
+    public function hydrate(ClassMetadata $metadata, array $data, array $context, Next $next): object
     {
-        return $stack->next()->hydrate($metadata, $data, $context, $stack);
+        return $next->hydrate($metadata, $data, $context);
     }
 
-    public function extract(ClassMetadata $metadata, object $object, array $context, Stack $stack): array
+    public function extract(ClassMetadata $metadata, object $object, array $context, Next $next): array
     {
-        $data = $stack->next()->extract($metadata, $object, $context, $stack);
+        $data = $next->extract($metadata, $object, $context);
 
         return array_filter($data, static fn (mixed $value) => $value !== null);
     }
@@ -80,20 +80,20 @@ The `skip` method returns a `Skip` case: `Skip::None` to always run,
 
 ```php
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
+use Patchlevel\Hydrator\Middleware\Next;
 use Patchlevel\Hydrator\Middleware\Skip;
 use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
-use Patchlevel\Hydrator\Middleware\Stack;
 
 final class RemoveNullValuesMiddleware implements SkippableMiddleware
 {
-    public function hydrate(ClassMetadata $metadata, array $data, array $context, Stack $stack): object
+    public function hydrate(ClassMetadata $metadata, array $data, array $context, Next $next): object
     {
-        return $stack->next()->hydrate($metadata, $data, $context, $stack);
+        return $next->hydrate($metadata, $data, $context);
     }
 
-    public function extract(ClassMetadata $metadata, object $object, array $context, Stack $stack): array
+    public function extract(ClassMetadata $metadata, object $object, array $context, Next $next): array
     {
-        $data = $stack->next()->extract($metadata, $object, $context, $stack);
+        $data = $next->extract($metadata, $object, $context);
 
         return array_filter($data, static fn (mixed $value) => $value !== null);
     }

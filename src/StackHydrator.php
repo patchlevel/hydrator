@@ -10,9 +10,9 @@ use Patchlevel\Hydrator\Metadata\ClassNotFound;
 use Patchlevel\Hydrator\Metadata\MetadataFactory;
 use Patchlevel\Hydrator\Middleware\AllMiddlewaresSkipped;
 use Patchlevel\Hydrator\Middleware\Middleware;
+use Patchlevel\Hydrator\Middleware\Next;
 use Patchlevel\Hydrator\Middleware\Skip;
 use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
-use Patchlevel\Hydrator\Middleware\Stack;
 use Patchlevel\Hydrator\Middleware\TransformMiddleware;
 use ReflectionClass;
 
@@ -90,24 +90,24 @@ final class StackHydrator implements Hydrator
         }
 
         if (PHP_VERSION_ID < 80400) {
-            $stack = new Stack($this->middlewaresFor($metadata, Skip::Hydrate));
+            $next = new Next($this->middlewaresFor($metadata, Skip::Hydrate));
 
-            return $stack->next()->hydrate($metadata, $data, $context, $stack);
+            return $next->hydrate($metadata, $data, $context);
         }
 
         $lazy = $metadata->lazy ?? $this->defaultLazy;
 
         if (!$lazy) {
-            $stack = new Stack($this->middlewaresFor($metadata, Skip::Hydrate));
+            $next = new Next($this->middlewaresFor($metadata, Skip::Hydrate));
 
-            return $stack->next()->hydrate($metadata, $data, $context, $stack);
+            return $next->hydrate($metadata, $data, $context);
         }
 
         return (new ReflectionClass($class))->newLazyProxy(
             function () use ($metadata, $data, $context): object {
-                $stack = new Stack($this->middlewaresFor($metadata, Skip::Hydrate));
+                $next = new Next($this->middlewaresFor($metadata, Skip::Hydrate));
 
-                return $stack->next()->hydrate($metadata, $data, $context, $stack);
+                return $next->hydrate($metadata, $data, $context);
             },
         );
     }
@@ -127,9 +127,9 @@ final class StackHydrator implements Hydrator
             return $metadata->normalizer->normalize($object, $context);
         }
 
-        $stack = new Stack($this->middlewaresFor($metadata, Skip::Extract));
+        $next = new Next($this->middlewaresFor($metadata, Skip::Extract));
 
-        return $stack->next()->extract($metadata, $object, $context, $stack);
+        return $next->extract($metadata, $object, $context);
     }
 
     /**

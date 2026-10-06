@@ -31,7 +31,7 @@ final class TransformMiddleware implements Middleware
      *
      * @template T of object
      */
-    public function hydrate(ClassMetadata $metadata, array $data, array $context, Stack $stack): object
+    public function hydrate(ClassMetadata $metadata, array $data, array $context, Next $next): object
     {
         $object = $context[Hydrator::OBJECT_TO_POPULATE] ?? $metadata->newInstance();
         unset($context[Hydrator::OBJECT_TO_POPULATE]);
@@ -93,7 +93,7 @@ final class TransformMiddleware implements Middleware
      *
      * @return array<string, mixed>
      */
-    public function extract(ClassMetadata $metadata, object $object, array $context, Stack $stack): array
+    public function extract(ClassMetadata $metadata, object $object, array $context, Next $next): array
     {
         $objectId = spl_object_id($object);
 

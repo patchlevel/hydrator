@@ -6,7 +6,7 @@ namespace Unit\Middleware;
 
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
-use Patchlevel\Hydrator\Middleware\Stack;
+use Patchlevel\Hydrator\Middleware\Next;
 use Patchlevel\Hydrator\Middleware\TransformMiddleware;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated;
@@ -30,7 +30,7 @@ class TransformerMiddlewareTest extends TestCase
             $this->classMetadata(ProfileCreated::class),
             ['profileId' => '1', 'email' => 'info@patchlevel.de'],
             [],
-            new Stack([$middleware]),
+            new Next([$middleware]),
         );
 
         self::assertEquals($expected, $event);
@@ -49,7 +49,7 @@ class TransformerMiddlewareTest extends TestCase
                 Email::fromString('info@patchlevel.de'),
             ),
             [],
-            new Stack([$middleware]),
+            new Next([$middleware]),
         );
 
         self::assertEquals($expected, $data);
