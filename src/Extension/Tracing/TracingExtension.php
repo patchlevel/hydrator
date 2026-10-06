@@ -16,6 +16,6 @@ final class TracingExtension implements Extension
 
     public function configure(StackHydratorBuilder $builder): void
     {
-        $builder->addDecorator(new TracingDecorator($this->tracer));
+        $builder->addDecorator(new TracingDecorator($this->tracer), 32);
     }
 }

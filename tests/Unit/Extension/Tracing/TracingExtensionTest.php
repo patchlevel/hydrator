@@ -8,6 +8,8 @@ use Patchlevel\Hydrator\CoreExtension;
 use Patchlevel\Hydrator\Extension\Tracing\TracingDecorator;
 use Patchlevel\Hydrator\Extension\Tracing\TracingExtension;
 use Patchlevel\Hydrator\Extension\Tracing\TracingHydrator;
+use Patchlevel\Hydrator\Hydrator;
+use Patchlevel\Hydrator\HydratorDecorator;
 use Patchlevel\Hydrator\StackHydratorBuilder;
 use Patchlevel\Hydrator\Tests\Unit\Extension\Tracing\Fixture\RecordingTracer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
@@ -16,6 +18,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWrapper;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use ReflectionProperty;
 
 #[CoversClass(TracingExtension::class)]
 #[CoversClass(TracingDecorator::class)]
@@ -72,5 +75,24 @@ final class TracingExtensionTest extends TestCase
             ],
             $tracer->traces,
         );
+    }
+
+    public function testWrapsDecoratorsWithDefaultPriority(): void
+    {
+        $inner = $this->createMock(Hydrator::class);
+
+        $decorator = $this->createMock(HydratorDecorator::class);
+        $decorator->method('decorate')->willReturn($inner);
+
+        $hydrator = (new StackHydratorBuilder())
+            ->useExtension(new CoreExtension())
+            ->useExtension(new TracingExtension(new RecordingTracer()))
+            ->addDecorator($decorator)
+            ->buildHydrator();
+
+        self::assertInstanceOf(TracingHydrator::class, $hydrator);
+
+        $reflection = new ReflectionProperty(TracingHydrator::class, 'hydrator');
+        self::assertSame($inner, $reflection->getValue($hydrator));
     }
 }

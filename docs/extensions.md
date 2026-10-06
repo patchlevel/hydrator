@@ -183,7 +183,9 @@ final class AuditDecorator implements HydratorDecorator
 $builder->addDecorator(new AuditDecorator($auditLog));
 ```
 Decorators also accept a priority, a decorator with a higher priority is
-wrapped around the ones with a lower priority.
+wrapped around the ones with a lower priority. The default is `0`, the
+decorator of the [tracing](tracing.md) extension has priority `32`, so it also
+measures the decorators below it.
 
 :::warning
 Decorators are only applied by `buildHydrator()`. The deprecated `build()`
