@@ -52,7 +52,7 @@ final class GeneratedMiddlewareExtension implements Extension
         $slot = new GeneratedMiddlewareSlot();
 
         $builder->addMiddleware($slot, Extension::PRIORITY_TRANSFORM + 1);
-        $builder->addDecorator(new GeneratedDecorator($slot, $this->middleware(...)), PHP_INT_MIN);
+        $builder->addDecorator(new GeneratedDecorator($slot, $this->middleware(...)), -32);
     }
 
     private function middleware(MetadataFactory $metadataFactory): GeneratedMiddleware
