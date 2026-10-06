@@ -14,7 +14,6 @@ use Patchlevel\Hydrator\Middleware\Next;
 use Patchlevel\Hydrator\Middleware\Skip;
 use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
 use Patchlevel\Hydrator\Middleware\TransformMiddleware;
-use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
 use ReflectionClass;
 
 use function array_key_exists;
@@ -68,6 +67,8 @@ final class StackHydrator implements Hydrator
      */
     public function hydrate(string $class, mixed $data, array $context = []): object
     {
+        $context[self::HYDRATOR] ??= $this;
+
         try {
             $metadata = $this->metadata($class);
         } catch (ClassNotFound $e) {
@@ -118,6 +119,8 @@ final class StackHydrator implements Hydrator
      */
     public function extract(object $object, array $context = []): mixed
     {
+        $context[self::HYDRATOR] ??= $this;
+
         $metadata = $this->metadata($object::class);
 
         if ($metadata->normalizer) {
@@ -189,16 +192,6 @@ final class StackHydrator implements Hydrator
             return $this->classMetadata[$class];
         }
 
-        $this->classMetadata[$class] = $metadata = $this->metadataFactory->metadata($class);
-
-        foreach ($metadata->properties as $property) {
-            if (!($property->normalizer instanceof HydratorAwareNormalizer)) {
-                continue;
-            }
-
-            $property->normalizer->setHydrator($this);
-        }
-
-        return $metadata;
+        return $this->classMetadata[$class] = $this->metadataFactory->metadata($class);
     }
 }
