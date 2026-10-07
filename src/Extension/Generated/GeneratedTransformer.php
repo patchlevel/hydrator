@@ -11,8 +11,13 @@ use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Normalizer\ArrayNormalizer;
 use Patchlevel\Hydrator\Normalizer\ArrayShapeNormalizer;
+use Patchlevel\Hydrator\Normalizer\DateIntervalNormalizer;
+use Patchlevel\Hydrator\Normalizer\DateTimeImmutableNormalizer;
+use Patchlevel\Hydrator\Normalizer\DateTimeNormalizer;
+use Patchlevel\Hydrator\Normalizer\DateTimeZoneNormalizer;
+use Patchlevel\Hydrator\Normalizer\EnumNormalizer;
+use Patchlevel\Hydrator\Normalizer\InlineNormalizer;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
-use Patchlevel\Hydrator\Normalizer\ObjectMapNormalizer;
 use Patchlevel\Hydrator\Normalizer\ObjectNormalizer;
 use Patchlevel\Hydrator\Transformer\CallStack;
 use Patchlevel\Hydrator\Transformer\ClassTransformer;
@@ -49,11 +54,15 @@ abstract class GeneratedTransformer implements ClassTransformer
     /** @var ReflectionClass<object> */
     public ReflectionClass $reflection;
 
-    /** @param ClassMetadata<object> $metadata */
+    /**
+     * @param ClassMetadata<object> $metadata
+     * @param bool                  $circularReferenceCheck track extracted objects to detect circular references
+     */
     public function __construct(
         public readonly ClassMetadata $metadata,
         public readonly TransformerResolver $resolver,
         public readonly CallStack $callStack,
+        public readonly bool $circularReferenceCheck = true,
     ) {
     }
 
@@ -104,7 +113,7 @@ abstract class GeneratedTransformer implements ClassTransformer
             $this->owner = $this->resolver->hydrator();
             $this->reflection = $this->metadata->reflection;
             $this->initialize();
-            $this->tracked = $this->recursive();
+            $this->tracked = $this->circularReferenceCheck && $this->recursive();
             $this->ready = true;
         } finally {
             $this->initializing = false;
@@ -171,7 +180,11 @@ abstract class GeneratedTransformer implements ClassTransformer
         }
     }
 
-    /** Whether the normalizer extracts objects with the hydrator, which can lead back to the same object. */
+    /**
+     * Whether the normalizer may extract objects with the hydrator, which can lead back to the same object. Only the
+     * built-in normalizers which never call the hydrator are ruled out, every other normalizer could take it from the
+     * context.
+     */
     final protected static function mayRecurse(Normalizer $normalizer): bool
     {
         if ($normalizer instanceof ArrayNormalizer) {
@@ -188,6 +201,11 @@ abstract class GeneratedTransformer implements ClassTransformer
             return false;
         }
 
-        return $normalizer instanceof ObjectNormalizer || $normalizer instanceof ObjectMapNormalizer;
+        return !$normalizer instanceof DateTimeImmutableNormalizer
+            && !$normalizer instanceof DateTimeNormalizer
+            && !$normalizer instanceof DateTimeZoneNormalizer
+            && !$normalizer instanceof DateIntervalNormalizer
+            && !$normalizer instanceof EnumNormalizer
+            && !$normalizer instanceof InlineNormalizer;
     }
 }

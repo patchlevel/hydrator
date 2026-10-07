@@ -101,6 +101,33 @@ place for its calls, so it sees every nested object, see
 [normalizers](normalizer.md).
 :::
 
+## Circular references
+
+Like the reflection based mapping, the generated code throws a
+`CircularReference` exception if an object leads back to itself while it is
+extracted. To detect this, it keeps track of the objects it is currently
+extracting. This is only needed for classes whose normalizers may call the
+hydrator again: every normalizer except the built-in ones for dates, enums and
+inline closures, since any normalizer can take the hydrator from the context.
+
+If your objects can not be circular, you can disable the check to save this
+work while extracting.
+
+```php
+use Patchlevel\Hydrator\Extension\Generated\GeneratedTransformerExtension;
+
+$extension = new GeneratedTransformerExtension(
+    __DIR__ . '/var/cache/hydrator',
+    circularReferenceCheck: false,
+);
+```
+:::warning
+Without the check, a circular reference is not detected. The extraction recurses
+until PHP stops it with "Maximum call stack size reached", on PHP 8.2 the
+process runs out of memory instead. Keep the check enabled in your tests to find
+circular references there.
+:::
+
 ## Learn more
 
 * [How to build the hydrator](hydrator.md)

@@ -13,14 +13,22 @@ use Patchlevel\Hydrator\StackHydratorBuilder;
  */
 final class GeneratedTransformerExtension implements Extension
 {
-    /** @param string $cachePath Directory where the {@see GeneratedTransformerWarmer} stored the generated code. */
+    /**
+     * @param string $cachePath              Directory where the {@see GeneratedTransformerWarmer} stored the generated code.
+     * @param bool   $circularReferenceCheck Track extracted objects to detect circular references. Without it, the
+     *                                       generated code is faster, but a circular reference ends in PHP's stack limit.
+     */
     public function __construct(
         private readonly string $cachePath,
+        private readonly bool $circularReferenceCheck = true,
     ) {
     }
 
     public function configure(StackHydratorBuilder $builder): void
     {
-        $builder->addTransformerFactory(new GeneratedTransformerFactory(new TransformerFiles($this->cachePath)));
+        $builder->addTransformerFactory(new GeneratedTransformerFactory(
+            new TransformerFiles($this->cachePath),
+            $this->circularReferenceCheck,
+        ));
     }
 }
