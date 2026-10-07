@@ -121,22 +121,16 @@ parameters:
 			path: src/Normalizer/ObjectNormalizer.php
 
 		-
-			message: '#^Method Patchlevel\\Hydrator\\StackHydrator\:\:middlewaresFor\(\) should return non\-empty\-list\<Patchlevel\\Hydrator\\Middleware\\Middleware\> but returns list\<Patchlevel\\Hydrator\\Middleware\\Middleware\>\.$#'
-			identifier: return.type
+			message: '#^Parameter \#1 \$data of method Patchlevel\\Hydrator\\Transformer\\ClassTransformer\:\:hydrate\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
+			identifier: argument.type
 			count: 1
 			path: src/StackHydrator.php
 
 		-
-			message: '#^Parameter \#1 \$data of method Patchlevel\\Hydrator\\Transformer\\ClassTransformer\:\:hydrate\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
+			message: '#^Parameter \#2 \$data of method Patchlevel\\Hydrator\\Middleware\\Next\:\:hydrate\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
 			identifier: argument.type
-			count: 2
-			path: src/StackHydrator.php
-
-		-
-			message: '#^Parameter \#2 \$data of method Patchlevel\\Hydrator\\StackHydrator\:\:hydrateWithMiddlewares\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
-			identifier: argument.type
-			count: 2
-			path: src/StackHydrator.php
+			count: 1
+			path: src/Handler/MiddlewareHandler.php
 
 		-
 			message: '#^Property Patchlevel\\Hydrator\\Tests\\Unit\\Extension\\Cryptography\\Fixture\\ChildWithSensitiveDataWithIdentifierDto\:\:\$email is never read, only written\.$#'

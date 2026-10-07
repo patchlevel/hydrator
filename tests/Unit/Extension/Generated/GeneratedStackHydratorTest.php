@@ -52,6 +52,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithIterablesDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithNullableDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\LazyProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\LifecycleFixture;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\LinkedDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\NestedLifecycleDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\NormalizerInBaseClassDefinedDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDto;
@@ -126,6 +127,7 @@ final class GeneratedStackHydratorTest extends TestCase
         PrivateChildDto::class,
         SensitiveDataProfileCreated::class,
         NestedLifecycleDto::class,
+        LinkedDto::class,
     ];
 
     private static string $cachePath;
@@ -250,6 +252,47 @@ final class GeneratedStackHydratorTest extends TestCase
         $dto3->to = $dto1;
 
         $this->hydrator->extract($dto1);
+    }
+
+    public function testExtractCircularReferenceThroughCustomNormalizer(): void
+    {
+        $first = new LinkedDto('first');
+        $second = new LinkedDto('second', $first);
+        $first->next = $second;
+
+        $this->expectException(CircularReference::class);
+        $this->expectExceptionMessage('Circular reference detected: Patchlevel\Hydrator\Tests\Unit\Fixture\LinkedDto -> Patchlevel\Hydrator\Tests\Unit\Fixture\LinkedDto -> Patchlevel\Hydrator\Tests\Unit\Fixture\LinkedDto');
+
+        $this->hydrator->extract($first);
+    }
+
+    public function testExtractLinkedObjectsWithCustomNormalizer(): void
+    {
+        $data = ['name' => 'first', 'next' => ['name' => 'second', 'next' => null]];
+
+        self::assertSame($data, $this->hydrator->extract($this->hydrator->hydrate(LinkedDto::class, $data)));
+    }
+
+    public function testCircularReferenceCheckCanBeDisabled(): void
+    {
+        $tracked = static function (StackHydrator $hydrator, string $class): bool {
+            $transformer = self::transformers($hydrator)[$class] ?? null;
+            self::assertInstanceOf(GeneratedTransformer::class, $transformer);
+
+            return $transformer->tracked;
+        };
+
+        $data = ['name' => 'first', 'next' => ['name' => 'second', 'next' => null]];
+
+        $this->hydrator->extract($this->hydrator->hydrate(LinkedDto::class, $data));
+        self::assertTrue($tracked($this->hydrator, LinkedDto::class));
+
+        $hydrator = (new StackHydratorBuilder())
+            ->useExtension(new GeneratedTransformerExtension(self::$cachePath, circularReferenceCheck: false))
+            ->build();
+
+        self::assertSame($data, $hydrator->extract($hydrator->hydrate(LinkedDto::class, $data)));
+        self::assertFalse($tracked($hydrator, LinkedDto::class));
     }
 
     public function testExtractWithInferNormalizer(): void

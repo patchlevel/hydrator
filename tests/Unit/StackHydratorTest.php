@@ -11,6 +11,7 @@ use Patchlevel\Hydrator\ArrayDataRequired;
 use Patchlevel\Hydrator\CircularReference;
 use Patchlevel\Hydrator\ClassNotSupported;
 use Patchlevel\Hydrator\DenormalizationFailure;
+use Patchlevel\Hydrator\Handler\HydrateHandler;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
@@ -930,6 +931,14 @@ final class StackHydratorTest extends TestCase
         // the class normalizer is called instead of a transformer
         self::assertNull($resolver->direct(ProfileId::class, Direction::Hydrate));
         self::assertNull($resolver->direct(ProfileId::class, Direction::Extract));
+
+        // the handlers do what the hydrator does for the class
+        self::assertSame($resolver->direct(ProfileCreated::class, Direction::Hydrate), $resolver->hydrateHandler(ProfileCreated::class));
+        self::assertInstanceOf(HydrateHandler::class, $resolver->hydrateHandler(Skill::class));
+        self::assertEquals(new Skill('php'), $resolver->hydrateHandler(Skill::class)->hydrate(['name' => 'php'], []));
+        self::assertSame(['name' => 'php'], $resolver->extractHandler(Skill::class)->extract(new Skill('php'), []));
+        self::assertEquals(ProfileId::fromString('1'), $resolver->hydrateHandler(ProfileId::class)->hydrate('1', []));
+        self::assertSame('1', $resolver->extractHandler(ProfileId::class)->extract(ProfileId::fromString('1'), []));
     }
 
     #[RequiresPhp('>=8.4')]

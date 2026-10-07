@@ -70,10 +70,13 @@ use Closure;
 use Patchlevel\Hydrator\CircularReference;
 use Patchlevel\Hydrator\DenormalizationFailure;
 use Patchlevel\Hydrator\Extension\Generated\GeneratedTransformer;
+use Patchlevel\Hydrator\Handler\ExtractHandler;
+use Patchlevel\Hydrator\Handler\HydrateHandler;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\NormalizationFailure;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
 use Patchlevel\Hydrator\Normalizer\ObjectNormalizer;
+use Patchlevel\Hydrator\Transformer\ClassTransformer;
 use Patchlevel\Hydrator\Transformer\Direction;
 use Patchlevel\Hydrator\TypeMismatch;
 use ReflectionParameter;
@@ -114,17 +117,7 @@ final class {{className}} extends GeneratedTransformer
         {{extract}}
     }
 
-    public function hydrateNested(array $data, array $context): object
-    {
-        $object = $this->reflection->newInstanceWithoutConstructor();
-
-        {{hydrateNested}}
-    }
-
-    public function extractNested(object $object, array $context): array
-    {
-        {{extractNested}}
-    }
+    {{nestedMethods}}
 
     protected function initialize(): void
     {
@@ -137,6 +130,20 @@ final class {{className}} extends GeneratedTransformer
     }
 }
 
+PHP;
+
+    public const NESTED_HYDRATE = <<<'PHP'
+public function hydrateNested(array $data, array $context): object
+{
+    {{body}}
+}
+PHP;
+
+    public const NESTED_EXTRACT = <<<'PHP'
+public function extractNested(object $object, array $context): array
+{
+    {{body}}
+}
 PHP;
 
     public const CLOSURE = <<<'PHP'
@@ -231,7 +238,9 @@ PHP;
 {{variable}} = $data[{{field}}];
 
 if ($this->ih{{flag}} && $inline && \is_array({{variable}})) {
-    {{variable}} = {{nested}}({{variable}}, $context);
+    {{variable}} = $this->nh{{flag}} !== null ? ($this->nh{{flag}})({{variable}}, $context) : $this->hh{{flag}}->hydrateNested({{variable}}, $context);
+} elseif ($this->hh{{flag}} !== null && $inline && \is_array({{variable}})) {
+    {{variable}} = $this->hh{{flag}}->hydrate({{variable}}, $context);
 } else {
     {{variable}} = $this->n{{slot}}->denormalize({{variable}}, $context);
 }
@@ -243,8 +252,22 @@ PHP;
 if ($this->ih{{flag}} && $inline && \is_array({{variable}})) {
     $items = [];
 
+    if ($this->nh{{flag}} !== null) {
+        foreach ({{variable}} as $key => $item) {
+            $items[$key] = \is_array($item) ? ($this->nh{{flag}})($item, $context) : $this->n{{inner}}->denormalize($item, $context);
+        }
+    } else {
+        foreach ({{variable}} as $key => $item) {
+            $items[$key] = \is_array($item) ? $this->hh{{flag}}->hydrateNested($item, $context) : $this->n{{inner}}->denormalize($item, $context);
+        }
+    }
+
+    {{variable}} = $items;
+} elseif ($this->hh{{flag}} !== null && $inline && \is_array({{variable}})) {
+    $items = [];
+
     foreach ({{variable}} as $key => $item) {
-        $items[$key] = \is_array($item) ? {{nested}}($item, $context) : $this->n{{inner}}->denormalize($item, $context);
+        $items[$key] = \is_array($item) ? $this->hh{{flag}}->hydrate($item, $context) : $this->n{{inner}}->denormalize($item, $context);
     }
 
     {{variable}} = $items;
@@ -265,7 +288,14 @@ PHP;
 
     public const NORMALIZE_OBJECT = <<<'PHP'
 $value = $object->{{name}};
-{{variable}} = $this->ie{{flag}} && $inline && {{check}} ? {{nested}}($value, $context) : $this->n{{slot}}->normalize($value, $context);
+
+if ($this->ie{{flag}} && $inline && {{check}}) {
+    {{variable}} = $this->ne{{flag}} !== null ? ($this->ne{{flag}})($value, $context) : $this->he{{flag}}->extractNested($value, $context);
+} elseif ($this->he{{flag}} !== null && $inline && {{check}}) {
+    {{variable}} = $this->he{{flag}}->extract($value, $context);
+} else {
+    {{variable}} = $this->n{{slot}}->normalize($value, $context);
+}
 PHP;
 
     public const NORMALIZE_ARRAY = <<<'PHP'
@@ -274,8 +304,22 @@ $value = $object->{{name}};
 if ($this->ie{{flag}} && $inline && \is_array($value)) {
     $items = [];
 
+    if ($this->ne{{flag}} !== null) {
+        foreach ($value as $key => $item) {
+            $items[$key] = {{check}} ? ($this->ne{{flag}})($item, $context) : $this->n{{inner}}->normalize($item, $context);
+        }
+    } else {
+        foreach ($value as $key => $item) {
+            $items[$key] = {{check}} ? $this->he{{flag}}->extractNested($item, $context) : $this->n{{inner}}->normalize($item, $context);
+        }
+    }
+
+    {{variable}} = $items;
+} elseif ($this->he{{flag}} !== null && $inline && \is_array($value)) {
+    $items = [];
+
     foreach ($value as $key => $item) {
-        $items[$key] = {{check}} ? {{nested}}($item, $context) : $this->n{{inner}}->normalize($item, $context);
+        $items[$key] = {{check}} ? $this->he{{flag}}->extract($item, $context) : $this->n{{inner}}->normalize($item, $context);
     }
 
     {{variable}} = $items;

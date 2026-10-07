@@ -6,15 +6,24 @@ namespace Patchlevel\Hydrator\Transformer;
 
 use Patchlevel\Hydrator\CircularReference;
 use Patchlevel\Hydrator\DenormalizationFailure;
+use Patchlevel\Hydrator\Handler\ExtractHandler;
+use Patchlevel\Hydrator\Handler\HydrateHandler;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
+use Patchlevel\Hydrator\Metadata\NestedObject;
+use Patchlevel\Hydrator\Metadata\PropertyMetadata;
 use Patchlevel\Hydrator\NormalizationFailure;
+use Patchlevel\Hydrator\Normalizer\ArrayNormalizer;
+use Patchlevel\Hydrator\Normalizer\Normalizer;
 use Patchlevel\Hydrator\TypeMismatch;
 use Throwable;
 use TypeError;
 
 use function array_key_exists;
 use function array_values;
+use function assert;
+use function is_array;
+use function is_object;
 use function spl_object_id;
 
 /**
@@ -24,10 +33,24 @@ use function spl_object_id;
  */
 final class ReflectionTransformer implements ClassTransformer
 {
-    /** @param ClassMetadata<T> $metadata */
+    /** @var array<string, NestedObject>|null property name => nested object, resolved on the first call */
+    private array|null $nested = null;
+
+    /** @var array<string, ClassTransformer|HydrateHandler> property name => handler of the nested class */
+    private array $hydrateHandlers = [];
+
+    /** @var array<string, ClassTransformer|ExtractHandler> property name => handler of the nested class */
+    private array $extractHandlers = [];
+
+    /**
+     * @param ClassMetadata<T>         $metadata
+     * @param TransformerResolver|null $resolver of the hydrator, nested objects of its calls are mapped with the
+     *                                           handlers of their classes directly
+     */
     public function __construct(
         private readonly ClassMetadata $metadata,
         private readonly CallStack $callStack = new CallStack(),
+        private readonly TransformerResolver|null $resolver = null,
     ) {
     }
 
@@ -50,6 +73,7 @@ final class ReflectionTransformer implements ClassTransformer
         }
 
         $constructorParameters = null;
+        $nested = $this->nested($context);
 
         foreach ($metadata->properties as $propertyMetadata) {
             if (!array_key_exists($propertyMetadata->fieldName, $data)) {
@@ -74,7 +98,9 @@ final class ReflectionTransformer implements ClassTransformer
             if ($propertyMetadata->normalizer) {
                 try {
                     /** @psalm-suppress MixedAssignment */
-                    $value = $propertyMetadata->normalizer->denormalize($data[$propertyMetadata->fieldName], $context);
+                    $value = isset($nested[$propertyMetadata->propertyName])
+                        ? $this->hydrateNested($propertyMetadata, $nested[$propertyMetadata->propertyName], $propertyMetadata->normalizer, $data[$propertyMetadata->fieldName], $context)
+                        : $propertyMetadata->normalizer->denormalize($data[$propertyMetadata->fieldName], $context);
                 } catch (Throwable $e) {
                     throw new DenormalizationFailure(
                         $metadata->className,
@@ -121,15 +147,15 @@ final class ReflectionTransformer implements ClassTransformer
 
         try {
             $data = [];
+            $nested = $this->nested($context);
 
             foreach ($this->metadata->properties as $propertyMetadata) {
                 if ($propertyMetadata->normalizer) {
                     try {
                         /** @psalm-suppress MixedAssignment */
-                        $data[$propertyMetadata->fieldName] = $propertyMetadata->normalizer->normalize(
-                            $propertyMetadata->getValue($object),
-                            $context,
-                        );
+                        $data[$propertyMetadata->fieldName] = isset($nested[$propertyMetadata->propertyName])
+                            ? $this->extractNested($propertyMetadata, $nested[$propertyMetadata->propertyName], $propertyMetadata->normalizer, $propertyMetadata->getValue($object), $context)
+                            : $propertyMetadata->normalizer->normalize($propertyMetadata->getValue($object), $context);
                     } catch (CircularReference $e) {
                         throw $e;
                     } catch (Throwable $e) {
@@ -149,5 +175,109 @@ final class ReflectionTransformer implements ClassTransformer
         }
 
         return $data;
+    }
+
+    /**
+     * The nested objects which are mapped with the handlers of their classes directly. Only for calls of the
+     * hydrator which created this transformer: a hydrator which wraps it has to see the nested objects.
+     *
+     * @param array<string, mixed> $context
+     *
+     * @return array<string, NestedObject>
+     */
+    private function nested(array $context): array
+    {
+        if ($this->resolver === null) {
+            return [];
+        }
+
+        if ($this->nested === null) {
+            $this->nested = [];
+
+            foreach ($this->metadata->properties as $property) {
+                $nested = $property->nested();
+
+                if ($nested === null) {
+                    continue;
+                }
+
+                $this->nested[$property->propertyName] = $nested;
+            }
+        }
+
+        if ($this->nested === [] || ($context[Hydrator::HYDRATOR] ?? null) !== $this->resolver->hydrator()) {
+            return [];
+        }
+
+        return $this->nested;
+    }
+
+    /** @param array<string, mixed> $context */
+    private function hydrateNested(PropertyMetadata $property, NestedObject $nested, Normalizer $normalizer, mixed $value, array $context): mixed
+    {
+        // null and wrong types are handled by the normalizer
+        if (!is_array($value) || $this->resolver === null) {
+            return $normalizer->denormalize($value, $context);
+        }
+
+        $handler = $this->hydrateHandlers[$property->propertyName]
+            ??= $this->resolver->hydrateHandler($nested->className);
+
+        if (!$nested->list) {
+            return $handler->hydrate($value, $context);
+        }
+
+        assert($normalizer instanceof ArrayNormalizer);
+        $inner = $normalizer->innerNormalizer();
+        $items = [];
+
+        foreach ($value as $key => $item) {
+            $items[$key] = is_array($item) ? $handler->hydrate($item, $context) : $inner->denormalize($item, $context);
+        }
+
+        return $items;
+    }
+
+    /** @param array<string, mixed> $context */
+    private function extractNested(PropertyMetadata $property, NestedObject $nested, Normalizer $normalizer, mixed $value, array $context): mixed
+    {
+        if ($this->resolver === null) {
+            return $normalizer->normalize($value, $context);
+        }
+
+        if (!$nested->list) {
+            // subclasses are extracted with the handler of their own class by the hydrator
+            if (!is_object($value) || $value::class !== $nested->className) {
+                return $normalizer->normalize($value, $context);
+            }
+
+            $handler = $this->extractHandlers[$property->propertyName]
+                ??= $this->resolver->extractHandler($nested->className);
+
+            return $handler->extract($value, $context);
+        }
+
+        if (!is_array($value)) {
+            return $normalizer->normalize($value, $context);
+        }
+
+        assert($normalizer instanceof ArrayNormalizer);
+        $inner = $normalizer->innerNormalizer();
+        $handler = null;
+        $items = [];
+
+        foreach ($value as $key => $item) {
+            if (is_object($item) && $item::class === $nested->className) {
+                $handler ??= $this->extractHandlers[$property->propertyName]
+                    ??= $this->resolver->extractHandler($nested->className);
+                $items[$key] = $handler->extract($item, $context);
+
+                continue;
+            }
+
+            $items[$key] = $inner->normalize($item, $context);
+        }
+
+        return $items;
     }
 }

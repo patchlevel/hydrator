@@ -27,8 +27,10 @@ final class GeneratedTransformerFactory implements ClassTransformerFactory
     /** @var WeakMap<TransformerResolver, CallStack> the generated transformers of a hydrator share their call stack */
     private WeakMap $callStacks;
 
+    /** @param bool $circularReferenceCheck track extracted objects to detect circular references */
     public function __construct(
         private readonly TransformerFiles $files,
+        private readonly bool $circularReferenceCheck = true,
     ) {
         $this->callStacks = new WeakMap();
     }
@@ -48,7 +50,12 @@ final class GeneratedTransformerFactory implements ClassTransformerFactory
             require_once $file;
         }
 
-        $transformer = new $fqcn($metadata, $resolver, $this->callStacks[$resolver] ??= new CallStack());
+        $transformer = new $fqcn(
+            $metadata,
+            $resolver,
+            $this->callStacks[$resolver] ??= new CallStack(),
+            $this->circularReferenceCheck,
+        );
         assert($transformer instanceof GeneratedTransformer);
 
         return $transformer;

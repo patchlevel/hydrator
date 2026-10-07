@@ -29,9 +29,9 @@ use TypeError;
 /**
  * @internal
  *
- * Generated transformer of {@see \Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer}.
+ * Generated transformer of {@see \Patchlevel\Hydrator\Tests\Unit\Fixture\LinkedDto}.
  */
-final class WrongNormalizerTransformer extends GeneratedTransformer
+final class LinkedDtoTransformer extends GeneratedTransformer
 {
     public Normalizer $n0;
 
@@ -48,18 +48,30 @@ final class WrongNormalizerTransformer extends GeneratedTransformer
             $object = $this->reflection->newInstanceWithoutConstructor();
         }
 
-        if (\array_key_exists('email', $data)) {
+        if (\array_key_exists('name', $data)) {
+            $value = $data['name'];
+
             try {
-                $value = $this->n0->denormalize($data['email'], $context);
+                $object->name = $value;
+            } catch (TypeError $e) {
+                throw new TypeMismatch(\Patchlevel\Hydrator\Tests\Unit\Fixture\LinkedDto::class, 'name', $e);
+            }
+        }
+
+        if (\array_key_exists('next', $data)) {
+            try {
+                $value = $this->n0->denormalize($data['next'], $context);
             } catch (Throwable $e) {
-                throw new DenormalizationFailure(\Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer::class, 'email', $this->n0::class, $e);
+                throw new DenormalizationFailure(\Patchlevel\Hydrator\Tests\Unit\Fixture\LinkedDto::class, 'next', $this->n0::class, $e);
             }
 
             try {
-                $object->email = $value;
+                $object->next = $value;
             } catch (TypeError $e) {
-                throw new TypeMismatch(\Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer::class, 'email', $e);
+                throw new TypeMismatch(\Patchlevel\Hydrator\Tests\Unit\Fixture\LinkedDto::class, 'next', $e);
             }
+        } else {
+            $object->next = NULL;
         }
 
         return $object;
@@ -81,19 +93,20 @@ final class WrongNormalizerTransformer extends GeneratedTransformer
                 throw new CircularReference($references);
             }
 
-            $this->callStack->objects[$id] = \Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer::class;
+            $this->callStack->objects[$id] = \Patchlevel\Hydrator\Tests\Unit\Fixture\LinkedDto::class;
 
             try {
                 try {
-                    $v_email = $this->n0->normalize($object->email, $context);
+                    $v_next = $this->n0->normalize($object->next, $context);
                 } catch (CircularReference $e) {
                     throw $e;
                 } catch (Throwable $e) {
-                    throw new NormalizationFailure(\Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer::class, 'email', $this->n0::class, $e);
+                    throw new NormalizationFailure(\Patchlevel\Hydrator\Tests\Unit\Fixture\LinkedDto::class, 'next', $this->n0::class, $e);
                 }
 
                 return [
-                    'email' => $v_email,
+                    'name' => $object->name,
+                    'next' => $v_next,
                 ];
             } finally {
                 unset($this->callStack->objects[$id]);
@@ -101,15 +114,16 @@ final class WrongNormalizerTransformer extends GeneratedTransformer
         }
 
         try {
-            $v_email = $this->n0->normalize($object->email, $context);
+            $v_next = $this->n0->normalize($object->next, $context);
         } catch (CircularReference $e) {
             throw $e;
         } catch (Throwable $e) {
-            throw new NormalizationFailure(\Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer::class, 'email', $this->n0::class, $e);
+            throw new NormalizationFailure(\Patchlevel\Hydrator\Tests\Unit\Fixture\LinkedDto::class, 'next', $this->n0::class, $e);
         }
 
         return [
-            'email' => $v_email,
+            'name' => $object->name,
+            'next' => $v_next,
         ];
     }
 
@@ -117,18 +131,30 @@ final class WrongNormalizerTransformer extends GeneratedTransformer
     {
         $object = $this->reflection->newInstanceWithoutConstructor();
 
-        if (\array_key_exists('email', $data)) {
+        if (\array_key_exists('name', $data)) {
+            $value = $data['name'];
+
             try {
-                $value = $this->n0->denormalize($data['email'], $context);
+                $object->name = $value;
+            } catch (TypeError $e) {
+                throw new TypeMismatch(\Patchlevel\Hydrator\Tests\Unit\Fixture\LinkedDto::class, 'name', $e);
+            }
+        }
+
+        if (\array_key_exists('next', $data)) {
+            try {
+                $value = $this->n0->denormalize($data['next'], $context);
             } catch (Throwable $e) {
-                throw new DenormalizationFailure(\Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer::class, 'email', $this->n0::class, $e);
+                throw new DenormalizationFailure(\Patchlevel\Hydrator\Tests\Unit\Fixture\LinkedDto::class, 'next', $this->n0::class, $e);
             }
 
             try {
-                $object->email = $value;
+                $object->next = $value;
             } catch (TypeError $e) {
-                throw new TypeMismatch(\Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer::class, 'email', $e);
+                throw new TypeMismatch(\Patchlevel\Hydrator\Tests\Unit\Fixture\LinkedDto::class, 'next', $e);
             }
+        } else {
+            $object->next = NULL;
         }
 
         return $object;
@@ -146,19 +172,20 @@ final class WrongNormalizerTransformer extends GeneratedTransformer
                 throw new CircularReference($references);
             }
 
-            $this->callStack->objects[$id] = \Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer::class;
+            $this->callStack->objects[$id] = \Patchlevel\Hydrator\Tests\Unit\Fixture\LinkedDto::class;
 
             try {
                 try {
-                    $v_email = $this->n0->normalize($object->email, $context);
+                    $v_next = $this->n0->normalize($object->next, $context);
                 } catch (CircularReference $e) {
                     throw $e;
                 } catch (Throwable $e) {
-                    throw new NormalizationFailure(\Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer::class, 'email', $this->n0::class, $e);
+                    throw new NormalizationFailure(\Patchlevel\Hydrator\Tests\Unit\Fixture\LinkedDto::class, 'next', $this->n0::class, $e);
                 }
 
                 return [
-                    'email' => $v_email,
+                    'name' => $object->name,
+                    'next' => $v_next,
                 ];
             } finally {
                 unset($this->callStack->objects[$id]);
@@ -166,21 +193,22 @@ final class WrongNormalizerTransformer extends GeneratedTransformer
         }
 
         try {
-            $v_email = $this->n0->normalize($object->email, $context);
+            $v_next = $this->n0->normalize($object->next, $context);
         } catch (CircularReference $e) {
             throw $e;
         } catch (Throwable $e) {
-            throw new NormalizationFailure(\Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer::class, 'email', $this->n0::class, $e);
+            throw new NormalizationFailure(\Patchlevel\Hydrator\Tests\Unit\Fixture\LinkedDto::class, 'next', $this->n0::class, $e);
         }
 
         return [
-            'email' => $v_email,
+            'name' => $object->name,
+            'next' => $v_next,
         ];
     }
 
     protected function initialize(): void
     {
-        $this->n0 = $this->normalizer('email');
+        $this->n0 = $this->normalizer('next');
     }
 
     protected function mayReachItself(): bool
