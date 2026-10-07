@@ -160,6 +160,7 @@ final class ClassMetadata
     public function __unserialize(array $data): void
     {
         $this->reflection = new ReflectionClass($data['className']);
+        $this->className = $data['className'];
         $this->properties = $data['properties'];
         $this->dataSubjectIdField = $data['dataSubjectIdField'];
         $this->postHydrateCallbacks = $data['postHydrateCallbacks'];
