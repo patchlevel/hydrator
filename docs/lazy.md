@@ -40,7 +40,7 @@ use Patchlevel\Hydrator\StackHydratorBuilder;
 $hydrator = (new StackHydratorBuilder())
     ->useExtension(new CoreExtension())
     ->enableDefaultLazy()
-    ->build();
+    ->buildHydrator();
 ```
 Single classes can then opt out again with the attribute:
 

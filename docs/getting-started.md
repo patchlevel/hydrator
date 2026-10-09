@@ -57,7 +57,7 @@ use Patchlevel\Hydrator\StackHydratorBuilder;
 
 $hydrator = (new StackHydratorBuilder())
     ->useExtension(new CoreExtension())
-    ->build();
+    ->buildHydrator();
 ```
 :::note
 The builder is also the place to add [extensions](extensions.md), custom

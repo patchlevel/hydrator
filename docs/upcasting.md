@@ -31,7 +31,7 @@ $hydrator = (new StackHydratorBuilder())
             ),
         ],
     ))
-    ->build();
+    ->buildHydrator();
 ```
 :::note
 Upcasting only runs during [hydration](hydrator.md). Extraction always writes

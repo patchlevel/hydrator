@@ -9,6 +9,7 @@ use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Metadata\ClassNotFound;
 use Patchlevel\Hydrator\Metadata\MetadataFactory;
 use Patchlevel\Hydrator\Middleware\AllMiddlewaresSkipped;
+use Patchlevel\Hydrator\Middleware\HydratorAwareMiddleware;
 use Patchlevel\Hydrator\Middleware\Middleware;
 use Patchlevel\Hydrator\Middleware\Skip;
 use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
@@ -35,6 +36,9 @@ final class StackHydrator implements Hydrator
 
     private readonly bool $hasSkippableMiddlewares;
 
+    /** The hydrator which is passed to the normalizers to hydrate and extract nested objects. */
+    private Hydrator $rootHydrator;
+
     /** @param list<Middleware> $middlewares */
     public function __construct(
         private readonly MetadataFactory $metadataFactory = new AttributeMetadataFactory(),
@@ -50,12 +54,52 @@ final class StackHydrator implements Hydrator
         foreach ($middlewares as $middleware) {
             if ($middleware instanceof SkippableMiddleware) {
                 $hasSkippableMiddlewares = true;
-
-                break;
             }
+
+            if (!$middleware instanceof HydratorAwareMiddleware) {
+                continue;
+            }
+
+            $middleware->setHydrator($this);
         }
 
         $this->hasSkippableMiddlewares = $hasSkippableMiddlewares;
+        $this->rootHydrator = $this;
+    }
+
+    /**
+     * Sets the hydrator which wraps this one, so nested objects also go through its decorators.
+     *
+     * @internal
+     */
+    public function setRootHydrator(Hydrator $hydrator): void
+    {
+        $this->rootHydrator = $hydrator;
+
+        foreach ($this->classMetadata as $metadata) {
+            $this->injectHydrator($metadata);
+        }
+    }
+
+    /**
+     * The outermost hydrator, which wraps this one with all decorators. This one, if no decorator is registered.
+     *
+     * @internal
+     */
+    public function rootHydrator(): Hydrator
+    {
+        return $this->rootHydrator;
+    }
+
+    /** @return list<Middleware> */
+    public function middlewares(): array
+    {
+        return $this->middlewares;
+    }
+
+    public function defaultLazy(): bool
+    {
+        return $this->defaultLazy;
     }
 
     /**
@@ -69,7 +113,8 @@ final class StackHydrator implements Hydrator
     public function hydrate(string $class, mixed $data, array $context = []): object
     {
         try {
-            $metadata = $this->metadata($class);
+            /** @var ClassMetadata<T> $metadata */
+            $metadata = $this->classMetadata[$class] ?? $this->metadata($class);
         } catch (ClassNotFound $e) {
             throw new ClassNotSupported($class, $e);
         }
@@ -89,24 +134,24 @@ final class StackHydrator implements Hydrator
         }
 
         if (PHP_VERSION_ID < 80400) {
-            $stack = new Stack($this->middlewaresFor($metadata, Skip::Hydrate));
+            $middlewares = $this->middlewaresFor($metadata, Skip::Hydrate);
 
-            return $stack->next()->hydrate($metadata, $data, $context, $stack);
+            return $middlewares[0]->hydrate($metadata, $data, $context, new Stack($middlewares, 1));
         }
 
         $lazy = $metadata->lazy ?? $this->defaultLazy;
 
         if (!$lazy) {
-            $stack = new Stack($this->middlewaresFor($metadata, Skip::Hydrate));
+            $middlewares = $this->middlewaresFor($metadata, Skip::Hydrate);
 
-            return $stack->next()->hydrate($metadata, $data, $context, $stack);
+            return $middlewares[0]->hydrate($metadata, $data, $context, new Stack($middlewares, 1));
         }
 
         return (new ReflectionClass($class))->newLazyProxy(
             function () use ($metadata, $data, $context): object {
-                $stack = new Stack($this->middlewaresFor($metadata, Skip::Hydrate));
+                $middlewares = $this->middlewaresFor($metadata, Skip::Hydrate);
 
-                return $stack->next()->hydrate($metadata, $data, $context, $stack);
+                return $middlewares[0]->hydrate($metadata, $data, $context, new Stack($middlewares, 1));
             },
         );
     }
@@ -118,15 +163,15 @@ final class StackHydrator implements Hydrator
      */
     public function extract(object $object, array $context = []): mixed
     {
-        $metadata = $this->metadata($object::class);
+        $metadata = $this->classMetadata[$object::class] ?? $this->metadata($object::class);
 
         if ($metadata->normalizer) {
             return $metadata->normalizer->normalize($object, $context);
         }
 
-        $stack = new Stack($this->middlewaresFor($metadata, Skip::Extract));
+        $middlewares = $this->middlewaresFor($metadata, Skip::Extract);
 
-        return $stack->next()->extract($metadata, $object, $context, $stack);
+        return $middlewares[0]->extract($metadata, $object, $context, new Stack($middlewares, 1));
     }
 
     /**
@@ -191,14 +236,19 @@ final class StackHydrator implements Hydrator
 
         $this->classMetadata[$class] = $metadata = $this->metadataFactory->metadata($class);
 
+        $this->injectHydrator($metadata);
+
+        return $metadata;
+    }
+
+    private function injectHydrator(ClassMetadata $metadata): void
+    {
         foreach ($metadata->properties as $property) {
             if (!($property->normalizer instanceof HydratorAwareNormalizer)) {
                 continue;
             }
 
-            $property->normalizer->setHydrator($this);
+            $property->normalizer->setHydrator($this->rootHydrator);
         }
-
-        return $metadata;
     }
 }

@@ -18,8 +18,15 @@ use Patchlevel\Hydrator\StackHydratorBuilder;
 
 $hydrator = (new StackHydratorBuilder())
     ->useExtension(new CoreExtension())
-    ->build();
+    ->buildHydrator();
 ```
+:::note
+`buildHydrator()` returns a `Hydrator`. Extensions can wrap the
+`StackHydrator` in [decorators](extensions.md#decorators), so type hint
+against the `Hydrator` interface. The older `build()` is deprecated, it only
+works as long as no decorator is registered.
+:::
+
 If you don't need any extensions, you can also instantiate the `StackHydrator`
 directly, it defaults to the same middleware and guesser:
 
@@ -183,3 +190,4 @@ value does not fit the property type.
 * [How normalizers convert complex types](normalizer.md)
 * [How to hydrate objects lazily](lazy.md)
 * [How to hook into the hydration process](extensions.md)
+* [How to speed up hydration with generated code](generated-code.md)

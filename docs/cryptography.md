@@ -27,7 +27,7 @@ $cipherKeyStore = new InMemoryCipherKeyStore();
 $hydrator = (new StackHydratorBuilder())
     ->useExtension(new CoreExtension())
     ->useExtension(new CryptographyExtension(BaseCryptographer::createWithOpenssl($cipherKeyStore)))
-    ->build();
+    ->buildHydrator();
 ```
 ## DataSubjectId
 
