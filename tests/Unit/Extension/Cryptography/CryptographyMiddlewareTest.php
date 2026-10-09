@@ -8,7 +8,6 @@ use Patchlevel\Hydrator\Extension\Cryptography\Cipher\DecryptionFailed;
 use Patchlevel\Hydrator\Extension\Cryptography\Cryptographer;
 use Patchlevel\Hydrator\Extension\Cryptography\CryptographyMetadataEnricher;
 use Patchlevel\Hydrator\Extension\Cryptography\CryptographyMiddleware;
-use Patchlevel\Hydrator\Extension\Cryptography\LegacyCryptographyDecryptMiddleware;
 use Patchlevel\Hydrator\Extension\Cryptography\MissingSubjectIdForField;
 use Patchlevel\Hydrator\Extension\Cryptography\Store\CipherKeyNotExists;
 use Patchlevel\Hydrator\Extension\Cryptography\SubjectIds;
@@ -157,41 +156,6 @@ final class CryptographyMiddlewareTest extends TestCase
             $metadata,
             $data,
             [],
-            $stack,
-        );
-
-        self::assertSame($expected, $result);
-    }
-
-    public function testSkipDecryptBecauseLegacyMiddleware(): void
-    {
-        $cryptographer = $this->createMock(Cryptographer::class);
-        $cryptographer->expects($this->never())->method('decrypt');
-
-        $data = ['profileId' => 'foo', 'email' => 'info@patchlevel.de'];
-
-        $expected = new ProfileCreated(
-            ProfileId::fromString('foo'),
-            Email::fromString('info@patchlevel.de'),
-        );
-
-        $metadata = $this->metadata(ProfileCreated::class);
-
-        $otherMiddleware = $this->createMock(Middleware::class);
-        $stack = new Stack([$otherMiddleware]);
-
-        $otherMiddleware
-            ->expects($this->once())
-            ->method('hydrate')
-            ->with($metadata, $data, [SubjectIds::class => new SubjectIds()], $stack)
-            ->willReturn($expected);
-
-        $middleware = new CryptographyMiddleware($cryptographer);
-
-        $result = $middleware->hydrate(
-            $metadata,
-            $data,
-            [LegacyCryptographyDecryptMiddleware::class => true],
             $stack,
         );
 

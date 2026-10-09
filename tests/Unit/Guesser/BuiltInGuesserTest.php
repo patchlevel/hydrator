@@ -17,9 +17,11 @@ use Patchlevel\Hydrator\Normalizer\EnumNormalizer;
 use Patchlevel\Hydrator\Normalizer\ObjectNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\TypeInfo\Type;
 
+#[CoversClass(BuiltInGuesser::class)]
 final class BuiltInGuesserTest extends TestCase
 {
     public function testNoMatch(): void

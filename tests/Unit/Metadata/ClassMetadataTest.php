@@ -6,9 +6,13 @@ namespace Patchlevel\Hydrator\Tests\Unit\Metadata;
 
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
+use Patchlevel\Hydrator\Metadata\PropertyMetadata;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
+use ReflectionProperty;
+use Symfony\Component\TypeInfo\Type;
 
 use function serialize;
 use function unserialize;
@@ -16,6 +20,33 @@ use function unserialize;
 #[CoversClass(ClassMetadata::class)]
 final class ClassMetadataTest extends TestCase
 {
+    public function testPropertiesHashmap(): void
+    {
+        $object = new class {
+            public string $foo;
+            public string $bar;
+        };
+
+        $reflection = new ReflectionClass($object);
+        $fooReflection = new ReflectionProperty($object, 'foo');
+        $barReflection = new ReflectionProperty($object, 'bar');
+
+        $fooMetadata = new PropertyMetadata($fooReflection, Type::string(), 'foo_field');
+        $barMetadata = new PropertyMetadata($barReflection, Type::string(), 'bar_field');
+
+        $classMetadata = new ClassMetadata(
+            $reflection,
+            null,
+            [$fooMetadata, $barMetadata],
+        );
+
+        self::assertCount(2, $classMetadata->properties);
+        self::assertArrayHasKey('foo', $classMetadata->properties);
+        self::assertArrayHasKey('bar', $classMetadata->properties);
+        self::assertSame($fooMetadata, $classMetadata->properties['foo']);
+        self::assertSame($barMetadata, $classMetadata->properties['bar']);
+    }
+
     public function testSerialize(): void
     {
         $classMetadata = (new AttributeMetadataFactory())->metadata(ProfileCreated::class);

@@ -4,26 +4,26 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Unit\Normalizer;
 
-use Attribute;
 use DateTime;
 use DateTimeImmutable;
 use Patchlevel\Hydrator\Normalizer\DateTimeImmutableNormalizer;
 use Patchlevel\Hydrator\Normalizer\InvalidArgument;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-#[Attribute(Attribute::TARGET_PROPERTY)]
+#[CoversClass(DateTimeImmutableNormalizer::class)]
 final class DateTimeImmutableNormalizerTest extends TestCase
 {
     public function testNormalizeWithNull(): void
     {
         $normalizer = new DateTimeImmutableNormalizer();
-        $this->assertEquals(null, $normalizer->normalize(null));
+        $this->assertEquals(null, $normalizer->normalize(null, []));
     }
 
     public function testDenormalizeWithNull(): void
     {
         $normalizer = new DateTimeImmutableNormalizer();
-        $this->assertEquals(null, $normalizer->denormalize(null));
+        $this->assertEquals(null, $normalizer->denormalize(null, []));
     }
 
     public function testNormalizeWithInvalidArgument(): void
@@ -32,7 +32,7 @@ final class DateTimeImmutableNormalizerTest extends TestCase
         $this->expectExceptionCode(0);
 
         $normalizer = new DateTimeImmutableNormalizer();
-        $normalizer->normalize(123);
+        $normalizer->normalize(123, []);
     }
 
     public function testDenormalizeWithInvalidArgument(): void
@@ -41,30 +41,30 @@ final class DateTimeImmutableNormalizerTest extends TestCase
         $this->expectExceptionCode(0);
 
         $normalizer = new DateTimeImmutableNormalizer();
-        $normalizer->denormalize(123);
+        $normalizer->denormalize(123, []);
     }
 
     public function testNormalizeWithValue(): void
     {
         $normalizer = new DateTimeImmutableNormalizer();
-        $this->assertEquals('2015-02-13T22:34:32+01:00', $normalizer->normalize(new DateTimeImmutable('2015-02-13 22:34:32+01:00')));
+        $this->assertEquals('2015-02-13T22:34:32+01:00', $normalizer->normalize(new DateTimeImmutable('2015-02-13 22:34:32+01:00'), []));
     }
 
     public function testNormalizeWithChangeFormat(): void
     {
         $normalizer = new DateTimeImmutableNormalizer(format: DateTime::RFC822);
-        $this->assertEquals('Fri, 13 Feb 15 22:34:32 +0100', $normalizer->normalize(new DateTimeImmutable('2015-02-13 22:34:32+01:00')));
+        $this->assertEquals('Fri, 13 Feb 15 22:34:32 +0100', $normalizer->normalize(new DateTimeImmutable('2015-02-13 22:34:32+01:00'), []));
     }
 
     public function testDenormalizeWithValue(): void
     {
         $normalizer = new DateTimeImmutableNormalizer();
-        $this->assertEquals(new DateTimeImmutable('2015-02-13 22:34:32+01:00'), $normalizer->denormalize('2015-02-13T22:34:32+01:00'));
+        $this->assertEquals(new DateTimeImmutable('2015-02-13 22:34:32+01:00'), $normalizer->denormalize('2015-02-13T22:34:32+01:00', []));
     }
 
     public function testDenormalizeWithChangeFormat(): void
     {
         $normalizer = new DateTimeImmutableNormalizer(format: DateTime::RFC822);
-        $this->assertEquals(new DateTimeImmutable('2015-02-13 22:34:32+01:00'), $normalizer->denormalize('Fri, 13 Feb 15 22:34:32 +0100'));
+        $this->assertEquals(new DateTimeImmutable('2015-02-13 22:34:32+01:00'), $normalizer->denormalize('Fri, 13 Feb 15 22:34:32 +0100', []));
     }
 }

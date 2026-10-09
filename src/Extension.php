@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator;
 
-/** @experimental */
 interface Extension
 {
     /** Reshape the raw stored payload before its values are decoded. */

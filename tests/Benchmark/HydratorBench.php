@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Benchmark;
 
+use Patchlevel\Hydrator\CoreExtension;
 use Patchlevel\Hydrator\Hydrator;
-use Patchlevel\Hydrator\MetadataHydrator;
+use Patchlevel\Hydrator\StackHydratorBuilder;
 use Patchlevel\Hydrator\Tests\Benchmark\Fixture\ProfileCreated;
 use Patchlevel\Hydrator\Tests\Benchmark\Fixture\ProfileId;
 use Patchlevel\Hydrator\Tests\Benchmark\Fixture\Skill;
@@ -18,7 +19,9 @@ final class HydratorBench
 
     public function __construct()
     {
-        $this->hydrator = MetadataHydrator::create();
+        $this->hydrator = (new StackHydratorBuilder())
+            ->useExtension(new CoreExtension())
+            ->build();
     }
 
     public function setUp(): void

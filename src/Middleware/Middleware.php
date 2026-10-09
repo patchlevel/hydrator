@@ -6,7 +6,6 @@ namespace Patchlevel\Hydrator\Middleware;
 
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 
-/** @experimental */
 interface Middleware
 {
     /**

@@ -54,6 +54,7 @@ final class OpensslCipherTest extends TestCase
         $this->expectException(DecryptionFailed::class);
 
         $cipher = new OpensslCipher();
+
         $encryptedData = new EncryptedData('invalid-data', 'aes-128-cbc', 'invalid-nonce', null);
         $cipher->decrypt($this->createKey(), $encryptedData);
     }

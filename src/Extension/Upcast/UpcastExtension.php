@@ -7,7 +7,6 @@ namespace Patchlevel\Hydrator\Extension\Upcast;
 use Patchlevel\Hydrator\Extension;
 use Patchlevel\Hydrator\StackHydratorBuilder;
 
-/** @experimental */
 final readonly class UpcastExtension implements Extension
 {
     /**

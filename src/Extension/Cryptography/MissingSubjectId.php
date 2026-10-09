@@ -9,7 +9,6 @@ use RuntimeException;
 
 use function sprintf;
 
-/** @experimental */
 final class MissingSubjectId extends RuntimeException implements HydratorException
 {
     public function __construct(string $name)

@@ -8,9 +8,11 @@ use DateTimeImmutable;
 use Patchlevel\Hydrator\Guesser\ChainGuesser;
 use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\Normalizer\DateTimeImmutableNormalizer;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\TypeInfo\Type;
 
+#[CoversClass(ChainGuesser::class)]
 final class ChainGuesserTest extends TestCase
 {
     public function testGuessReturnsFirstNonNullResult(): void

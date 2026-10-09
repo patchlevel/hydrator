@@ -12,7 +12,6 @@ use function count;
 use function implode;
 use function sprintf;
 
-/** @experimental */
 final class NoMoreMiddleware extends RuntimeException implements HydratorException
 {
     /** @param non-empty-list<Middleware> $middlewares */

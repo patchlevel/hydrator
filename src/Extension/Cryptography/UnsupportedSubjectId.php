@@ -10,7 +10,6 @@ use RuntimeException;
 use function get_debug_type;
 use function sprintf;
 
-/** @experimental */
 final class UnsupportedSubjectId extends RuntimeException implements HydratorException
 {
     public function __construct(string $class, string $fieldName, mixed $subjectId)

@@ -9,7 +9,6 @@ use RuntimeException;
 
 use function sprintf;
 
-/** @experimental */
 final class CipherKeyNotExists extends RuntimeException implements HydratorException
 {
     private function __construct(string $message)

@@ -10,7 +10,6 @@ use Throwable;
 
 use function sprintf;
 
-/** @experimental */
 final class DecryptionFailed extends RuntimeException implements HydratorException
 {
     private function __construct(string $message, Throwable|null $previous = null)

@@ -6,12 +6,12 @@ namespace Patchlevel\Hydrator\Tests\Unit\Fixture;
 
 use Attribute;
 use Patchlevel\Hydrator\Normalizer\InvalidArgument;
-use Patchlevel\Hydrator\Normalizer\NormalizerWithContext;
+use Patchlevel\Hydrator\Normalizer\Normalizer;
 
 use function is_string;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
-final class ContextAwareNormalizer implements NormalizerWithContext
+final class ContextAwareNormalizer implements Normalizer
 {
     /** @param array<string, mixed> $context */
     public function normalize(mixed $value, array $context = []): mixed

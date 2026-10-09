@@ -6,7 +6,6 @@ namespace Patchlevel\Hydrator\Normalizer;
 
 use Attribute;
 use Patchlevel\Hydrator\Hydrator;
-use Patchlevel\Hydrator\HydratorWithContext;
 
 use function array_flip;
 use function array_key_exists;
@@ -18,7 +17,7 @@ use function is_string;
 use function sprintf;
 
 #[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_CLASS)]
-final class ObjectMapNormalizer implements NormalizerWithContext, HydratorAwareNormalizer
+final class ObjectMapNormalizer implements Normalizer, HydratorAwareNormalizer
 {
     private Hydrator|null $hydrator = null;
 
@@ -38,8 +37,12 @@ final class ObjectMapNormalizer implements NormalizerWithContext, HydratorAwareN
         $this->hydrator = $hydrator;
     }
 
-    /** @param array<string, mixed> $context */
-    public function normalize(mixed $value, array $context = []): mixed
+    /**
+     * @param array<string, mixed> $context
+     *
+     * @throws InvalidArgument
+     */
+    public function normalize(mixed $value, array $context): mixed
     {
         if (!$this->hydrator) {
             throw new MissingHydrator();
@@ -63,10 +66,10 @@ final class ObjectMapNormalizer implements NormalizerWithContext, HydratorAwareN
             );
         }
 
-        if ($this->hydrator instanceof HydratorWithContext) {
-            $data = $this->hydrator->extract($value, $context);
-        } else {
-            $data = $this->hydrator->extract($value);
+        $data = $this->hydrator->extract($value, $context);
+
+        if (!is_array($data)) {
+            throw InvalidArgument::withWrongType('array<string, mixed>', $data);
         }
 
         $data[$this->typeFieldName] = $this->classToTypeMap[$value::class];
@@ -74,8 +77,12 @@ final class ObjectMapNormalizer implements NormalizerWithContext, HydratorAwareN
         return $data;
     }
 
-    /** @param array<string, mixed> $context */
-    public function denormalize(mixed $value, array $context = []): mixed
+    /**
+     * @param array<string, mixed> $context
+     *
+     * @throws InvalidArgument
+     */
+    public function denormalize(mixed $value, array $context): mixed
     {
         if (!$this->hydrator) {
             throw new MissingHydrator();
@@ -106,11 +113,7 @@ final class ObjectMapNormalizer implements NormalizerWithContext, HydratorAwareN
         $className = $this->typeToClassMap[$type];
         unset($value[$this->typeFieldName]);
 
-        if ($this->hydrator instanceof HydratorWithContext) {
-            return $this->hydrator->hydrate($className, $value, $context);
-        }
-
-        return $this->hydrator->hydrate($className, $value);
+        return $this->hydrator->hydrate($className, $value, $context);
     }
 
     /**

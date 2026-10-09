@@ -8,14 +8,15 @@ use Attribute;
 use Patchlevel\Hydrator\Normalizer\InvalidArgument;
 use Patchlevel\Hydrator\Normalizer\InvalidType;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
-use Patchlevel\Hydrator\Normalizer\ReflectionTypeAwareNormalizer;
-use Patchlevel\Hydrator\Normalizer\ReflectionTypeUtil;
-use ReflectionType;
+use Patchlevel\Hydrator\Normalizer\TypeAwareNormalizer;
+use Symfony\Component\TypeInfo\Type;
+use Symfony\Component\TypeInfo\Type\NullableType;
+use Symfony\Component\TypeInfo\Type\ObjectType;
 
 use function is_string;
 
 #[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_CLASS)]
-final class IdNormalizer implements Normalizer, ReflectionTypeAwareNormalizer
+final class IdNormalizer implements Normalizer, TypeAwareNormalizer
 {
     public function __construct(
         /** @var class-string<Id>|null */
@@ -23,7 +24,8 @@ final class IdNormalizer implements Normalizer, ReflectionTypeAwareNormalizer
     ) {
     }
 
-    public function normalize(mixed $value): string|null
+    /** @param array<string, mixed> $context */
+    public function normalize(mixed $value, array $context): string|null
     {
         if ($value === null) {
             return null;
@@ -38,7 +40,8 @@ final class IdNormalizer implements Normalizer, ReflectionTypeAwareNormalizer
         return $value->toString();
     }
 
-    public function denormalize(mixed $value): Id|null
+    /** @param array<string, mixed> $context */
+    public function denormalize(mixed $value, array $context): Id|null
     {
         if ($value === null) {
             return null;
@@ -53,16 +56,24 @@ final class IdNormalizer implements Normalizer, ReflectionTypeAwareNormalizer
         return $class::fromString($value);
     }
 
-    public function handleReflectionType(ReflectionType|null $reflectionType): void
+    public function handleType(Type|null $type): void
     {
-        if ($this->idClass !== null || $reflectionType === null) {
+        if ($this->idClass !== null || $type === null) {
             return;
         }
 
-        $this->idClass = ReflectionTypeUtil::classStringInstanceOf(
-            $reflectionType,
-            Id::class,
-        );
+        if ($type instanceof NullableType) {
+            $type = $type->getWrappedType();
+        }
+
+        if (!$type instanceof ObjectType) {
+            throw InvalidType::unsupportedType(
+                new ObjectType(Id::class),
+                $type,
+            );
+        }
+
+        $this->idClass = $type->getClassName();
     }
 
     /** @return class-string<Id> */
