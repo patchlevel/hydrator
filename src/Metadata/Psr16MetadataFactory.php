@@ -23,16 +23,15 @@ final readonly class Psr16MetadataFactory implements MetadataFactory
      */
     public function metadata(string $class): ClassMetadata
     {
-        /** @var ?ClassMetadata<T> $metadata */
-        $metadata = $this->cache->get($class);
+        $metadata = $this->cache->get(CacheKey::forClass($class));
 
-        if ($metadata !== null) {
+        if ($metadata instanceof ClassMetadata && $metadata->className === $class) {
             return $metadata;
         }
 
         $metadata = $this->metadataFactory->metadata($class);
 
-        $this->cache->set($class, $metadata);
+        $this->cache->set(CacheKey::forClass($class), $metadata);
 
         return $metadata;
     }
