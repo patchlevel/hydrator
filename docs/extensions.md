@@ -162,10 +162,11 @@ transformer for a class, for example generated code.
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Transformer\ClassTransformer;
 use Patchlevel\Hydrator\Transformer\ClassTransformerFactory;
+use Patchlevel\Hydrator\Transformer\TransformerResolver;
 
 final class MoneyTransformerFactory implements ClassTransformerFactory
 {
-    public function create(ClassMetadata $metadata): ClassTransformer|null
+    public function create(ClassMetadata $metadata, TransformerResolver $resolver): ClassTransformer|null
     {
         if ($metadata->className !== Money::class) {
             return null;
@@ -183,6 +184,20 @@ cached by the hydrator. Factories also accept a priority, a factory with a
 higher priority is asked first. The `ReflectionTransformerFactory` is always
 asked last, so every class without its own transformer is transformed with
 reflection.
+
+The `TransformerResolver` gives the transformer insight into the hydrator which
+created it. With `hydrateHandler()` and `extractHandler()` it gets what the
+hydrator does for a nested class: the transformer of the class if nothing else
+has to run, otherwise a handler which calls the class normalizer, runs the
+middlewares or creates a lazy proxy. The transformer can call it directly
+instead of going through the normalizer and the hydrator again, the
+`ReflectionTransformer` does this for properties with an `ObjectNormalizer`.
+Use the handlers only for calls of `hydrator()`: a hydrator which wraps it has
+to see the nested objects.
+:::warning
+Use the resolver once the transformer is used, not inside `create()`. The
+hydrator caches the transformer only after `create()` returned.
+:::
 
 ## Writing your own extension
 

@@ -14,10 +14,10 @@ final readonly class ChainTransformerFactory implements ClassTransformerFactory
     ) {
     }
 
-    public function create(ClassMetadata $metadata): ClassTransformer|null
+    public function create(ClassMetadata $metadata, TransformerResolver $resolver): ClassTransformer|null
     {
         foreach ($this->factories as $factory) {
-            $transformer = $factory->create($metadata);
+            $transformer = $factory->create($metadata, $resolver);
 
             if ($transformer !== null) {
                 return $transformer;

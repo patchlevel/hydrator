@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator;
 
+use Patchlevel\Hydrator\Handler\ExtractHandler;
+use Patchlevel\Hydrator\Handler\HydrateHandler;
+use Patchlevel\Hydrator\Handler\LazyHandler;
+use Patchlevel\Hydrator\Handler\MiddlewareHandler;
+use Patchlevel\Hydrator\Handler\NormalizerHandler;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Metadata\ClassNotFound;
@@ -15,7 +20,7 @@ use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
 use Patchlevel\Hydrator\Transformer\ClassTransformer;
 use Patchlevel\Hydrator\Transformer\ClassTransformerFactory;
 use Patchlevel\Hydrator\Transformer\ReflectionTransformerFactory;
-use ReflectionClass;
+use Patchlevel\Hydrator\Transformer\TransformerResolver;
 
 use function array_key_exists;
 use function assert;
@@ -23,21 +28,26 @@ use function is_array;
 
 use const PHP_VERSION_ID;
 
+/**
+ * Decides once per class and direction what has to happen and keeps it as a handler: the transformer itself if
+ * nothing else has to run, otherwise a handler which calls the class normalizer, the middlewares or creates a lazy
+ * proxy. Every call is then a lookup of the handler and a call of it.
+ */
 final class StackHydrator implements Hydrator
 {
     /** @var array<class-string, ClassMetadata> */
     private array $classMetadata = [];
 
-    /** @var array<class-string, list<Middleware>> */
-    private array $hydrateMiddlewares = [];
-
-    /** @var array<class-string, list<Middleware>> */
-    private array $extractMiddlewares = [];
-
     /** @var array<class-string, ClassTransformer> */
     private array $transformers = [];
 
-    private readonly bool $hasSkippableMiddlewares;
+    /** @var array<class-string, ClassTransformer|HydrateHandler> */
+    private array $hydrateHandlers = [];
+
+    /** @var array<class-string, ClassTransformer|ExtractHandler> */
+    private array $extractHandlers = [];
+
+    private readonly TransformerResolver $resolver;
 
     /**
      * @param list<Middleware>        $middlewares        run before the data is transformed, in this order
@@ -49,17 +59,11 @@ final class StackHydrator implements Hydrator
         private readonly bool $defaultLazy = false,
         private readonly ClassTransformerFactory $transformerFactory = new ReflectionTransformerFactory(),
     ) {
-        $hasSkippableMiddlewares = false;
-
-        foreach ($middlewares as $middleware) {
-            if ($middleware instanceof SkippableMiddleware) {
-                $hasSkippableMiddlewares = true;
-
-                break;
-            }
-        }
-
-        $this->hasSkippableMiddlewares = $hasSkippableMiddlewares;
+        $this->resolver = new StackTransformerResolver(
+            $this,
+            fn (string $class): ClassTransformer|HydrateHandler => $this->hydrateHandlers[$class] ?? $this->hydrateHandler($class),
+            fn (string $class): ClassTransformer|ExtractHandler => $this->extractHandlers[$class] ?? $this->extractHandler($class),
+        );
     }
 
     /**
@@ -75,34 +79,24 @@ final class StackHydrator implements Hydrator
         $context[self::HYDRATOR] ??= $this;
 
         try {
-            $metadata = $this->metadata($class);
+            $handler = $this->hydrateHandlers[$class] ?? $this->hydrateHandler($class);
         } catch (ClassNotFound $e) {
             throw new ClassNotSupported($class, $e);
         }
 
-        if ($metadata->normalizer) {
-            $return = $metadata->normalizer->denormalize($data, $context);
-
-            if (!$return instanceof $class) {
-                throw new ObjectRequired($class, $metadata->normalizer::class);
+        if ($handler instanceof ClassTransformer) {
+            if (!is_array($data)) {
+                throw new ArrayDataRequired($class);
             }
 
-            return $return;
+            $object = $handler->hydrate($data, $context);
+        } else {
+            $object = $handler->hydrate($data, $context);
         }
 
-        if (!is_array($data)) {
-            throw new ArrayDataRequired($class);
-        }
+        assert($object instanceof $class);
 
-        $lazy = PHP_VERSION_ID >= 80400 && ($metadata->lazy ?? $this->defaultLazy);
-
-        if (!$lazy) {
-            return $this->hydrateWithMiddlewares($metadata, $data, $context);
-        }
-
-        return (new ReflectionClass($class))->newLazyProxy(
-            fn (): object => $this->hydrateWithMiddlewares($metadata, $data, $context),
-        );
+        return $object;
     }
 
     /**
@@ -114,44 +108,53 @@ final class StackHydrator implements Hydrator
     {
         $context[self::HYDRATOR] ??= $this;
 
-        $metadata = $this->metadata($object::class);
+        $handler = $this->extractHandlers[$object::class] ?? $this->extractHandler($object::class);
 
-        if ($metadata->normalizer) {
-            return $metadata->normalizer->normalize($object, $context);
-        }
-
-        $middlewares = $this->middlewaresFor($metadata, Skip::Extract);
-        $transformer = $this->transformer($metadata);
-
-        // without middlewares the transformer is called without building the stack
-        return $middlewares === []
-            ? $transformer->extract($object, $context)
-            : (new Next($middlewares, $transformer))->extract($metadata, $object, $context);
+        return $handler->extract($object, $context);
     }
 
     /**
-     * @param ClassMetadata<T>     $metadata
-     * @param array<string, mixed> $data
-     * @param array<string, mixed> $context
+     * @param class-string $class
      *
-     * @return T
-     *
-     * @template T of object
+     * @throws ClassNotFound
      */
-    private function hydrateWithMiddlewares(ClassMetadata $metadata, array $data, array $context): object
+    private function hydrateHandler(string $class): ClassTransformer|HydrateHandler
     {
-        $middlewares = $this->middlewaresFor($metadata, Skip::Hydrate);
-        $transformer = $this->transformer($metadata);
+        $metadata = $this->metadata($class);
 
-        if ($middlewares === []) {
-            // no middleware runs for this class, the transformer is called without building the stack
-            $object = $transformer->hydrate($data, $context);
-            assert($object instanceof $metadata->className);
-
-            return $object;
+        if ($metadata->normalizer !== null) {
+            return $this->hydrateHandlers[$class] = new NormalizerHandler($class, $metadata->normalizer);
         }
 
-        return (new Next($middlewares, $transformer))->hydrate($metadata, $data, $context);
+        $transformer = $this->transformer($metadata);
+        $middlewares = $this->middlewaresFor($metadata, Skip::Hydrate);
+
+        $handler = $middlewares === []
+            ? $transformer
+            : new MiddlewareHandler($metadata, new Next($middlewares, $transformer));
+
+        if (PHP_VERSION_ID >= 80400 && ($metadata->lazy ?? $this->defaultLazy)) {
+            $handler = new LazyHandler($metadata->reflection, $handler);
+        }
+
+        return $this->hydrateHandlers[$class] = $handler;
+    }
+
+    /** @param class-string $class */
+    private function extractHandler(string $class): ClassTransformer|ExtractHandler
+    {
+        $metadata = $this->metadata($class);
+
+        if ($metadata->normalizer !== null) {
+            return $this->extractHandlers[$class] = new NormalizerHandler($class, $metadata->normalizer);
+        }
+
+        $transformer = $this->transformer($metadata);
+        $middlewares = $this->middlewaresFor($metadata, Skip::Extract);
+
+        return $this->extractHandlers[$class] = $middlewares === []
+            ? $transformer
+            : new MiddlewareHandler($metadata, new Next($middlewares, $transformer));
     }
 
     /**
@@ -162,7 +165,7 @@ final class StackHydrator implements Hydrator
     private function transformer(ClassMetadata $metadata): ClassTransformer
     {
         return $this->transformers[$metadata->className]
-            ??= $this->transformerFactory->create($metadata)
+            ??= $this->transformerFactory->create($metadata, $this->resolver)
             ?? throw new ClassNotSupported($metadata->className);
     }
 
@@ -176,18 +179,6 @@ final class StackHydrator implements Hydrator
      */
     private function middlewaresFor(ClassMetadata $metadata, Skip $direction): array
     {
-        if (!$this->hasSkippableMiddlewares) {
-            return $this->middlewares;
-        }
-
-        $cached = $direction === Skip::Hydrate
-            ? $this->hydrateMiddlewares[$metadata->className] ?? null
-            : $this->extractMiddlewares[$metadata->className] ?? null;
-
-        if ($cached !== null) {
-            return $cached;
-        }
-
         $middlewares = [];
 
         foreach ($this->middlewares as $middleware) {
@@ -202,11 +193,7 @@ final class StackHydrator implements Hydrator
             $middlewares[] = $middleware;
         }
 
-        if ($direction === Skip::Hydrate) {
-            return $this->hydrateMiddlewares[$metadata->className] = $middlewares;
-        }
-
-        return $this->extractMiddlewares[$metadata->className] = $middlewares;
+        return $middlewares;
     }
 
     /**

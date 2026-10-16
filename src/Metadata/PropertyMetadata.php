@@ -33,6 +33,12 @@ final class PropertyMetadata
         $this->propertyName = $reflection->getName();
     }
 
+    /** The nested object of the property, derived from its normalizer. */
+    public function nested(): NestedObject|null
+    {
+        return $this->normalizer === null ? null : NestedObject::of($this->normalizer);
+    }
+
     public function setValue(object $object, mixed $value): void
     {
         $this->reflection->setValue($object, $value);

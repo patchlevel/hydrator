@@ -7,6 +7,7 @@ namespace Patchlevel\Hydrator\Tests\Unit\Fixture;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Transformer\ClassTransformer;
 use Patchlevel\Hydrator\Transformer\ClassTransformerFactory;
+use Patchlevel\Hydrator\Transformer\TransformerResolver;
 
 use function assert;
 use function is_string;
@@ -17,7 +18,7 @@ final class UpperCaseSkillTransformerFactory implements ClassTransformerFactory
 {
     public int $created = 0;
 
-    public function create(ClassMetadata $metadata): ClassTransformer|null
+    public function create(ClassMetadata $metadata, TransformerResolver $resolver): ClassTransformer|null
     {
         if ($metadata->className !== Skill::class) {
             return null;

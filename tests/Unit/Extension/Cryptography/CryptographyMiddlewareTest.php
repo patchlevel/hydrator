@@ -83,7 +83,7 @@ final class CryptographyMiddlewareTest extends TestCase
         $otherMiddleware
             ->expects($this->once())
             ->method('extract')
-            ->with($metadata, $object, [SubjectIds::class => new SubjectIds()], $next)
+            ->with($metadata, $object, [SubjectIds::class => new SubjectIds()], $this->isInstanceOf(Next::class))
             ->willReturn($expected);
 
         $result = $middleware->extract(
@@ -111,7 +111,7 @@ final class CryptographyMiddlewareTest extends TestCase
         $otherMiddleware
             ->expects($this->once())
             ->method('extract')
-            ->with($metadata, $object, [SubjectIds::class => new SubjectIds(['default' => 'foo'])], $next)
+            ->with($metadata, $object, [SubjectIds::class => new SubjectIds(['default' => 'foo'])], $this->isInstanceOf(Next::class))
             ->willReturn(['id' => 'foo', 'email' => 'info@patchlevel.de']);
 
         $cryptographer = $this->createMock(Cryptographer::class);
@@ -149,7 +149,7 @@ final class CryptographyMiddlewareTest extends TestCase
         $otherMiddleware
             ->expects($this->once())
             ->method('hydrate')
-            ->with($metadata, $data, [SubjectIds::class => new SubjectIds()], $next)
+            ->with($metadata, $data, [SubjectIds::class => new SubjectIds()], $this->isInstanceOf(Next::class))
             ->willReturn($expected);
 
         $middleware = new CryptographyMiddleware($cryptographer);
