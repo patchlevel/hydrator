@@ -10,19 +10,18 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Patchlevel\Hydrator\ArrayDataRequired;
 use Patchlevel\Hydrator\CircularReference;
+use Patchlevel\Hydrator\ClassExtractor;
+use Patchlevel\Hydrator\ClassHydrator;
 use Patchlevel\Hydrator\ClassNotSupported;
 use Patchlevel\Hydrator\DenormalizationFailure;
-use Patchlevel\Hydrator\Handler\ExtractHandler;
-use Patchlevel\Hydrator\Handler\HydrateHandler;
-use Patchlevel\Hydrator\Handler\LazyHandler;
-use Patchlevel\Hydrator\Handler\MiddlewareHandler;
-use Patchlevel\Hydrator\Handler\NormalizerHandler;
 use Patchlevel\Hydrator\Hydrator;
+use Patchlevel\Hydrator\LazyHydrator;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Metadata\MetadataFactory;
 use Patchlevel\Hydrator\Middleware\Middleware;
-use Patchlevel\Hydrator\Middleware\Next;
+use Patchlevel\Hydrator\Middleware\MiddlewareExtractor;
+use Patchlevel\Hydrator\Middleware\MiddlewareHydrator;
 use Patchlevel\Hydrator\Middleware\Skip;
 use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
 use Patchlevel\Hydrator\NormalizationFailure;
@@ -73,9 +72,9 @@ use ReflectionClass;
 #[CoversClass(ReflectionTransformerFactory::class)]
 #[CoversClass(ChainTransformerFactory::class)]
 #[CoversClass(StackTransformerResolver::class)]
-#[CoversClass(MiddlewareHandler::class)]
-#[CoversClass(NormalizerHandler::class)]
-#[CoversClass(LazyHandler::class)]
+#[CoversClass(MiddlewareHydrator::class)]
+#[CoversClass(MiddlewareExtractor::class)]
+#[CoversClass(LazyHydrator::class)]
 final class StackHydratorTest extends TestCase
 {
     private StackHydrator $hydrator;
@@ -220,7 +219,7 @@ final class StackHydratorTest extends TestCase
                 $object,
                 $this->callback(static fn (array $context): bool => $context['context'] === '123'
                     && $context[Hydrator::HYDRATOR] instanceof StackHydrator),
-                $this->isInstanceOf(Next::class),
+                $this->isInstanceOf(ClassExtractor::class),
             )->willReturn($expect);
 
         $hydrator = (new StackHydratorBuilder())
@@ -416,7 +415,7 @@ final class StackHydratorTest extends TestCase
                 $data,
                 $this->callback(static fn (array $context): bool => $context['context'] === '123'
                     && $context[Hydrator::HYDRATOR] instanceof StackHydrator),
-                $this->isInstanceOf(Next::class),
+                $this->isInstanceOf(ClassHydrator::class),
             )->willReturn($expect);
 
         $hydrator = (new StackHydratorBuilder())
@@ -683,26 +682,32 @@ final class StackHydratorTest extends TestCase
              * @param ClassMetadata<T>     $metadata
              * @param array<string, mixed> $data
              * @param array<string, mixed> $context
+             * @param ClassHydrator<T>     $next
              *
              * @return T
              *
              * @template T of object
              */
-            public function hydrate(ClassMetadata $metadata, array $data, array $context, Next $next): object
+            public function hydrate(ClassMetadata $metadata, array $data, array $context, ClassHydrator $next): object
             {
                 $this->contexts[] = $context;
 
-                return $next->hydrate($metadata, $data, $context);
+                return $next->hydrate($data, $context);
             }
 
             /**
+             * @param ClassMetadata<T>     $metadata
+             * @param T                    $object
              * @param array<string, mixed> $context
+             * @param ClassExtractor<T>    $next
              *
              * @return array<string, mixed>
+             *
+             * @template T of object
              */
-            public function extract(ClassMetadata $metadata, object $object, array $context, Next $next): array
+            public function extract(ClassMetadata $metadata, object $object, array $context, ClassExtractor $next): array
             {
-                return $next->extract($metadata, $object, $context);
+                return $next->extract($object, $context);
             }
         };
 
@@ -921,28 +926,30 @@ final class StackHydratorTest extends TestCase
              * @param ClassMetadata<T>     $metadata
              * @param array<string, mixed> $data
              * @param array<string, mixed> $context
+             * @param ClassHydrator<T>     $next
              *
              * @return T
              *
              * @template T of object
              */
-            public function hydrate(ClassMetadata $metadata, array $data, array $context, Next $next): object
+            public function hydrate(ClassMetadata $metadata, array $data, array $context, ClassHydrator $next): object
             {
-                return $next->hydrate($metadata, $data, $context);
+                return $next->hydrate($data, $context);
             }
 
             /**
              * @param ClassMetadata<T>     $metadata
              * @param T                    $object
              * @param array<string, mixed> $context
+             * @param ClassExtractor<T>    $next
              *
              * @return array<string, mixed>
              *
              * @template T of object
              */
-            public function extract(ClassMetadata $metadata, object $object, array $context, Next $next): array
+            public function extract(ClassMetadata $metadata, object $object, array $context, ClassExtractor $next): array
             {
-                return $next->extract($metadata, $object, $context);
+                return $next->extract($object, $context);
             }
 
             public function skip(ClassMetadata $metadata): Skip
@@ -963,21 +970,21 @@ final class StackHydratorTest extends TestCase
         self::assertSame($hydrator, $resolver->hydrator());
         self::assertSame($hydrator->metadata(ProfileCreated::class), $resolver->metadata(ProfileCreated::class));
 
-        // no middleware runs for the class, the transformer is the handler
-        self::assertInstanceOf(ReflectionTransformer::class, $resolver->hydrateHandler(ProfileCreated::class));
-        self::assertSame($resolver->hydrateHandler(ProfileCreated::class), $resolver->extractHandler(ProfileCreated::class));
+        // no middleware runs for the class, the transformer is the whole chain
+        self::assertInstanceOf(ReflectionTransformer::class, $resolver->classHydrator(ProfileCreated::class));
+        self::assertSame($resolver->classHydrator(ProfileCreated::class), $resolver->classExtractor(ProfileCreated::class));
 
         // the middleware only runs while hydrating
-        self::assertInstanceOf(MiddlewareHandler::class, $resolver->hydrateHandler(Skill::class));
-        self::assertInstanceOf(ReflectionTransformer::class, $resolver->extractHandler(Skill::class));
-        self::assertEquals(new Skill('php'), $resolver->hydrateHandler(Skill::class)->hydrate(['name' => 'php'], []));
-        self::assertSame(['name' => 'php'], $resolver->extractHandler(Skill::class)->extract(new Skill('php'), []));
+        $hydrator = $resolver->classHydrator(Skill::class);
+        $extractor = $resolver->classExtractor(Skill::class);
+        self::assertInstanceOf(MiddlewareHydrator::class, $hydrator);
+        self::assertInstanceOf(ReflectionTransformer::class, $extractor);
+        self::assertEquals(new Skill('php'), $hydrator->hydrate(['name' => 'php'], []));
+        self::assertSame(['name' => 'php'], $extractor->extract(new Skill('php'), []));
 
-        // the class normalizer is called instead of a transformer
-        self::assertInstanceOf(NormalizerHandler::class, $resolver->hydrateHandler(ProfileId::class));
-        self::assertInstanceOf(NormalizerHandler::class, $resolver->extractHandler(ProfileId::class));
-        self::assertEquals(ProfileId::fromString('1'), $resolver->hydrateHandler(ProfileId::class)->hydrate('1', []));
-        self::assertSame('1', $resolver->extractHandler(ProfileId::class)->extract(ProfileId::fromString('1'), []));
+        // the class normalizer is called instead of a chain
+        self::assertNull($resolver->classHydrator(ProfileId::class));
+        self::assertNull($resolver->classExtractor(ProfileId::class));
     }
 
     #[RequiresPhp('>=8.4')]
@@ -1003,16 +1010,16 @@ final class StackHydratorTest extends TestCase
         self::assertInstanceOf(TransformerResolver::class, $resolver);
 
         // lazy objects are only created while hydrating
-        $handler = $resolver->hydrateHandler(LazyProfileCreated::class);
-        self::assertInstanceOf(LazyHandler::class, $handler);
-        self::assertInstanceOf(ReflectionTransformer::class, $resolver->extractHandler(LazyProfileCreated::class));
+        $hydrator = $resolver->classHydrator(LazyProfileCreated::class);
+        self::assertInstanceOf(LazyHydrator::class, $hydrator);
+        self::assertInstanceOf(ReflectionTransformer::class, $resolver->classExtractor(LazyProfileCreated::class));
 
-        $object = $handler->hydrate(['profileId' => '1', 'email' => 'info@patchlevel.de'], []);
+        $object = $hydrator->hydrate(['profileId' => '1', 'email' => 'info@patchlevel.de'], []);
         self::assertInstanceOf(LazyProfileCreated::class, $object);
         self::assertTrue((new ReflectionClass(LazyProfileCreated::class))->isUninitializedLazyObject($object));
     }
 
-    public function testHandlerIsDecidedOncePerClass(): void
+    public function testChainIsBuiltOncePerClass(): void
     {
         $factory = new class implements ClassTransformerFactory {
             public TransformerResolver|null $resolver = null;
@@ -1034,12 +1041,12 @@ final class StackHydratorTest extends TestCase
         $resolver = $factory->resolver;
         self::assertInstanceOf(TransformerResolver::class, $resolver);
 
-        $hydrateHandler = $resolver->hydrateHandler(Skill::class);
-        $extractHandler = $resolver->extractHandler(Skill::class);
-        self::assertInstanceOf(HydrateHandler::class, $hydrateHandler);
-        self::assertInstanceOf(ExtractHandler::class, $extractHandler);
-        self::assertSame($hydrateHandler, $resolver->hydrateHandler(Skill::class));
-        self::assertSame($extractHandler, $resolver->extractHandler(Skill::class));
+        $hydrator = $resolver->classHydrator(Skill::class);
+        $extractor = $resolver->classExtractor(Skill::class);
+        self::assertInstanceOf(MiddlewareHydrator::class, $hydrator);
+        self::assertInstanceOf(MiddlewareExtractor::class, $extractor);
+        self::assertSame($hydrator, $resolver->classHydrator(Skill::class));
+        self::assertSame($extractor, $resolver->classExtractor(Skill::class));
     }
 
     public function testMiddlewaresAreDecidedOncePerClassAndDirection(): void
@@ -1049,8 +1056,9 @@ final class StackHydratorTest extends TestCase
         $skipped = new RecordingMiddleware('skipped', Skip::Both, $calls);
         $always = new RecordingMiddleware('always', Skip::None, $calls);
         $hydrateOnly = new RecordingMiddleware('hydrate only', Skip::Extract, $calls);
+        $extractOnly = new RecordingMiddleware('extract only', Skip::Hydrate, $calls);
 
-        $hydrator = new StackHydrator(middlewares: [$skipped, $always, $hydrateOnly]);
+        $hydrator = new StackHydrator(middlewares: [$skipped, $always, $hydrateOnly, $extractOnly]);
 
         $skill = $hydrator->hydrate(Skill::class, ['name' => 'php']);
         $hydrator->hydrate(Skill::class, ['name' => 'php']);
@@ -1058,7 +1066,16 @@ final class StackHydratorTest extends TestCase
         $hydrator->extract($skill);
 
         self::assertSame(
-            ['hydrate always', 'hydrate hydrate only', 'hydrate always', 'hydrate hydrate only', 'extract always', 'extract always'],
+            [
+                'hydrate always',
+                'hydrate hydrate only',
+                'hydrate always',
+                'hydrate hydrate only',
+                'extract always',
+                'extract extract only',
+                'extract always',
+                'extract extract only',
+            ],
             $calls->getArrayCopy(),
         );
 
@@ -1066,6 +1083,7 @@ final class StackHydratorTest extends TestCase
         self::assertSame(2, $skipped->skipCalls);
         self::assertSame(2, $always->skipCalls);
         self::assertSame(2, $hydrateOnly->skipCalls);
+        self::assertSame(2, $extractOnly->skipCalls);
     }
 
     public function testTransformerFactory(): void

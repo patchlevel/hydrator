@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Transformer;
 
-use Patchlevel\Hydrator\Handler\ExtractHandler;
-use Patchlevel\Hydrator\Handler\HydrateHandler;
+use Patchlevel\Hydrator\ClassExtractor;
+use Patchlevel\Hydrator\ClassHydrator;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Metadata\ClassNotFound;
 
 /**
  * Gives a transformer insight into the hydrator which created it. A transformer can use it to map nested objects
- * with the handlers of their classes, without the detour through the normalizer and the hydrator.
+ * with the chains the hydrator built for their classes, without the detour through the normalizer and the hydrator.
  *
  * Only use it once the transformer is used, not inside {@see ClassTransformerFactory::create()}: the hydrator has
  * not cached the transformer which is created at that moment.
@@ -34,26 +34,28 @@ interface TransformerResolver
     public function metadata(string $class): ClassMetadata;
 
     /**
-     * What the hydrator does to hydrate an object of the class. Calling it behaves exactly like calling the hydrator,
-     * as long as the call came from {@see self::hydrator()}, without the detour through the normalizer and the
-     * hydrator itself.
+     * The chain the hydrator runs to hydrate an object of the class from an array. Calling it behaves exactly like
+     * calling the hydrator, as long as the call came from {@see self::hydrator()}. If nothing else runs for the class,
+     * it is the transformer of the class.
      *
      * @param class-string $class
      *
-     * @return ClassTransformer|HydrateHandler the transformer, if nothing else has to run for the class
+     * @return ClassHydrator<object>|null null if the class has a class normalizer, the hydrator calls the normalizer
+     *                                    instead
      *
      * @throws ClassNotFound
      */
-    public function hydrateHandler(string $class): ClassTransformer|HydrateHandler;
+    public function classHydrator(string $class): ClassHydrator|null;
 
     /**
-     * What the hydrator does to extract an object of exactly this class, see {@see self::hydrateHandler()}.
+     * The chain the hydrator runs to extract an object of exactly this class, see {@see self::classHydrator()}.
      *
      * @param class-string $class
      *
-     * @return ClassTransformer|ExtractHandler the transformer, if nothing else has to run for the class
+     * @return ClassExtractor<object>|null null if the class has a class normalizer, the hydrator calls the normalizer
+     *                                     instead
      *
      * @throws ClassNotFound
      */
-    public function extractHandler(string $class): ClassTransformer|ExtractHandler;
+    public function classExtractor(string $class): ClassExtractor|null;
 }

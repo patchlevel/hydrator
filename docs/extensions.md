@@ -35,25 +35,27 @@ The library ships with three extensions out of the box:
 
 A middleware wraps the hydration and extraction process, similar to HTTP
 middlewares. It can modify the incoming data, the outgoing array or the object
-itself, and passes the call on to the rest of the stack with `$next`. After the last
-middleware the [transformer](#transformer-factories) does the actual property
-mapping.
+itself, and passes the call on with `$next`. `$next` is the rest of the chain
+the hydrator built for the class: the following middlewares and at the end the
+[transformer](#transformer-factories), which does the actual property mapping.
+While hydrating it is a `ClassHydrator`, while extracting a `ClassExtractor`.
 
 ```php
+use Patchlevel\Hydrator\ClassExtractor;
+use Patchlevel\Hydrator\ClassHydrator;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Middleware\Middleware;
-use Patchlevel\Hydrator\Middleware\Next;
 
 final class RemoveNullValuesMiddleware implements Middleware
 {
-    public function hydrate(ClassMetadata $metadata, array $data, array $context, Next $next): object
+    public function hydrate(ClassMetadata $metadata, array $data, array $context, ClassHydrator $next): object
     {
-        return $next->hydrate($metadata, $data, $context);
+        return $next->hydrate($data, $context);
     }
 
-    public function extract(ClassMetadata $metadata, object $object, array $context, Next $next): array
+    public function extract(ClassMetadata $metadata, object $object, array $context, ClassExtractor $next): array
     {
-        $data = $next->extract($metadata, $object, $context);
+        $data = $next->extract($object, $context);
 
         return array_filter($data, static fn (mixed $value) => $value !== null);
     }
@@ -78,21 +80,22 @@ The `skip` method returns a `Skip` case: `Skip::None` to always run,
 `Skip::Both` to be left out completely.
 
 ```php
+use Patchlevel\Hydrator\ClassExtractor;
+use Patchlevel\Hydrator\ClassHydrator;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
-use Patchlevel\Hydrator\Middleware\Next;
 use Patchlevel\Hydrator\Middleware\Skip;
 use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
 
 final class RemoveNullValuesMiddleware implements SkippableMiddleware
 {
-    public function hydrate(ClassMetadata $metadata, array $data, array $context, Next $next): object
+    public function hydrate(ClassMetadata $metadata, array $data, array $context, ClassHydrator $next): object
     {
-        return $next->hydrate($metadata, $data, $context);
+        return $next->hydrate($data, $context);
     }
 
-    public function extract(ClassMetadata $metadata, object $object, array $context, Next $next): array
+    public function extract(ClassMetadata $metadata, object $object, array $context, ClassExtractor $next): array
     {
-        $data = $next->extract($metadata, $object, $context);
+        $data = $next->extract($object, $context);
 
         return array_filter($data, static fn (mixed $value) => $value !== null);
     }
@@ -113,8 +116,8 @@ upcaster is a `CallbackUpcaster` or carries an
 out while hydrating classes none of them target.
 
 :::tip
-If every middleware skips a class, the hydrator calls the transformer directly
-without building the middleware stack.
+If every middleware skips a class, the transformer is the whole chain and the
+hydrator calls it directly.
 :::
 
 ## Metadata enricher
@@ -153,7 +156,7 @@ serializable.
 
 ## Transformer factories
 
-At the end of the stack a `ClassTransformer` turns the array into the object
+At the end of the chain a `ClassTransformer` turns the array into the object
 and back. By default this is the `ReflectionTransformer`, which sets and reads
 the properties with reflection. A transformer factory can provide another
 transformer for a class, for example generated code.
@@ -186,14 +189,14 @@ asked last, so every class without its own transformer is transformed with
 reflection.
 
 The `TransformerResolver` gives the transformer insight into the hydrator which
-created it. With `hydrateHandler()` and `extractHandler()` it gets what the
-hydrator does for a nested class: the transformer of the class if nothing else
-has to run, otherwise a handler which calls the class normalizer, runs the
-middlewares or creates a lazy proxy. The transformer can call it directly
-instead of going through the normalizer and the hydrator again, the
-`ReflectionTransformer` does this for properties with an `ObjectNormalizer`.
-Use the handlers only for calls of `hydrator()`: a hydrator which wraps it has
-to see the nested objects.
+created it. With `classHydrator()` and `classExtractor()` it gets the chain the
+hydrator built for a nested class: the transformer of the class, wrapped in the
+middlewares and the lazy proxy which run for it. If nothing else runs, it is the
+transformer itself. A class with a class normalizer has no chain, then both
+return `null`. The transformer can call the chain directly instead of going
+through the normalizer and the hydrator again, the `ReflectionTransformer` does
+this for properties with an `ObjectNormalizer`. Use the chains only for calls
+of `hydrator()`: a hydrator which wraps it has to see the nested objects.
 :::warning
 Use the resolver once the transformer is used, not inside `create()`. The
 hydrator caches the transformer only after `create()` returned.

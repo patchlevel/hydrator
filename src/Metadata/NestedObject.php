@@ -13,7 +13,7 @@ use function class_exists;
 
 /**
  * A property which holds an object, or a list of objects, of another class. Transformers can map these objects with
- * the handler of the nested class directly, instead of passing them through the normalizer and the hydrator.
+ * the chain of the nested class directly, instead of passing them through the normalizer and the hydrator.
  */
 final class NestedObject
 {

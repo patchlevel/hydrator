@@ -14,6 +14,13 @@ final readonly class ChainTransformerFactory implements ClassTransformerFactory
     ) {
     }
 
+    /**
+     * @param ClassMetadata<T> $metadata
+     *
+     * @return ClassTransformer<T>|null
+     *
+     * @template T of object
+     */
     public function create(ClassMetadata $metadata, TransformerResolver $resolver): ClassTransformer|null
     {
         foreach ($this->factories as $factory) {

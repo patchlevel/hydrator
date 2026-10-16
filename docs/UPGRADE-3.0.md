@@ -186,13 +186,14 @@ final class LoggingHydrator implements Hydrator
 ```
 ## Middleware
 
-### Next instead of Stack
+### ClassHydrator and ClassExtractor instead of Stack
 
-`Patchlevel\Hydrator\Middleware\Stack` has been removed in favor of
-`Patchlevel\Hydrator\Middleware\Next`. A middleware no longer asks the stack for
-the next middleware and calls it with the stack again, it calls `$next`
-directly with the metadata, the data and the context. Change the last parameter
-of `hydrate()` and `extract()` in your middlewares to `Next $next`.
+`Patchlevel\Hydrator\Middleware\Stack` has been removed. A middleware no longer
+asks the stack for the next middleware and calls it with the stack again. It
+gets the rest of the chain the hydrator built for the class as `$next` and calls
+it with the data and the context: a `ClassHydrator` in `hydrate()` and a
+`ClassExtractor` in `extract()`. Change the last parameter of `hydrate()` and
+`extract()` in your middlewares.
 
 before:
 
@@ -217,25 +218,27 @@ final class AuditMiddleware implements Middleware
 after:
 
 ```php
+use Patchlevel\Hydrator\ClassExtractor;
+use Patchlevel\Hydrator\ClassHydrator;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Middleware\Middleware;
-use Patchlevel\Hydrator\Middleware\Next;
 
 final class AuditMiddleware implements Middleware
 {
-    public function hydrate(ClassMetadata $metadata, array $data, array $context, Next $next): object
+    public function hydrate(ClassMetadata $metadata, array $data, array $context, ClassHydrator $next): object
     {
-        return $next->hydrate($metadata, $data, $context);
+        return $next->hydrate($data, $context);
     }
 
-    public function extract(ClassMetadata $metadata, object $object, array $context, Next $next): array
+    public function extract(ClassMetadata $metadata, object $object, array $context, ClassExtractor $next): array
     {
-        return $next->extract($metadata, $object, $context);
+        return $next->extract($object, $context);
     }
 }
 ```
-In tests, where a middleware is called on its own, pass a `Next` with the
-following middlewares and the transformer instead of a `Stack`.
+In tests, where a middleware is called on its own, pass the transformer of the
+class instead of a `Stack`. It is a `ClassHydrator` and a `ClassExtractor` as
+well.
 
 before:
 
@@ -248,10 +251,9 @@ $object = $middleware->hydrate($metadata, $data, [], new Stack([new TransformMid
 after:
 
 ```php
-use Patchlevel\Hydrator\Middleware\Next;
 use Patchlevel\Hydrator\Transformer\ReflectionTransformer;
 
-$object = $middleware->hydrate($metadata, $data, [], new Next([], new ReflectionTransformer($metadata)));
+$object = $middleware->hydrate($metadata, $data, [], new ReflectionTransformer($metadata));
 ```
 ### TransformMiddleware
 

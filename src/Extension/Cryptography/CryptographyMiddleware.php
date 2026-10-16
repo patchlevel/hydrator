@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Extension\Cryptography;
 
 use Closure;
+use Patchlevel\Hydrator\ClassExtractor;
+use Patchlevel\Hydrator\ClassHydrator;
 use Patchlevel\Hydrator\Extension\Cryptography\Cipher\DecryptionFailed;
 use Patchlevel\Hydrator\Extension\Cryptography\Store\CipherKeyNotExists;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
-use Patchlevel\Hydrator\Middleware\Next;
 use Patchlevel\Hydrator\Middleware\Skip;
 use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
 use Stringable;
@@ -30,12 +31,13 @@ final class CryptographyMiddleware implements SkippableMiddleware
      * @param ClassMetadata<T>     $metadata
      * @param array<string, mixed> $data
      * @param array<string, mixed> $context
+     * @param ClassHydrator<T>     $next
      *
      * @return T
      *
      * @template T of object
      */
-    public function hydrate(ClassMetadata $metadata, array $data, array $context, Next $next): object
+    public function hydrate(ClassMetadata $metadata, array $data, array $context, ClassHydrator $next): object
     {
         $context[SubjectIds::class] = $subjectIds = $this->resolveSubjectIds($metadata, $data, $context);
 
@@ -73,27 +75,24 @@ final class CryptographyMiddleware implements SkippableMiddleware
             }
         }
 
-        return $next->hydrate(
-            $metadata,
-            $data,
-            $context,
-        );
+        return $next->hydrate($data, $context);
     }
 
     /**
      * @param ClassMetadata<T>     $metadata
      * @param T                    $object
      * @param array<string, mixed> $context
+     * @param ClassExtractor<T>    $next
      *
      * @return array<string, mixed>
      *
      * @template T of object
      */
-    public function extract(ClassMetadata $metadata, object $object, array $context, Next $next): array
+    public function extract(ClassMetadata $metadata, object $object, array $context, ClassExtractor $next): array
     {
         $context[SubjectIds::class] = $subjectIds = $this->resolveSubjectIds($metadata, $object, $context);
 
-        $data = $next->extract($metadata, $object, $context);
+        $data = $next->extract($object, $context);
 
         foreach ($metadata->properties as $propertyMetadata) {
             $info = $propertyMetadata->extras[SensitiveDataInfo::class] ?? null;

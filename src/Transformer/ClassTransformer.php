@@ -4,22 +4,19 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Transformer;
 
-/**
- * Maps the data of one class to an object and back. It runs at the end of the middleware stack, or directly if no
- * middleware has to run for the class.
- */
-interface ClassTransformer
-{
-    /**
-     * @param array<string, mixed> $data
-     * @param array<string, mixed> $context may contain an object to populate, see {@see \Patchlevel\Hydrator\Hydrator::OBJECT_TO_POPULATE}
-     */
-    public function hydrate(array $data, array $context): object;
+use Patchlevel\Hydrator\ClassExtractor;
+use Patchlevel\Hydrator\ClassHydrator;
 
-    /**
-     * @param array<string, mixed> $context
-     *
-     * @return array<string, mixed>
-     */
-    public function extract(object $object, array $context): array;
+/**
+ * Maps the data of one class to an object and back, it is the end of the chain the hydrator builds for the class. If
+ * nothing else runs for the class, the transformer is the whole chain.
+ *
+ * The context of hydrate() may contain an object to populate, see {@see \Patchlevel\Hydrator\Hydrator::OBJECT_TO_POPULATE}.
+ *
+ * @template T of object
+ * @extends ClassHydrator<T>
+ * @extends ClassExtractor<T>
+ */
+interface ClassTransformer extends ClassHydrator, ClassExtractor
+{
 }

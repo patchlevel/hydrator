@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Transformer;
 
 use Patchlevel\Hydrator\CircularReference;
+use Patchlevel\Hydrator\ClassExtractor;
+use Patchlevel\Hydrator\ClassHydrator;
 use Patchlevel\Hydrator\DenormalizationFailure;
-use Patchlevel\Hydrator\Handler\ExtractHandler;
-use Patchlevel\Hydrator\Handler\HydrateHandler;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Metadata\NestedObject;
@@ -30,22 +30,23 @@ use function spl_object_id;
  * Sets and reads the properties of the class with reflection, based on its metadata.
  *
  * @template T of object
+ * @implements ClassTransformer<T>
  */
 final class ReflectionTransformer implements ClassTransformer
 {
     /** @var array<string, NestedObject>|null property name => nested object, resolved on the first call */
     private array|null $nested = null;
 
-    /** @var array<string, ClassTransformer|HydrateHandler> property name => handler of the nested class */
-    private array $hydrateHandlers = [];
+    /** @var array<string, ClassHydrator<object>|null> property name => chain of the nested class */
+    private array $hydrators = [];
 
-    /** @var array<string, ClassTransformer|ExtractHandler> property name => handler of the nested class */
-    private array $extractHandlers = [];
+    /** @var array<string, ClassExtractor<object>|null> property name => chain of the nested class */
+    private array $extractors = [];
 
     /**
      * @param ClassMetadata<T>         $metadata
      * @param TransformerResolver|null $resolver of the hydrator, nested objects of its calls are mapped with the
-     *                                           handlers of their classes directly
+     *                                           chains of their classes directly
      */
     public function __construct(
         private readonly ClassMetadata $metadata,
@@ -178,7 +179,7 @@ final class ReflectionTransformer implements ClassTransformer
     }
 
     /**
-     * The nested objects which are mapped with the handlers of their classes directly. Only for calls of the
+     * The nested objects which are mapped with the chains of their classes directly. Only for calls of the
      * hydrator which created this transformer: a hydrator which wraps it has to see the nested objects.
      *
      * @param array<string, mixed> $context
@@ -220,11 +221,16 @@ final class ReflectionTransformer implements ClassTransformer
             return $normalizer->denormalize($value, $context);
         }
 
-        $handler = $this->hydrateHandlers[$property->propertyName]
-            ??= $this->resolver->hydrateHandler($nested->className);
+        $hydrator = $this->hydrators[$property->propertyName]
+            ??= $this->resolver->classHydrator($nested->className);
+
+        // the class normalizer of the nested class is called by the hydrator
+        if ($hydrator === null) {
+            return $normalizer->denormalize($value, $context);
+        }
 
         if (!$nested->list) {
-            return $handler->hydrate($value, $context);
+            return $hydrator->hydrate($value, $context);
         }
 
         assert($normalizer instanceof ArrayNormalizer);
@@ -232,7 +238,7 @@ final class ReflectionTransformer implements ClassTransformer
         $items = [];
 
         foreach ($value as $key => $item) {
-            $items[$key] = is_array($item) ? $handler->hydrate($item, $context) : $inner->denormalize($item, $context);
+            $items[$key] = is_array($item) ? $hydrator->hydrate($item, $context) : $inner->denormalize($item, $context);
         }
 
         return $items;
@@ -242,15 +248,18 @@ final class ReflectionTransformer implements ClassTransformer
     private function extractNested(PropertyMetadata $property, NestedObject $nested, Normalizer $normalizer, mixed $value, array $context): mixed
     {
         if (!$nested->list) {
-            // subclasses are extracted with the handler of their own class by the hydrator
+            // subclasses are extracted with the chain of their own class by the hydrator
             if (!is_object($value) || $value::class !== $nested->className || $this->resolver === null) {
                 return $normalizer->normalize($value, $context);
             }
 
-            $handler = $this->extractHandlers[$property->propertyName]
-                ??= $this->resolver->extractHandler($nested->className);
+            $extractor = $this->extractors[$property->propertyName]
+                ??= $this->resolver->classExtractor($nested->className);
 
-            return $handler->extract($value, $context);
+            // the class normalizer of the nested class is called by the hydrator
+            return $extractor === null
+                ? $normalizer->normalize($value, $context)
+                : $extractor->extract($value, $context);
         }
 
         if (!is_array($value) || $this->resolver === null) {
@@ -263,11 +272,14 @@ final class ReflectionTransformer implements ClassTransformer
 
         foreach ($value as $key => $item) {
             if (is_object($item) && $item::class === $nested->className) {
-                $handler = $this->extractHandlers[$property->propertyName]
-                    ??= $this->resolver->extractHandler($nested->className);
-                $items[$key] = $handler->extract($item, $context);
+                $extractor = $this->extractors[$property->propertyName]
+                    ??= $this->resolver->classExtractor($nested->className);
 
-                continue;
+                if ($extractor !== null) {
+                    $items[$key] = $extractor->extract($item, $context);
+
+                    continue;
+                }
             }
 
             $items[$key] = $inner->normalize($item, $context);

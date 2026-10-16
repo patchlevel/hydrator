@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Unit\Transformer;
 
-use Patchlevel\Hydrator\Handler\ExtractHandler;
-use Patchlevel\Hydrator\Handler\HydrateHandler;
+use Patchlevel\Hydrator\ClassExtractor;
+use Patchlevel\Hydrator\ClassHydrator;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\NormalizationFailure;
@@ -57,26 +57,26 @@ final class ReflectionTransformerTest extends TestCase
         self::assertEquals(new Skill('php'), $transformer->hydrate(['name' => 'php'], []));
     }
 
-    public function testHydrateNestedObjectsWithTheHandlersOfTheHydrator(): void
+    public function testHydrateNestedObjectsWithTheChainsOfTheHydrator(): void
     {
         $skill = new Skill('php');
         $hydrator = $this->createMock(Hydrator::class);
         $hydrator->expects($this->never())->method('hydrate');
         $context = [Hydrator::HYDRATOR => $hydrator];
 
-        $handler = $this->createMock(HydrateHandler::class);
-        $handler->expects($this->exactly(4))
+        $chain = $this->createMock(ClassHydrator::class);
+        $chain->expects($this->exactly(4))
             ->method('hydrate')
             ->with(['name' => 'php'], $context)
             ->willReturn($skill);
 
         $resolver = $this->createMock(TransformerResolver::class);
         $resolver->method('hydrator')->willReturn($hydrator);
-        // once per property, the handlers are kept for the next calls
+        // once per property, the chains are kept for the next calls
         $resolver->expects($this->exactly(2))
-            ->method('hydrateHandler')
+            ->method('classHydrator')
             ->with(Skill::class)
-            ->willReturn($handler);
+            ->willReturn($chain);
 
         $transformer = self::transformer($resolver);
         $data = ['name' => 'foo', 'skill' => ['name' => 'php'], 'skills' => [['name' => 'php'], null]];
@@ -92,7 +92,7 @@ final class ReflectionTransformerTest extends TestCase
 
         $resolver = $this->createMock(TransformerResolver::class);
         $resolver->method('hydrator')->willReturn($hydrator);
-        $resolver->expects($this->never())->method('hydrateHandler');
+        $resolver->expects($this->never())->method('classHydrator');
 
         $object = self::transformer($resolver)->hydrate(
             ['name' => 'foo', 'skill' => null, 'skills' => null],
@@ -102,26 +102,26 @@ final class ReflectionTransformerTest extends TestCase
         self::assertEquals(new NestedObjectsDto('foo'), $object);
     }
 
-    public function testExtractNestedObjectsWithTheHandlersOfTheHydrator(): void
+    public function testExtractNestedObjectsWithTheChainsOfTheHydrator(): void
     {
         $skill = new Skill('php');
         $hydrator = $this->createMock(Hydrator::class);
         $hydrator->expects($this->never())->method('extract');
         $context = [Hydrator::HYDRATOR => $hydrator];
 
-        $handler = $this->createMock(ExtractHandler::class);
-        $handler->expects($this->exactly(4))
+        $chain = $this->createMock(ClassExtractor::class);
+        $chain->expects($this->exactly(4))
             ->method('extract')
             ->with($skill, $context)
             ->willReturn(['name' => 'php']);
 
         $resolver = $this->createMock(TransformerResolver::class);
         $resolver->method('hydrator')->willReturn($hydrator);
-        // once per property, the handlers are kept for the next calls
+        // once per property, the chains are kept for the next calls
         $resolver->expects($this->exactly(2))
-            ->method('extractHandler')
+            ->method('classExtractor')
             ->with(Skill::class)
-            ->willReturn($handler);
+            ->willReturn($chain);
 
         $transformer = self::transformer($resolver);
         $object = new NestedObjectsDto('foo', $skill, [$skill, null]);
@@ -143,7 +143,7 @@ final class ReflectionTransformerTest extends TestCase
 
         $resolver = $this->createMock(TransformerResolver::class);
         $resolver->method('hydrator')->willReturn($hydrator);
-        $resolver->expects($this->never())->method('extractHandler');
+        $resolver->expects($this->never())->method('classExtractor');
 
         self::assertSame(
             ['name' => 'foo', 'skill' => null, 'skills' => null, 'child' => ['profileId' => '1']],
@@ -167,8 +167,38 @@ final class ReflectionTransformerTest extends TestCase
 
         $resolver = $this->createMock(TransformerResolver::class);
         $resolver->method('hydrator')->willReturn($this->createStub(Hydrator::class));
-        $resolver->expects($this->never())->method('hydrateHandler');
-        $resolver->expects($this->never())->method('extractHandler');
+        $resolver->expects($this->never())->method('classHydrator');
+        $resolver->expects($this->never())->method('classExtractor');
+
+        $transformer = self::transformer($resolver);
+        $object = $transformer->hydrate(['name' => 'foo', 'skill' => ['name' => 'php'], 'skills' => [['name' => 'php']]], $context);
+
+        self::assertEquals(new NestedObjectsDto('foo', $skill, [$skill]), $object);
+        self::assertSame(
+            ['name' => 'foo', 'skill' => ['name' => 'php'], 'skills' => [['name' => 'php']], 'child' => null],
+            $transformer->extract($object, $context),
+        );
+    }
+
+    public function testNestedClassesWithAClassNormalizerUseTheNormalizer(): void
+    {
+        $skill = new Skill('php');
+        $hydrator = $this->createMock(Hydrator::class);
+        $context = [Hydrator::HYDRATOR => $hydrator];
+        $hydrator->expects($this->exactly(2))
+            ->method('hydrate')
+            ->with(Skill::class, ['name' => 'php'], $context)
+            ->willReturn($skill);
+        $hydrator->expects($this->exactly(2))
+            ->method('extract')
+            ->with($skill, $context)
+            ->willReturn(['name' => 'php']);
+
+        // the hydrator has no chain for a class with a class normalizer
+        $resolver = $this->createStub(TransformerResolver::class);
+        $resolver->method('hydrator')->willReturn($hydrator);
+        $resolver->method('classHydrator')->willReturn(null);
+        $resolver->method('classExtractor')->willReturn(null);
 
         $transformer = self::transformer($resolver);
         $object = $transformer->hydrate(['name' => 'foo', 'skill' => ['name' => 'php'], 'skills' => [['name' => 'php']]], $context);

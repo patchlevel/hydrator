@@ -19,7 +19,7 @@ interface ClassTransformerFactory
      * @param ClassMetadata<T>    $metadata
      * @param TransformerResolver $resolver of the hydrator which asks, keep it to map nested objects in place
      *
-     * @return ClassTransformer|null null if this factory is not responsible for the class
+     * @return ClassTransformer<T>|null null if this factory is not responsible for the class
      *
      * @template T of object
      */

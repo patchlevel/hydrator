@@ -18,6 +18,7 @@ final class UpperCaseSkillTransformerFactory implements ClassTransformerFactory
 {
     public int $created = 0;
 
+    /** @return ClassTransformer<Skill>|null */
     public function create(ClassMetadata $metadata, TransformerResolver $resolver): ClassTransformer|null
     {
         if ($metadata->className !== Skill::class) {
@@ -26,7 +27,7 @@ final class UpperCaseSkillTransformerFactory implements ClassTransformerFactory
 
         $this->created++;
 
-        return new class implements ClassTransformer {
+        return new /** @implements ClassTransformer<Skill> */ class implements ClassTransformer {
             /**
              * @param array<string, mixed> $data
              * @param array<string, mixed> $context
@@ -39,14 +40,13 @@ final class UpperCaseSkillTransformerFactory implements ClassTransformerFactory
             }
 
             /**
+             * @param Skill                $object
              * @param array<string, mixed> $context
              *
              * @return array<string, mixed>
              */
             public function extract(object $object, array $context): array
             {
-                assert($object instanceof Skill);
-
                 return ['name' => strtoupper($object->name)];
             }
         };
