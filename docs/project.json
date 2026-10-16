@@ -18,7 +18,8 @@
       "subEntries": [
         { "title": "Lifecycle Hooks", "file": "lifecycle-hooks.md" },
         { "title": "Cryptography", "file": "cryptography.md" },
-        { "title": "Upcasting", "file": "upcasting.md" }
+        { "title": "Upcasting", "file": "upcasting.md" },
+        { "title": "Generated Code", "file": "generated-code.md" }
       ]
     },
     {
