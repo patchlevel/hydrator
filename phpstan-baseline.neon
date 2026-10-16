@@ -79,21 +79,27 @@ parameters:
 			path: src/Guesser/Guesser.php
 
 		-
-			message: '#^Method Patchlevel\\Hydrator\\Mapper\\ReflectionMapper\:\:hydrate\(\) should return T of object but returns mixed\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Mapper/ReflectionMapper.php
-
-		-
 			message: '#^Parameter \#1 \$data of method Patchlevel\\Hydrator\\Mapper\\Mapper\<object\>\:\:hydrate\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
 			identifier: argument.type
 			count: 2
 			path: src/Mapper/ReflectionMapper.php
 
 		-
-			message: '#^Parameter \#1 \$objectOrValue of method ReflectionProperty\:\:setValue\(\) expects object\|null, mixed given\.$#'
+			message: '#^Parameter \#1 \$object of method Patchlevel\\Hydrator\\Mapper\\ReflectionMapper\<T of object\>\:\:hydrateProperties\(\) expects T of object, mixed given\.$#'
 			identifier: argument.type
-			count: 2
+			count: 1
+			path: src/Mapper/ReflectionMapper.php
+
+		-
+			message: '#^Parameter \#2 \$data of method Patchlevel\\Hydrator\\Mapper\\ReflectionMapper\<object\>\:\:hydrateProperties\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Mapper/ReflectionMapper.php
+
+		-
+			message: '#^Parameter \#4 \$value of method Patchlevel\\Hydrator\\Mapper\\ReflectionMapper\<T of object\>\:\:hydrateWithReflection\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
 			path: src/Mapper/ReflectionMapper.php
 
 		-
