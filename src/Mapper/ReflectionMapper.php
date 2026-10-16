@@ -69,8 +69,21 @@ final class ReflectionMapper implements Mapper
             $object = $metadata->newInstance();
         }
 
+        return $this->hydrateProperties($object, $data, $context, $this->nested($context));
+    }
+
+    /**
+     * @param T                                        $object
+     * @param array<string, mixed>                     $data
+     * @param array<string, mixed>                     $context
+     * @param array<string, array{class-string, bool}> $nested
+     *
+     * @return T
+     */
+    private function hydrateProperties(object $object, array $data, array $context, array $nested): object
+    {
+        $metadata = $this->metadata;
         $constructorParameters = null;
-        $nested = $this->nested($context);
 
         foreach ($metadata->properties as $propertyMetadata) {
             if (!array_key_exists($propertyMetadata->fieldName, $data)) {
@@ -138,6 +151,18 @@ final class ReflectionMapper implements Mapper
      */
     public function extract(object $object, array $context): array
     {
+        return $this->extractProperties($object, $context, $this->nested($context));
+    }
+
+    /**
+     * @param T                                        $object
+     * @param array<string, mixed>                     $context
+     * @param array<string, array{class-string, bool}> $nested
+     *
+     * @return array<string, mixed>
+     */
+    private function extractProperties(object $object, array $context, array $nested): array
+    {
         $objectId = spl_object_id($object);
 
         if (array_key_exists($objectId, $this->callStack->objects)) {
@@ -151,7 +176,6 @@ final class ReflectionMapper implements Mapper
 
         try {
             $data = [];
-            $nested = $this->nested($context);
 
             foreach ($this->metadata->properties as $propertyMetadata) {
                 if ($propertyMetadata->normalizer) {
@@ -284,6 +308,10 @@ final class ReflectionMapper implements Mapper
             return $normalizer->denormalize($value, $context);
         }
 
+        if ($mapper instanceof self && $mapper->hydrator === $this->hydrator) {
+            return $this->hydrateWithReflection($mapper, $nested[1], $normalizer, $value, $context);
+        }
+
         if (!$nested[1]) {
             return $mapper->hydrate($value, $context);
         }
@@ -320,6 +348,10 @@ final class ReflectionMapper implements Mapper
 
             $mapper = $this->nestedMapper($property, $className);
 
+            if ($mapper instanceof self && $mapper->hydrator === $this->hydrator) {
+                return $mapper->extractProperties($value, $context, $mapper->nested ??= $mapper->nestedProperties());
+            }
+
             // the class normalizer of the nested class is called by the hydrator
             return $mapper === null
                 ? $normalizer->normalize($value, $context)
@@ -332,11 +364,22 @@ final class ReflectionMapper implements Mapper
 
         $inner = $normalizer->innerNormalizer();
         $items = [];
+        $mapper = $this->nestedMapper($property, $className);
+
+        if ($mapper instanceof self && $mapper->hydrator === $this->hydrator) {
+            $properties = $mapper->nested ??= $mapper->nestedProperties();
+
+            foreach ($value as $key => $item) {
+                $items[$key] = is_object($item) && $item::class === $className
+                    ? $mapper->extractProperties($item, $context, $properties)
+                    : $inner->normalize($item, $context);
+            }
+
+            return $items;
+        }
 
         foreach ($value as $key => $item) {
             if (is_object($item) && $item::class === $className) {
-                $mapper = $this->nestedMapper($property, $className);
-
                 if ($mapper !== null) {
                     $items[$key] = $mapper->extract($item, $context);
 
@@ -345,6 +388,40 @@ final class ReflectionMapper implements Mapper
             }
 
             $items[$key] = $inner->normalize($item, $context);
+        }
+
+        return $items;
+    }
+
+    /**
+     * The nested class is mapped with reflection as well: its properties are hydrated right away, without the checks
+     * of hydrate() this mapper already did.
+     *
+     * @param ReflectionMapper<object> $mapper
+     * @param array<string, mixed>     $value
+     * @param array<string, mixed>     $context
+     *
+     * @infection-ignore-all see {@see self::nestedProperties()}
+     */
+    private function hydrateWithReflection(self $mapper, bool $list, Normalizer $normalizer, array $value, array $context): mixed
+    {
+        $properties = $mapper->nested ??= $mapper->nestedProperties();
+
+        if (!$list) {
+            return $mapper->hydrateProperties($mapper->metadata->newInstance(), $value, $context, $properties);
+        }
+
+        if (!$normalizer instanceof ArrayNormalizer) {
+            return $normalizer->denormalize($value, $context);
+        }
+
+        $inner = $normalizer->innerNormalizer();
+        $items = [];
+
+        foreach ($value as $key => $item) {
+            $items[$key] = is_array($item)
+                ? $mapper->hydrateProperties($mapper->metadata->newInstance(), $item, $context, $properties)
+                : $inner->denormalize($item, $context);
         }
 
         return $items;
