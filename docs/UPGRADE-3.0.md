@@ -1,6 +1,8 @@
+
 ---
-searchable: false
----
+
+## searchable: false
+
 # Upgrade 3.0
 
 ## Builder
@@ -186,13 +188,14 @@ final class LoggingHydrator implements Hydrator
 ```
 ## Middleware
 
-### Next instead of Stack
+### Mapper instead of Stack
 
-`Patchlevel\Hydrator\Middleware\Stack` has been removed in favor of
-`Patchlevel\Hydrator\Middleware\Next`. A middleware no longer asks the stack for
-the next middleware and calls it with the stack again, it calls `$next`
-directly with the metadata, the data and the context. Change the last parameter
-of `hydrate()` and `extract()` in your middlewares to `Next $next`.
+`Patchlevel\Hydrator\Middleware\Stack` has been removed. The hydrator builds
+the chain of a class once: the mapper of the class, wrapped in the middlewares
+which run for it. A middleware receives the rest of this chain as a
+`Patchlevel\Hydrator\Mapper\Mapper` and calls it with the data or the object
+and the context, the metadata is no longer passed on. Change the last parameter
+of `hydrate()` and `extract()` in your middlewares to `Mapper $next`.
 
 before:
 
@@ -217,25 +220,25 @@ final class AuditMiddleware implements Middleware
 after:
 
 ```php
+use Patchlevel\Hydrator\Mapper\Mapper;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Middleware\Middleware;
-use Patchlevel\Hydrator\Middleware\Next;
 
 final class AuditMiddleware implements Middleware
 {
-    public function hydrate(ClassMetadata $metadata, array $data, array $context, Next $next): object
+    public function hydrate(ClassMetadata $metadata, array $data, array $context, Mapper $next): object
     {
-        return $next->hydrate($metadata, $data, $context);
+        return $next->hydrate($data, $context);
     }
 
-    public function extract(ClassMetadata $metadata, object $object, array $context, Next $next): array
+    public function extract(ClassMetadata $metadata, object $object, array $context, Mapper $next): array
     {
-        return $next->extract($metadata, $object, $context);
+        return $next->extract($object, $context);
     }
 }
 ```
-In tests, where a middleware is called on its own, pass a `Next` with the
-following middlewares and the transformer instead of a `Stack`.
+In tests, where a middleware is called on its own, pass a `ReflectionMapper`
+of the class instead of a `Stack`.
 
 before:
 
@@ -248,16 +251,15 @@ $object = $middleware->hydrate($metadata, $data, [], new Stack([new TransformMid
 after:
 
 ```php
-use Patchlevel\Hydrator\Middleware\Next;
-use Patchlevel\Hydrator\Transformer\ReflectionTransformer;
+use Patchlevel\Hydrator\Mapper\ReflectionMapper;
 
-$object = $middleware->hydrate($metadata, $data, [], new Next([], new ReflectionTransformer($metadata)));
+$object = $middleware->hydrate($metadata, $data, [], new ReflectionMapper($metadata));
 ```
 ### TransformMiddleware
 
-The `TransformMiddleware` has been removed. The hydrator maps the data with a
-`ClassTransformer` after all middlewares, the `ReflectionTransformer` by
-default. Remove the `TransformMiddleware` if you pass the middlewares to the
+The `TransformMiddleware` has been removed. The hydrator maps the data with the
+mapper of the class after all middlewares, the `ReflectionMapper` by default.
+Remove the `TransformMiddleware` if you pass the middlewares to the
 `StackHydrator` yourself. `Extension::PRIORITY_TRANSFORM` has been removed as
 well.
 
@@ -277,14 +279,78 @@ use Patchlevel\Hydrator\StackHydrator;
 $hydrator = new StackHydrator(middlewares: [new AuditMiddleware()]);
 ```
 If you replaced the `TransformMiddleware` with your own mapping, implement a
-`ClassTransformerFactory` instead and register it with
-`StackHydratorBuilder::addTransformerFactory()`.
+`Patchlevel\Hydrator\Mapper\MapperFactory` instead and register it with
+`StackHydratorBuilder::addMapperFactory()`.
 
+```php
+use Patchlevel\Hydrator\Mapper\Mapper;
+use Patchlevel\Hydrator\Mapper\MapperFactory;
+use Patchlevel\Hydrator\Metadata\ClassMetadata;
+use Patchlevel\Hydrator\StackHydrator;
+use Patchlevel\Hydrator\StackHydratorBuilder;
+
+final class MoneyMapperFactory implements MapperFactory
+{
+    public function create(ClassMetadata $metadata, StackHydrator $hydrator): Mapper|null
+    {
+        if ($metadata->className !== Money::class) {
+            return null;
+        }
+
+        return new MoneyMapper();
+    }
+}
+
+$hydrator = (new StackHydratorBuilder())
+    ->addMapperFactory(new MoneyMapperFactory())
+    ->build();
+```
+### PRIORITY_BEFORE_TRANSFORM
+
+`Extension::PRIORITY_BEFORE_TRANSFORM` has been renamed to
+`Extension::PRIORITY_BEFORE_MAPPING`, the value stays `0`.
+
+before:
+
+```php
+use Patchlevel\Hydrator\Extension;
+
+$builder->addMiddleware(new AuditMiddleware(), Extension::PRIORITY_BEFORE_TRANSFORM);
+```
+after:
+
+```php
+use Patchlevel\Hydrator\Extension;
+
+$builder->addMiddleware(new AuditMiddleware(), Extension::PRIORITY_BEFORE_MAPPING);
+```
 ### Removed exceptions
 
 `MissingMiddlewares`, `AllMiddlewaresSkipped` and `NoMoreMiddleware` have been
 removed. A hydrator without middlewares is valid, and a class which every
-middleware skips is only transformed. Remove the `catch` blocks for them.
+middleware skips is only mapped. Remove the `catch` blocks for them.
+
+## Upcasting
+
+### beforeTransform
+
+The `beforeTransform` argument of the `UpcastExtension` has been renamed to
+`beforeMapping`.
+
+before:
+
+```php
+use Patchlevel\Hydrator\Extension\Upcast\UpcastExtension;
+
+$extension = new UpcastExtension(beforeTransform: [$mergeNameUpcaster]);
+```
+after:
+
+```php
+use Patchlevel\Hydrator\Extension\Upcast\UpcastExtension;
+
+$extension = new UpcastExtension(beforeMapping: [$mergeNameUpcaster]);
+```
 ## Caching
 
 The serialized form of the normalizers changed. Clear the

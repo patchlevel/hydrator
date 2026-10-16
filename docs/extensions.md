@@ -2,7 +2,7 @@
 
 The `StackHydrator` is assembled from small building blocks: middlewares that
 wrap the hydration process, [guessers](guesser.md) that resolve normalizers,
-metadata enrichers that add information to the class metadata and transformer
+metadata enrichers that add information to the class metadata and mapper
 factories that map the data to the object. An extension bundles such building
 blocks so they can be registered with a single call.
 
@@ -33,34 +33,34 @@ The library ships with three extensions out of the box:
 
 ## Middleware
 
-A middleware wraps the hydration and extraction process, similar to HTTP
+A middleware wraps the [mapper](#mapper-factories) of a class, similar to HTTP
 middlewares. It can modify the incoming data, the outgoing array or the object
-itself, and passes the call on to the rest of the stack with `$next`. After the last
-middleware the [transformer](#transformer-factories) does the actual property
-mapping.
+itself, and passes the call on with `$next`. `$next` is a `Mapper` too: the
+following middlewares and at the end the mapper of the class, which does the
+actual property mapping. The hydrator builds this chain once per class.
 
 ```php
+use Patchlevel\Hydrator\Mapper\Mapper;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Middleware\Middleware;
-use Patchlevel\Hydrator\Middleware\Next;
 
 final class RemoveNullValuesMiddleware implements Middleware
 {
-    public function hydrate(ClassMetadata $metadata, array $data, array $context, Next $next): object
+    public function hydrate(ClassMetadata $metadata, array $data, array $context, Mapper $next): object
     {
-        return $next->hydrate($metadata, $data, $context);
+        return $next->hydrate($data, $context);
     }
 
-    public function extract(ClassMetadata $metadata, object $object, array $context, Next $next): array
+    public function extract(ClassMetadata $metadata, object $object, array $context, Mapper $next): array
     {
-        $data = $next->extract($metadata, $object, $context);
+        $data = $next->extract($object, $context);
 
         return array_filter($data, static fn (mixed $value) => $value !== null);
     }
 }
 ```
 Middlewares are added with a priority, higher priorities run first (outermost).
-The transformation always runs last, after all middlewares.
+The mapper of the class always runs last, after all middlewares.
 
 ```php
 $builder->addMiddleware(new RemoveNullValuesMiddleware(), 0);
@@ -68,7 +68,7 @@ $builder->addMiddleware(new RemoveNullValuesMiddleware(), 0);
 ## Skipping middlewares
 
 A middleware usually only has something to do for a few classes. Instead of
-walking through the whole stack every time, a middleware can implement
+being part of the chain of every class, a middleware can implement
 `SkippableMiddleware` and tell the hydrator that it is not needed for a class.
 The decision is made once per class and then reused, so it must only depend on
 the metadata.
@@ -78,21 +78,21 @@ The `skip` method returns a `Skip` case: `Skip::None` to always run,
 `Skip::Both` to be left out completely.
 
 ```php
+use Patchlevel\Hydrator\Mapper\Mapper;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
-use Patchlevel\Hydrator\Middleware\Next;
 use Patchlevel\Hydrator\Middleware\Skip;
 use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
 
 final class RemoveNullValuesMiddleware implements SkippableMiddleware
 {
-    public function hydrate(ClassMetadata $metadata, array $data, array $context, Next $next): object
+    public function hydrate(ClassMetadata $metadata, array $data, array $context, Mapper $next): object
     {
-        return $next->hydrate($metadata, $data, $context);
+        return $next->hydrate($data, $context);
     }
 
-    public function extract(ClassMetadata $metadata, object $object, array $context, Next $next): array
+    public function extract(ClassMetadata $metadata, object $object, array $context, Mapper $next): array
     {
-        $data = $next->extract($metadata, $object, $context);
+        $data = $next->extract($object, $context);
 
         return array_filter($data, static fn (mixed $value) => $value !== null);
     }
@@ -113,8 +113,8 @@ upcaster is a `CallbackUpcaster` or carries an
 out while hydrating classes none of them target.
 
 :::tip
-If every middleware skips a class, the hydrator calls the transformer directly
-without building the middleware stack.
+If every middleware skips a class, the mapper of the class is the whole chain
+and the hydrator calls it directly.
 :::
 
 ## Metadata enricher
@@ -151,38 +151,63 @@ extras) can be [cached](caching.md), everything you store in `extras` must be
 serializable.
 :::
 
-## Transformer factories
+## Mapper factories
 
-At the end of the stack a `ClassTransformer` turns the array into the object
-and back. By default this is the `ReflectionTransformer`, which sets and reads
-the properties with reflection. A transformer factory can provide another
-transformer for a class, for example generated code.
+At the end of the chain the `Mapper` of the class turns the array into the
+object and back. By default this is the `ReflectionMapper`, which sets and
+reads the properties with reflection. A mapper factory can provide another
+mapper for a class, for example generated code.
 
 ```php
+use Patchlevel\Hydrator\Mapper\Mapper;
+use Patchlevel\Hydrator\Mapper\MapperFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
-use Patchlevel\Hydrator\Transformer\ClassTransformer;
-use Patchlevel\Hydrator\Transformer\ClassTransformerFactory;
+use Patchlevel\Hydrator\StackHydrator;
 
-final class MoneyTransformerFactory implements ClassTransformerFactory
+final class MoneyMapperFactory implements MapperFactory
 {
-    public function create(ClassMetadata $metadata): ClassTransformer|null
+    public function create(ClassMetadata $metadata, StackHydrator $hydrator): Mapper|null
     {
         if ($metadata->className !== Money::class) {
             return null;
         }
 
-        return new MoneyTransformer();
+        return new MoneyMapper();
     }
 }
 ```
 ```php
-$builder->addTransformerFactory(new MoneyTransformerFactory());
+$builder->addMapperFactory(new MoneyMapperFactory());
 ```
-The factories are asked once per class, the first transformer wins and is
-cached by the hydrator. Factories also accept a priority, a factory with a
-higher priority is asked first. The `ReflectionTransformerFactory` is always
-asked last, so every class without its own transformer is transformed with
-reflection.
+The factories are asked once per class, the first mapper wins and is cached by
+the hydrator together with its middlewares. Factories also accept a priority, a
+factory with a higher priority is asked first. Every class without a mapper of
+a factory is mapped with the `ReflectionMapper`.
+
+### Nested objects
+
+`StackHydrator::mapper()` returns the chain the hydrator runs for a class: its
+mapper, wrapped in the middlewares and the lazy proxy which run for it. A class
+with a class normalizer has no chain, then it returns `null`. A mapper can call
+the chain of a nested class directly instead of going through the normalizer
+and the hydrator again, the `ReflectionMapper` does this for properties with an
+`ObjectNormalizer`.
+
+Only do this if the context contains the hydrator which created the mapper:
+a hydrator which wraps it has to see the nested objects.
+
+```php
+use Patchlevel\Hydrator\Hydrator;
+
+if (($context[Hydrator::HYDRATOR] ?? null) === $this->hydrator) {
+    $address = $this->hydrator->mapper(Address::class)?->hydrate($data['address'], $context);
+}
+```
+:::warning
+Ask for the mappers of nested classes once the mapper is used, not inside
+`create()`. The hydrator caches the mapper only after `create()` returned, so
+two classes which reference each other would create each other endlessly.
+:::
 
 ## Writing your own extension
 

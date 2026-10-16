@@ -7,15 +7,13 @@ namespace Patchlevel\Hydrator;
 use Patchlevel\Hydrator\Guesser\BuiltInGuesser;
 use Patchlevel\Hydrator\Guesser\ChainGuesser;
 use Patchlevel\Hydrator\Guesser\Guesser;
+use Patchlevel\Hydrator\Mapper\MapperFactory;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\EnrichingMetadataFactory;
 use Patchlevel\Hydrator\Metadata\MetadataEnricher;
 use Patchlevel\Hydrator\Metadata\Psr16MetadataFactory;
 use Patchlevel\Hydrator\Metadata\Psr6MetadataFactory;
 use Patchlevel\Hydrator\Middleware\Middleware;
-use Patchlevel\Hydrator\Transformer\ChainTransformerFactory;
-use Patchlevel\Hydrator\Transformer\ClassTransformerFactory;
-use Patchlevel\Hydrator\Transformer\ReflectionTransformerFactory;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\SimpleCache\CacheInterface;
 
@@ -35,13 +33,13 @@ final class StackHydratorBuilder
     /** @var array<int, list<Guesser>> */
     private array $guessers = [];
 
-    /** @var array<int, list<ClassTransformerFactory>> */
-    private array $transformerFactories = [];
+    /** @var array<int, list<MapperFactory>> */
+    private array $mapperFactories = [];
 
     private CacheItemPoolInterface|CacheInterface|null $cache = null;
 
     /** @return $this */
-    public function addMiddleware(Middleware $middleware, int $priority = Extension::PRIORITY_BEFORE_TRANSFORM): static
+    public function addMiddleware(Middleware $middleware, int $priority = Extension::PRIORITY_BEFORE_MAPPING): static
     {
         $this->middlewares[$priority][] = $middleware;
 
@@ -69,13 +67,14 @@ final class StackHydratorBuilder
     }
 
     /**
-     * Factories with a higher priority are asked first, the {@see ReflectionTransformerFactory} is always asked last.
+     * Factories with a higher priority are asked first, classes without a mapper of a factory are mapped with the
+     * {@see ReflectionMapper}.
      *
      * @return $this
      */
-    public function addTransformerFactory(ClassTransformerFactory $factory, int $priority = 0): static
+    public function addMapperFactory(MapperFactory $factory, int $priority = 0): static
     {
-        $this->transformerFactories[$priority][] = $factory;
+        $this->mapperFactories[$priority][] = $factory;
 
         return $this;
     }
@@ -118,15 +117,11 @@ final class StackHydratorBuilder
             $metadataFactory = new Psr16MetadataFactory($metadataFactory, $this->cache);
         }
 
-        $transformerFactories = $this->transformerFactories();
-
         return new StackHydrator(
             $metadataFactory,
             $this->middlewares(),
             $this->defaultLazy,
-            $transformerFactories === []
-                ? new ReflectionTransformerFactory()
-                : new ChainTransformerFactory([...$transformerFactories, new ReflectionTransformerFactory()]),
+            $this->mapperFactories(),
         );
     }
 
@@ -151,12 +146,12 @@ final class StackHydratorBuilder
         return array_merge(...$this->guessers);
     }
 
-    /** @return list<ClassTransformerFactory> without the reflection fallback */
-    public function transformerFactories(): array
+    /** @return list<MapperFactory> */
+    public function mapperFactories(): array
     {
-        krsort($this->transformerFactories);
+        krsort($this->mapperFactories);
 
-        return array_merge(...$this->transformerFactories);
+        return array_merge(...$this->mapperFactories);
     }
 
     /** @return list<MetadataEnricher> */

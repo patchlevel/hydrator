@@ -25,7 +25,7 @@ final class UpcastExtensionTest extends TestCase
     {
         $hydrator = (new StackHydratorBuilder())
             ->useExtension(new UpcastExtension(
-                beforeTransform: [
+                beforeMapping: [
                     CallbackUpcaster::forClass(
                         UpcastFixture::class,
                         static function (array $data): array {
@@ -54,7 +54,7 @@ final class UpcastExtensionTest extends TestCase
             UpcastFixture::class,
             static fn (array $data): array => $data,
         );
-        $beforeTransformUpcaster = CallbackUpcaster::forClass(
+        $beforeMappingUpcaster = CallbackUpcaster::forClass(
             UpcastFixture::class,
             static fn (array $data): array => $data,
         );
@@ -62,7 +62,7 @@ final class UpcastExtensionTest extends TestCase
         $builder = new StackHydratorBuilder();
         $builder->useExtension(new UpcastExtension(
             beforeEncoding: [$beforeEncodingUpcaster],
-            beforeTransform: [$beforeTransformUpcaster],
+            beforeMapping: [$beforeMappingUpcaster],
         ));
         $builder->useExtension(new CryptographyExtension($this->createMock(Cryptographer::class)));
 

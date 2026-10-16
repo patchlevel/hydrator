@@ -79,6 +79,24 @@ parameters:
 			path: src/Guesser/Guesser.php
 
 		-
+			message: '#^Method Patchlevel\\Hydrator\\Mapper\\ReflectionMapper\:\:hydrate\(\) should return T of object but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Mapper/ReflectionMapper.php
+
+		-
+			message: '#^Parameter \#1 \$data of method Patchlevel\\Hydrator\\Mapper\\Mapper\<object\>\:\:hydrate\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
+			identifier: argument.type
+			count: 2
+			path: src/Mapper/ReflectionMapper.php
+
+		-
+			message: '#^Parameter \#1 \$objectOrValue of method ReflectionProperty\:\:setValue\(\) expects object\|null, mixed given\.$#'
+			identifier: argument.type
+			count: 2
+			path: src/Mapper/ReflectionMapper.php
+
+		-
 			message: '#^Dead catch \- ReflectionException is never thrown in the try block\.$#'
 			identifier: catch.neverThrown
 			count: 1
@@ -97,18 +115,6 @@ parameters:
 			path: src/Metadata/ClassMetadata.php
 
 		-
-			message: '#^Method Patchlevel\\Hydrator\\Transformer\\ReflectionTransformer\:\:hydrate\(\) should return T of object but returns mixed\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Transformer/ReflectionTransformer.php
-
-		-
-			message: '#^Parameter \#1 \$object of method Patchlevel\\Hydrator\\Metadata\\PropertyMetadata\:\:setValue\(\) expects object, mixed given\.$#'
-			identifier: argument.type
-			count: 2
-			path: src/Transformer/ReflectionTransformer.php
-
-		-
 			message: '#^Property Patchlevel\\Hydrator\\Normalizer\\EnumNormalizer\:\:\$enum \(class\-string\<BackedEnum\>\|null\) does not accept string\.$#'
 			identifier: assign.propertyType
 			count: 1
@@ -121,15 +127,9 @@ parameters:
 			path: src/Normalizer/ObjectNormalizer.php
 
 		-
-			message: '#^Method Patchlevel\\Hydrator\\StackHydrator\:\:middlewaresFor\(\) should return non\-empty\-list\<Patchlevel\\Hydrator\\Middleware\\Middleware\> but returns list\<Patchlevel\\Hydrator\\Middleware\\Middleware\>\.$#'
-			identifier: return.type
-			count: 1
-			path: src/StackHydrator.php
-
-		-
-			message: '#^Parameter \#2 \$data of method Patchlevel\\Hydrator\\StackHydrator\:\:hydrateWithMiddlewares\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
+			message: '#^Parameter \#1 \$data of method Patchlevel\\Hydrator\\Mapper\\Mapper\<object\>\:\:hydrate\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
 			identifier: argument.type
-			count: 2
+			count: 1
 			path: src/StackHydrator.php
 
 		-
