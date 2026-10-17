@@ -28,7 +28,7 @@ final class ObjectNormalizerTest extends TestCase
         $this->expectException(MissingHydrator::class);
 
         $normalizer = new ObjectNormalizer(ProfileCreated::class);
-        $this->assertEquals(null, $normalizer->normalize(null, []));
+        $normalizer->normalize(new ProfileCreated(ProfileId::fromString('1'), Email::fromString('info@patchlevel.de')), ['hydrator' => 'not a hydrator']);
     }
 
     public function testDenormalizeMissingHydrator(): void
@@ -36,7 +36,15 @@ final class ObjectNormalizerTest extends TestCase
         $this->expectException(MissingHydrator::class);
 
         $normalizer = new ObjectNormalizer(ProfileCreated::class);
-        $this->assertEquals(null, $normalizer->denormalize(null, []));
+        $normalizer->denormalize(['profileId' => '1', 'email' => 'info@patchlevel.de'], []);
+    }
+
+    public function testNullDoesNotNeedHydrator(): void
+    {
+        $normalizer = new ObjectNormalizer(ProfileCreated::class);
+
+        self::assertNull($normalizer->normalize(null, []));
+        self::assertNull($normalizer->denormalize(null, []));
     }
 
     public function testNormalizeWithNull(): void
@@ -44,9 +52,8 @@ final class ObjectNormalizerTest extends TestCase
         $hydrator = $this->createMock(Hydrator::class);
 
         $normalizer = new ObjectNormalizer(ProfileCreated::class);
-        $normalizer->setHydrator($hydrator);
 
-        $this->assertEquals(null, $normalizer->normalize(null, []));
+        $this->assertEquals(null, $normalizer->normalize(null, [Hydrator::HYDRATOR => $hydrator]));
     }
 
     public function testDenormalizeWithNull(): void
@@ -54,9 +61,8 @@ final class ObjectNormalizerTest extends TestCase
         $hydrator = $this->createMock(Hydrator::class);
 
         $normalizer = new ObjectNormalizer(ProfileCreated::class);
-        $normalizer->setHydrator($hydrator);
 
-        $this->assertEquals(null, $normalizer->denormalize(null, []));
+        $this->assertEquals(null, $normalizer->denormalize(null, [Hydrator::HYDRATOR => $hydrator]));
     }
 
     public function testNormalizeWithInvalidArgument(): void
@@ -68,8 +74,7 @@ final class ObjectNormalizerTest extends TestCase
         $hydrator = $this->createMock(Hydrator::class);
 
         $normalizer = new ObjectNormalizer(ProfileCreated::class);
-        $normalizer->setHydrator($hydrator);
-        $normalizer->normalize('foo', []);
+        $normalizer->normalize('foo', [Hydrator::HYDRATOR => $hydrator]);
     }
 
     public function testNormalizeWithValue(): void
@@ -85,10 +90,9 @@ final class ObjectNormalizerTest extends TestCase
             ->willReturn(['profileId' => '1', 'email' => 'info@patchlevel.de']);
 
         $normalizer = new ObjectNormalizer(ProfileCreated::class);
-        $normalizer->setHydrator($hydrator);
 
         self::assertEquals(
-            $normalizer->normalize($event, []),
+            $normalizer->normalize($event, [Hydrator::HYDRATOR => $hydrator]),
             ['profileId' => '1', 'email' => 'info@patchlevel.de'],
         );
     }
@@ -109,18 +113,17 @@ final class ObjectNormalizerTest extends TestCase
             ->willReturn($expected);
 
         $normalizer = new ObjectNormalizer(ProfileCreated::class);
-        $normalizer->setHydrator($hydrator);
 
         $this->assertEquals(
             $expected,
-            $normalizer->denormalize(['profileId' => '1', 'email' => 'info@patchlevel.de'], []),
+            $normalizer->denormalize(['profileId' => '1', 'email' => 'info@patchlevel.de'], [Hydrator::HYDRATOR => $hydrator]),
         );
     }
 
     public function testNormalizePassesContextToHydrator(): void
     {
-        $context = ['key' => 'value'];
         $hydrator = $this->createMock(Hydrator::class);
+        $context = ['key' => 'value', Hydrator::HYDRATOR => $hydrator];
 
         $event = new ProfileCreated(
             ProfileId::fromString('1'),
@@ -131,7 +134,6 @@ final class ObjectNormalizerTest extends TestCase
             ->willReturn(['profileId' => '1', 'email' => 'info@patchlevel.de']);
 
         $normalizer = new ObjectNormalizer(ProfileCreated::class);
-        $normalizer->setHydrator($hydrator);
 
         self::assertEquals(
             ['profileId' => '1', 'email' => 'info@patchlevel.de'],
@@ -141,8 +143,8 @@ final class ObjectNormalizerTest extends TestCase
 
     public function testDenormalizePassesContextToHydrator(): void
     {
-        $context = ['key' => 'value'];
         $hydrator = $this->createMock(Hydrator::class);
+        $context = ['key' => 'value', Hydrator::HYDRATOR => $hydrator];
 
         $expected = new ProfileCreated(
             ProfileId::fromString('1'),
@@ -156,7 +158,6 @@ final class ObjectNormalizerTest extends TestCase
         )->willReturn($expected);
 
         $normalizer = new ObjectNormalizer(ProfileCreated::class);
-        $normalizer->setHydrator($hydrator);
 
         $this->assertEquals(
             $expected,
@@ -166,10 +167,7 @@ final class ObjectNormalizerTest extends TestCase
 
     public function testAutoDetect(): void
     {
-        $hydrator = $this->createMock(Hydrator::class);
-
         $normalizer = new ObjectNormalizer();
-        $normalizer->setHydrator($hydrator);
         $normalizer->handleType(Type::object(ProfileCreated::class));
 
         self::assertEquals(ProfileCreated::class, $normalizer->className());
@@ -177,10 +175,7 @@ final class ObjectNormalizerTest extends TestCase
 
     public function testAutoDetectOverrideNotPossible(): void
     {
-        $hydrator = $this->createMock(Hydrator::class);
-
         $normalizer = new ObjectNormalizer(AutoTypeDto::class);
-        $normalizer->setHydrator($hydrator);
         $normalizer->handleType(Type::object(ProfileCreated::class));
 
         self::assertEquals(AutoTypeDto::class, $normalizer->className());
@@ -190,10 +185,7 @@ final class ObjectNormalizerTest extends TestCase
     {
         $this->expectException(InvalidType::class);
 
-        $hydrator = $this->createMock(Hydrator::class);
-
         $normalizer = new ObjectNormalizer();
-        $normalizer->setHydrator($hydrator);
 
         $normalizer->className();
     }
@@ -202,10 +194,7 @@ final class ObjectNormalizerTest extends TestCase
     {
         $this->expectException(InvalidType::class);
 
-        $hydrator = $this->createMock(Hydrator::class);
-
         $normalizer = new ObjectNormalizer();
-        $normalizer->setHydrator($hydrator);
         $normalizer->handleType(null);
 
         $normalizer->className();
@@ -213,10 +202,7 @@ final class ObjectNormalizerTest extends TestCase
 
     public function testGeneric(): void
     {
-        $hydrator = $this->createMock(Hydrator::class);
-
         $normalizer = new ObjectNormalizer();
-        $normalizer->setHydrator($hydrator);
         $normalizer->handleType(Type::generic(Type::object(ProfileCreated::class)));
 
         self::assertEquals(ProfileCreated::class, $normalizer->className());
@@ -224,10 +210,7 @@ final class ObjectNormalizerTest extends TestCase
 
     public function testTemplate(): void
     {
-        $hydrator = $this->createMock(Hydrator::class);
-
         $normalizer = new ObjectNormalizer();
-        $normalizer->setHydrator($hydrator);
         $normalizer->handleType(Type::template('T', Type::object(ProfileCreated::class)));
 
         self::assertEquals(ProfileCreated::class, $normalizer->className());
@@ -235,10 +218,7 @@ final class ObjectNormalizerTest extends TestCase
 
     public function testSerialize(): void
     {
-        $hydrator = $this->createMock(Hydrator::class);
-
         $normalizer = new ObjectNormalizer(ProfileCreated::class);
-        $normalizer->setHydrator($hydrator);
 
         $serialized = serialize($normalizer);
 

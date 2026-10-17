@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Unit\Normalizer;
 
-use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\Normalizer\ArrayShapeNormalizer;
-use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
 use Patchlevel\Hydrator\Normalizer\InvalidArgument;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -153,16 +151,6 @@ final class ArrayShapeNormalizerTest extends TestCase
         $normalizer->denormalize(['foo' => 'a', 'bar' => 'b'], $context);
 
         $this->assertSame([$context, $context], $innerNormalizer->contexts);
-    }
-
-    public function testPassHydrator(): void
-    {
-        $hydrator = $this->createMock(Hydrator::class);
-        $normalizer = $this->createMockForIntersectionOfInterfaces([Normalizer::class, HydratorAwareNormalizer::class]);
-        $normalizer->expects($this->once())->method('setHydrator')->with($hydrator);
-
-        $normalizer = new ArrayShapeNormalizer(['foo' => $normalizer]);
-        $normalizer->setHydrator($hydrator);
     }
 
     public function testInnerNormalizers(): void

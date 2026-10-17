@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Benchmark;
 
-use Patchlevel\Hydrator\CoreExtension;
 use Patchlevel\Hydrator\Extension\Cryptography\BaseCryptographer;
 use Patchlevel\Hydrator\Extension\Cryptography\CryptographyExtension;
 use Patchlevel\Hydrator\Extension\Cryptography\Store\InMemoryCipherKeyStore;
@@ -27,7 +26,6 @@ final class StackHydratorWithCryptographyBench
         $this->store = new InMemoryCipherKeyStore();
 
         $this->hydrator = (new StackHydratorBuilder())
-            ->useExtension(new CoreExtension())
             ->useExtension(new CryptographyExtension(BaseCryptographer::createWithOpenssl($this->store)))
             ->build();
     }

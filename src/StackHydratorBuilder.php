@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator;
 
+use Patchlevel\Hydrator\Guesser\BuiltInGuesser;
 use Patchlevel\Hydrator\Guesser\ChainGuesser;
 use Patchlevel\Hydrator\Guesser\Guesser;
+use Patchlevel\Hydrator\Mapper\MapperFactory;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\EnrichingMetadataFactory;
 use Patchlevel\Hydrator\Metadata\MetadataEnricher;
+use Patchlevel\Hydrator\Metadata\MetadataFactory;
 use Patchlevel\Hydrator\Metadata\Psr16MetadataFactory;
 use Patchlevel\Hydrator\Metadata\Psr6MetadataFactory;
 use Patchlevel\Hydrator\Middleware\Middleware;
@@ -31,10 +34,13 @@ final class StackHydratorBuilder
     /** @var array<int, list<Guesser>> */
     private array $guessers = [];
 
+    /** @var array<int, list<MapperFactory>> */
+    private array $mapperFactories = [];
+
     private CacheItemPoolInterface|CacheInterface|null $cache = null;
 
     /** @return $this */
-    public function addMiddleware(Middleware $middleware, int $priority = Extension::PRIORITY_BEFORE_TRANSFORM): static
+    public function addMiddleware(Middleware $middleware, int $priority = Extension::PRIORITY_BEFORE_MAPPING): static
     {
         $this->middlewares[$priority][] = $middleware;
 
@@ -49,10 +55,27 @@ final class StackHydratorBuilder
         return $this;
     }
 
-    /** @return $this */
+    /**
+     * Guessers with a higher priority are asked first, the {@see BuiltInGuesser} is always asked last.
+     *
+     * @return $this
+     */
     public function addGuesser(Guesser $guesser, int $priority = 0): static
     {
         $this->guessers[$priority][] = $guesser;
+
+        return $this;
+    }
+
+    /**
+     * Factories with a higher priority are asked first, classes without a mapper of a factory are mapped with the
+     * {@see ReflectionMapper}.
+     *
+     * @return $this
+     */
+    public function addMapperFactory(MapperFactory $factory, int $priority = 0): static
+    {
+        $this->mapperFactories[$priority][] = $factory;
 
         return $this;
     }
@@ -80,9 +103,23 @@ final class StackHydratorBuilder
 
     public function build(): StackHydrator
     {
+        return new StackHydrator(
+            $this->metadataFactory(),
+            $this->middlewares(),
+            $this->defaultLazy,
+            $this->mapperFactories(),
+        );
+    }
+
+    /**
+     * The metadata factory the hydrator is built with, for example to generate code or warm up caches with the same
+     * metadata the hydrator ends up with. Every call creates a new instance.
+     */
+    public function metadataFactory(): MetadataFactory
+    {
         $metadataFactory = new EnrichingMetadataFactory(
             new AttributeMetadataFactory(
-                guesser: new ChainGuesser($this->guessers()),
+                guesser: new ChainGuesser([...$this->guessers(), new BuiltInGuesser()]),
             ),
             $this->metadataEnrichers(),
         );
@@ -95,11 +132,7 @@ final class StackHydratorBuilder
             $metadataFactory = new Psr16MetadataFactory($metadataFactory, $this->cache);
         }
 
-        return new StackHydrator(
-            $metadataFactory,
-            $this->middlewares(),
-            $this->defaultLazy,
-        );
+        return $metadataFactory;
     }
 
     public function defaultLazy(): bool
@@ -121,6 +154,14 @@ final class StackHydratorBuilder
         krsort($this->guessers);
 
         return array_merge(...$this->guessers);
+    }
+
+    /** @return list<MapperFactory> */
+    public function mapperFactories(): array
+    {
+        krsort($this->mapperFactories);
+
+        return array_merge(...$this->mapperFactories);
     }
 
     /** @return list<MetadataEnricher> */

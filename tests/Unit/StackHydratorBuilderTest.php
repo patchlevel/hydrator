@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Tests\Unit;
 
 use Patchlevel\Hydrator\Extension;
+use Patchlevel\Hydrator\Guesser\BuiltInGuesser;
 use Patchlevel\Hydrator\Guesser\ChainGuesser;
 use Patchlevel\Hydrator\Guesser\Guesser;
+use Patchlevel\Hydrator\Mapper\MapperFactory;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\EnrichingMetadataFactory;
 use Patchlevel\Hydrator\Metadata\MetadataEnricher;
@@ -15,6 +17,8 @@ use Patchlevel\Hydrator\Metadata\Psr6MetadataFactory;
 use Patchlevel\Hydrator\Middleware\Middleware;
 use Patchlevel\Hydrator\StackHydrator;
 use Patchlevel\Hydrator\StackHydratorBuilder;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Cache\CacheItemPoolInterface;
@@ -98,7 +102,7 @@ final class StackHydratorBuilderTest extends TestCase
         $reflection = new ReflectionProperty(ChainGuesser::class, 'guessers');
         $guessers = $reflection->getValue($guesser);
 
-        self::assertSame([$guesser2, $guesser1], $guessers);
+        self::assertEquals([$guesser2, $guesser1, new BuiltInGuesser()], $guessers);
         self::assertSame([$guesser2, $guesser1], $builder->guessers());
     }
 
@@ -158,5 +162,56 @@ final class StackHydratorBuilderTest extends TestCase
         $factory = $reflection->getValue($hydrator);
 
         self::assertInstanceOf(Psr16MetadataFactory::class, $factory);
+    }
+
+    public function testAddMapperFactoryWithPriority(): void
+    {
+        $factory1 = $this->createMock(MapperFactory::class);
+        $factory2 = $this->createMock(MapperFactory::class);
+
+        $builder = new StackHydratorBuilder();
+        $builder->addMapperFactory($factory1, 10);
+        $builder->addMapperFactory($factory2, 20);
+
+        $reflection = new ReflectionProperty(StackHydrator::class, 'mapperFactories');
+
+        self::assertSame([$factory2, $factory1], $builder->mapperFactories());
+        self::assertSame([$factory2, $factory1], $reflection->getValue($builder->build()));
+    }
+
+    public function testWithoutMapperFactories(): void
+    {
+        $reflection = new ReflectionProperty(StackHydrator::class, 'mapperFactories');
+
+        self::assertSame([], $reflection->getValue((new StackHydratorBuilder())->build()));
+    }
+
+    public function testBuiltInGuesserWithoutRegistration(): void
+    {
+        $hydrator = (new StackHydratorBuilder())->build();
+
+        $object = $hydrator->hydrate(InferNormalizerDto::class, [
+            'status' => 'draft',
+            'dateTimeImmutable' => '2015-02-13T22:34:32+01:00',
+            'dateTime' => '2015-02-13T22:34:32+01:00',
+            'dateTimeZone' => 'EDT',
+            'array' => ['foo'],
+        ]);
+
+        self::assertSame(Status::Draft, $object->status);
+    }
+
+    public function testMapperFactoryDefaultPriority(): void
+    {
+        $low = $this->createMock(MapperFactory::class);
+        $default = $this->createMock(MapperFactory::class);
+        $high = $this->createMock(MapperFactory::class);
+
+        $builder = new StackHydratorBuilder();
+        $builder->addMapperFactory($low, -1);
+        $builder->addMapperFactory($default);
+        $builder->addMapperFactory($high, 1);
+
+        self::assertSame([$high, $default, $low], $builder->mapperFactories());
     }
 }

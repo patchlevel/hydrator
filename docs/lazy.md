@@ -34,11 +34,9 @@ Instead of marking every class, you can make lazy hydration the default when
 building the hydrator.
 
 ```php
-use Patchlevel\Hydrator\CoreExtension;
 use Patchlevel\Hydrator\StackHydratorBuilder;
 
 $hydrator = (new StackHydratorBuilder())
-    ->useExtension(new CoreExtension())
     ->enableDefaultLazy()
     ->build();
 ```

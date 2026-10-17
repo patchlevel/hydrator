@@ -4,58 +4,62 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator;
 
+use Patchlevel\Hydrator\Mapper\CallStack;
+use Patchlevel\Hydrator\Mapper\LazyMapper;
+use Patchlevel\Hydrator\Mapper\Mapper;
+use Patchlevel\Hydrator\Mapper\MapperFactory;
+use Patchlevel\Hydrator\Mapper\ReflectionMapper;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Metadata\ClassNotFound;
 use Patchlevel\Hydrator\Metadata\MetadataFactory;
-use Patchlevel\Hydrator\Middleware\AllMiddlewaresSkipped;
 use Patchlevel\Hydrator\Middleware\Middleware;
+use Patchlevel\Hydrator\Middleware\MiddlewareMapper;
 use Patchlevel\Hydrator\Middleware\Skip;
 use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
-use Patchlevel\Hydrator\Middleware\Stack;
-use Patchlevel\Hydrator\Middleware\TransformMiddleware;
-use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
-use ReflectionClass;
 
 use function array_key_exists;
+use function array_reverse;
+use function assert;
 use function is_array;
 
 use const PHP_VERSION_ID;
 
+/**
+ * Maps every class with a mapper, built once per class: the mapper of a {@see MapperFactory} or the
+ * {@see ReflectionMapper}, wrapped in the middlewares which run for the class and, if the class is lazy, the lazy
+ * proxy. A class with a class normalizer has no mapper, the normalizer is called instead.
+ */
 final class StackHydrator implements Hydrator
 {
     /** @var array<class-string, ClassMetadata> */
     private array $classMetadata = [];
 
-    /** @var array<class-string, non-empty-list<Middleware>> */
-    private array $hydrateMiddlewares = [];
+    /** @var array<class-string, Mapper<object>> */
+    private array $mappers = [];
 
-    /** @var array<class-string, non-empty-list<Middleware>> */
-    private array $extractMiddlewares = [];
+    private readonly CallStack $callStack;
 
-    private readonly bool $hasSkippableMiddlewares;
+    /**
+     * The context of calls without a context, built once: adding the hydrator to an empty context would allocate a new
+     * array on every call.
+     *
+     * @var array<string, mixed>
+     */
+    private readonly array $context;
 
-    /** @param list<Middleware> $middlewares */
+    /**
+     * @param list<Middleware>    $middlewares     wrap the mapper of every class, in this order
+     * @param list<MapperFactory> $mapperFactories asked in this order for the mapper of a class, the first mapper wins
+     */
     public function __construct(
         private readonly MetadataFactory $metadataFactory = new AttributeMetadataFactory(),
-        private readonly array $middlewares = [new TransformMiddleware()],
+        private readonly array $middlewares = [],
         private readonly bool $defaultLazy = false,
+        private readonly array $mapperFactories = [],
     ) {
-        if ($middlewares === []) {
-            throw new MissingMiddlewares();
-        }
-
-        $hasSkippableMiddlewares = false;
-
-        foreach ($middlewares as $middleware) {
-            if ($middleware instanceof SkippableMiddleware) {
-                $hasSkippableMiddlewares = true;
-
-                break;
-            }
-        }
-
-        $this->hasSkippableMiddlewares = $hasSkippableMiddlewares;
+        $this->callStack = new CallStack();
+        $this->context = [self::HYDRATOR => $this];
     }
 
     /**
@@ -68,47 +72,26 @@ final class StackHydrator implements Hydrator
      */
     public function hydrate(string $class, mixed $data, array $context = []): object
     {
-        try {
-            $metadata = $this->metadata($class);
-        } catch (ClassNotFound $e) {
-            throw new ClassNotSupported($class, $e);
+        if ($context === []) {
+            $context = $this->context;
+        } else {
+            $context[self::HYDRATOR] ??= $this;
         }
 
-        if ($metadata->normalizer) {
-            $return = $metadata->normalizer->denormalize($data, $context);
+        $mapper = $this->mappers[$class] ?? $this->mapper($class);
 
-            if (!$return instanceof $class) {
-                throw new ObjectRequired($class, $metadata->normalizer::class);
-            }
-
-            return $return;
+        if ($mapper === null) {
+            return $this->denormalize($class, $data, $context);
         }
 
         if (!is_array($data)) {
             throw new ArrayDataRequired($class);
         }
 
-        if (PHP_VERSION_ID < 80400) {
-            $stack = new Stack($this->middlewaresFor($metadata, Skip::Hydrate));
+        $object = $mapper->hydrate($data, $context);
+        assert($object instanceof $class);
 
-            return $stack->next()->hydrate($metadata, $data, $context, $stack);
-        }
-
-        $lazy = $metadata->lazy ?? $this->defaultLazy;
-
-        if (!$lazy) {
-            $stack = new Stack($this->middlewaresFor($metadata, Skip::Hydrate));
-
-            return $stack->next()->hydrate($metadata, $data, $context, $stack);
-        }
-
-        return (new ReflectionClass($class))->newLazyProxy(
-            function () use ($metadata, $data, $context): object {
-                $stack = new Stack($this->middlewaresFor($metadata, Skip::Hydrate));
-
-                return $stack->next()->hydrate($metadata, $data, $context, $stack);
-            },
-        );
+        return $object;
     }
 
     /**
@@ -118,68 +101,77 @@ final class StackHydrator implements Hydrator
      */
     public function extract(object $object, array $context = []): mixed
     {
-        $metadata = $this->metadata($object::class);
-
-        if ($metadata->normalizer) {
-            return $metadata->normalizer->normalize($object, $context);
+        if ($context === []) {
+            $context = $this->context;
+        } else {
+            $context[self::HYDRATOR] ??= $this;
         }
 
-        $stack = new Stack($this->middlewaresFor($metadata, Skip::Extract));
+        $mapper = $this->mappers[$object::class] ?? $this->mapper($object::class);
 
-        return $stack->next()->extract($metadata, $object, $context, $stack);
+        if ($mapper === null) {
+            return $this->normalize($object, $context);
+        }
+
+        return $mapper->extract($object, $context);
     }
 
     /**
-     * @param ClassMetadata<T>            $metadata
-     * @param Skip::Hydrate|Skip::Extract $direction
+     * The mapper the hydrator runs for the class. Calling it behaves exactly like calling the hydrator, as long as the
+     * context contains this hydrator, see {@see Hydrator::HYDRATOR}.
      *
-     * @return non-empty-list<Middleware>
+     * @param class-string<T> $class
+     *
+     * @return Mapper<T>|null null if the class has a class normalizer, the hydrator calls the normalizer instead
+     *
+     * @throws ClassNotSupported if the class is not found.
      *
      * @template T of object
      */
-    private function middlewaresFor(ClassMetadata $metadata, Skip $direction): array
+    public function mapper(string $class): Mapper|null
     {
-        if (!$this->hasSkippableMiddlewares) {
-            return $this->middlewares;
+        if (array_key_exists($class, $this->mappers)) {
+            /** @var Mapper<T> $mapper */
+            $mapper = $this->mappers[$class];
+
+            return $mapper;
         }
 
-        $cached = $direction === Skip::Hydrate
-            ? $this->hydrateMiddlewares[$metadata->className] ?? null
-            : $this->extractMiddlewares[$metadata->className] ?? null;
-
-        if ($cached !== null) {
-            return $cached;
+        try {
+            $metadata = $this->metadata($class);
+        } catch (ClassNotFound $e) {
+            throw new ClassNotSupported($class, $e);
         }
 
-        $middlewares = [];
+        if ($metadata->normalizer !== null) {
+            return null;
+        }
 
-        foreach ($this->middlewares as $middleware) {
-            if ($middleware instanceof SkippableMiddleware) {
-                $skip = $middleware->skip($metadata);
+        $mapper = $this->createMapper($metadata);
 
-                if ($skip === $direction || $skip === Skip::Both) {
-                    continue;
-                }
+        foreach (array_reverse($this->middlewares) as $middleware) {
+            $skip = $middleware instanceof SkippableMiddleware ? $middleware->skip($metadata) : Skip::None;
+
+            if ($skip === Skip::Both) {
+                continue;
             }
 
-            $middlewares[] = $middleware;
+            $mapper = new MiddlewareMapper($middleware, $metadata, $mapper, $skip);
         }
 
-        if ($middlewares === []) {
-            throw new AllMiddlewaresSkipped($metadata->className);
+        if (PHP_VERSION_ID >= 80400 && ($metadata->lazy ?? $this->defaultLazy)) {
+            $mapper = new LazyMapper($metadata->reflection, $mapper);
         }
 
-        if ($direction === Skip::Hydrate) {
-            return $this->hydrateMiddlewares[$metadata->className] = $middlewares;
-        }
-
-        return $this->extractMiddlewares[$metadata->className] = $middlewares;
+        return $this->mappers[$class] = $mapper;
     }
 
     /**
      * @param class-string<T> $class
      *
      * @return ClassMetadata<T>
+     *
+     * @throws ClassNotFound
      *
      * @template T of object
      */
@@ -189,16 +181,57 @@ final class StackHydrator implements Hydrator
             return $this->classMetadata[$class];
         }
 
-        $this->classMetadata[$class] = $metadata = $this->metadataFactory->metadata($class);
+        return $this->classMetadata[$class] = $this->metadataFactory->metadata($class);
+    }
 
-        foreach ($metadata->properties as $property) {
-            if (!($property->normalizer instanceof HydratorAwareNormalizer)) {
-                continue;
+    /**
+     * @param ClassMetadata<T> $metadata
+     *
+     * @return Mapper<T>
+     *
+     * @template T of object
+     */
+    private function createMapper(ClassMetadata $metadata): Mapper
+    {
+        foreach ($this->mapperFactories as $factory) {
+            $mapper = $factory->create($metadata, $this);
+
+            if ($mapper !== null) {
+                return $mapper;
             }
-
-            $property->normalizer->setHydrator($this);
         }
 
-        return $metadata;
+        return new ReflectionMapper($metadata, $this, $this->callStack);
+    }
+
+    /**
+     * @param class-string<T>      $class
+     * @param array<string, mixed> $context
+     *
+     * @return T
+     *
+     * @template T of object
+     */
+    private function denormalize(string $class, mixed $data, array $context): object
+    {
+        $normalizer = $this->metadata($class)->normalizer;
+        assert($normalizer !== null);
+
+        $object = $normalizer->denormalize($data, $context);
+
+        if (!$object instanceof $class) {
+            throw new ObjectRequired($class, $normalizer::class);
+        }
+
+        return $object;
+    }
+
+    /** @param array<string, mixed> $context */
+    private function normalize(object $object, array $context): mixed
+    {
+        $normalizer = $this->metadata($object::class)->normalizer;
+        assert($normalizer !== null);
+
+        return $normalizer->normalize($object, $context);
     }
 }
