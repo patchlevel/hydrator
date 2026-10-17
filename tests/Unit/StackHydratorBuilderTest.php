@@ -8,6 +8,7 @@ use Patchlevel\Hydrator\Extension;
 use Patchlevel\Hydrator\Guesser\BuiltInGuesser;
 use Patchlevel\Hydrator\Guesser\ChainGuesser;
 use Patchlevel\Hydrator\Guesser\Guesser;
+use Patchlevel\Hydrator\Mapper\MapperFactory;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\EnrichingMetadataFactory;
 use Patchlevel\Hydrator\Metadata\MetadataEnricher;
@@ -18,9 +19,6 @@ use Patchlevel\Hydrator\StackHydrator;
 use Patchlevel\Hydrator\StackHydratorBuilder;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
-use Patchlevel\Hydrator\Transformer\ChainTransformerFactory;
-use Patchlevel\Hydrator\Transformer\ClassTransformerFactory;
-use Patchlevel\Hydrator\Transformer\ReflectionTransformerFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Cache\CacheItemPoolInterface;
@@ -166,29 +164,26 @@ final class StackHydratorBuilderTest extends TestCase
         self::assertInstanceOf(Psr16MetadataFactory::class, $factory);
     }
 
-    public function testAddTransformerFactoryWithPriority(): void
+    public function testAddMapperFactoryWithPriority(): void
     {
-        $factory1 = $this->createMock(ClassTransformerFactory::class);
-        $factory2 = $this->createMock(ClassTransformerFactory::class);
+        $factory1 = $this->createMock(MapperFactory::class);
+        $factory2 = $this->createMock(MapperFactory::class);
 
         $builder = new StackHydratorBuilder();
-        $builder->addTransformerFactory($factory1, 10);
-        $builder->addTransformerFactory($factory2, 20);
+        $builder->addMapperFactory($factory1, 10);
+        $builder->addMapperFactory($factory2, 20);
 
-        $reflection = new ReflectionProperty(StackHydrator::class, 'transformerFactory');
+        $reflection = new ReflectionProperty(StackHydrator::class, 'mapperFactories');
 
-        self::assertSame([$factory2, $factory1], $builder->transformerFactories());
-        self::assertEquals(
-            new ChainTransformerFactory([$factory2, $factory1, new ReflectionTransformerFactory()]),
-            $reflection->getValue($builder->build()),
-        );
+        self::assertSame([$factory2, $factory1], $builder->mapperFactories());
+        self::assertSame([$factory2, $factory1], $reflection->getValue($builder->build()));
     }
 
-    public function testReflectionWithoutTransformerFactories(): void
+    public function testWithoutMapperFactories(): void
     {
-        $reflection = new ReflectionProperty(StackHydrator::class, 'transformerFactory');
+        $reflection = new ReflectionProperty(StackHydrator::class, 'mapperFactories');
 
-        self::assertInstanceOf(ReflectionTransformerFactory::class, $reflection->getValue((new StackHydratorBuilder())->build()));
+        self::assertSame([], $reflection->getValue((new StackHydratorBuilder())->build()));
     }
 
     public function testBuiltInGuesserWithoutRegistration(): void
@@ -206,17 +201,17 @@ final class StackHydratorBuilderTest extends TestCase
         self::assertSame(Status::Draft, $object->status);
     }
 
-    public function testTransformerFactoryDefaultPriority(): void
+    public function testMapperFactoryDefaultPriority(): void
     {
-        $low = $this->createMock(ClassTransformerFactory::class);
-        $default = $this->createMock(ClassTransformerFactory::class);
-        $high = $this->createMock(ClassTransformerFactory::class);
+        $low = $this->createMock(MapperFactory::class);
+        $default = $this->createMock(MapperFactory::class);
+        $high = $this->createMock(MapperFactory::class);
 
         $builder = new StackHydratorBuilder();
-        $builder->addTransformerFactory($low, -1);
-        $builder->addTransformerFactory($default);
-        $builder->addTransformerFactory($high, 1);
+        $builder->addMapperFactory($low, -1);
+        $builder->addMapperFactory($default);
+        $builder->addMapperFactory($high, 1);
 
-        self::assertSame([$high, $default, $low], $builder->transformerFactories());
+        self::assertSame([$high, $default, $low], $builder->mapperFactories());
     }
 }

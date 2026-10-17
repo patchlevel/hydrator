@@ -8,15 +8,14 @@ use Patchlevel\Hydrator\Extension\Upcast\Attribute\UpcasterFor;
 use Patchlevel\Hydrator\Extension\Upcast\CallbackUpcaster;
 use Patchlevel\Hydrator\Extension\Upcast\Upcaster;
 use Patchlevel\Hydrator\Extension\Upcast\UpcastMiddleware;
+use Patchlevel\Hydrator\Mapper\Mapper;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
-use Patchlevel\Hydrator\Middleware\Middleware;
-use Patchlevel\Hydrator\Middleware\Next;
 use Patchlevel\Hydrator\Middleware\Skip;
 use Patchlevel\Hydrator\Tests\Unit\Extension\Upcast\Fixture\UpcastFixture;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated;
-use Patchlevel\Hydrator\Transformer\ClassTransformer;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(UpcastMiddleware::class)]
@@ -48,13 +47,12 @@ final class UpcastMiddlewareTest extends TestCase
 
         $expectedObject = new UpcastFixture('Jane Doe');
 
-        $nextMiddleware = $this->createMock(Middleware::class);
-        $nextMiddleware->expects(self::once())
+        /** @var Mapper<UpcastFixture>&MockObject $next */
+        $next = $this->createMock(Mapper::class);
+        $next->expects(self::once())
             ->method('hydrate')
-            ->with($metadata, ['firstName' => 'Jane', 'lastName' => 'Doe', 'name' => 'Jane Doe'], [], self::isInstanceOf(Next::class))
+            ->with(['firstName' => 'Jane', 'lastName' => 'Doe', 'name' => 'Jane Doe'], [])
             ->willReturn($expectedObject);
-
-        $next = new Next([$nextMiddleware], self::createStub(ClassTransformer::class));
 
         $object = $middleware->hydrate($metadata, ['firstName' => 'Jane', 'lastName' => 'Doe'], [], $next);
 
@@ -67,13 +65,12 @@ final class UpcastMiddlewareTest extends TestCase
         $metadata = (new AttributeMetadataFactory())->metadata(UpcastFixture::class);
         $object = new UpcastFixture('Jane Doe');
 
-        $nextMiddleware = $this->createMock(Middleware::class);
-        $nextMiddleware->expects(self::once())
+        /** @var Mapper<UpcastFixture>&MockObject $next */
+        $next = $this->createMock(Mapper::class);
+        $next->expects(self::once())
             ->method('extract')
-            ->with($metadata, $object, [], self::isInstanceOf(Next::class))
+            ->with($object, [])
             ->willReturn(['name' => 'Jane Doe']);
-
-        $next = new Next([$nextMiddleware], self::createStub(ClassTransformer::class));
 
         self::assertSame(['name' => 'Jane Doe'], $middleware->extract($metadata, $object, [], $next));
     }
@@ -174,13 +171,12 @@ final class UpcastMiddlewareTest extends TestCase
 
         $expectedObject = new UpcastFixture('Jane Doe');
 
-        $nextMiddleware = $this->createMock(Middleware::class);
-        $nextMiddleware->expects(self::once())
+        /** @var Mapper<UpcastFixture>&MockObject $next */
+        $next = $this->createMock(Mapper::class);
+        $next->expects(self::once())
             ->method('hydrate')
-            ->with($metadata, ['name' => 'Jane Doe', 'matching' => true], [], self::isInstanceOf(Next::class))
+            ->with(['name' => 'Jane Doe', 'matching' => true], [])
             ->willReturn($expectedObject);
-
-        $next = new Next([$nextMiddleware], self::createStub(ClassTransformer::class));
 
         $object = $middleware->hydrate($metadata, ['name' => 'Jane Doe'], [], $next);
 

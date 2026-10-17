@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Unit;
 
+use ArrayObject;
 use DateTime;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -12,10 +13,13 @@ use Patchlevel\Hydrator\CircularReference;
 use Patchlevel\Hydrator\ClassNotSupported;
 use Patchlevel\Hydrator\DenormalizationFailure;
 use Patchlevel\Hydrator\Hydrator;
+use Patchlevel\Hydrator\Mapper\LazyMapper;
+use Patchlevel\Hydrator\Mapper\Mapper;
+use Patchlevel\Hydrator\Mapper\ReflectionMapper;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Middleware\Middleware;
-use Patchlevel\Hydrator\Middleware\Next;
+use Patchlevel\Hydrator\Middleware\MiddlewareMapper;
 use Patchlevel\Hydrator\Middleware\Skip;
 use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
 use Patchlevel\Hydrator\NormalizationFailure;
@@ -32,6 +36,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithIterablesDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithNullableDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\LazyProfileCreated;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\NestedObjectsDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\NormalizerInBaseClassDefinedDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated;
@@ -39,15 +44,13 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWithInlineNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWithNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWrapper;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\RecordingMiddleware;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Skill;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\StatusWithNormalizer;
-use Patchlevel\Hydrator\Tests\Unit\Fixture\UpperCaseSkillTransformerFactory;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\UpperCaseSkillMapperFactory;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ValueObject;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer;
-use Patchlevel\Hydrator\Transformer\ChainTransformerFactory;
-use Patchlevel\Hydrator\Transformer\ReflectionTransformer;
-use Patchlevel\Hydrator\Transformer\ReflectionTransformerFactory;
 use Patchlevel\Hydrator\TypeMismatch;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\RequiresPhp;
@@ -55,9 +58,9 @@ use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
 #[CoversClass(StackHydrator::class)]
-#[CoversClass(ReflectionTransformer::class)]
-#[CoversClass(ReflectionTransformerFactory::class)]
-#[CoversClass(ChainTransformerFactory::class)]
+#[CoversClass(ReflectionMapper::class)]
+#[CoversClass(MiddlewareMapper::class)]
+#[CoversClass(LazyMapper::class)]
 final class StackHydratorTest extends TestCase
 {
     private StackHydrator $hydrator;
@@ -202,7 +205,7 @@ final class StackHydratorTest extends TestCase
                 $object,
                 $this->callback(static fn (array $context): bool => $context['context'] === '123'
                     && $context[Hydrator::HYDRATOR] instanceof StackHydrator),
-                $this->isInstanceOf(Next::class),
+                $this->isInstanceOf(Mapper::class),
             )->willReturn($expect);
 
         $hydrator = (new StackHydratorBuilder())
@@ -368,7 +371,7 @@ final class StackHydratorTest extends TestCase
                 $data,
                 $this->callback(static fn (array $context): bool => $context['context'] === '123'
                     && $context[Hydrator::HYDRATOR] instanceof StackHydrator),
-                $this->isInstanceOf(Next::class),
+                $this->isInstanceOf(Mapper::class),
             )->willReturn($expect);
 
         $hydrator = (new StackHydratorBuilder())
@@ -635,26 +638,32 @@ final class StackHydratorTest extends TestCase
              * @param ClassMetadata<T>     $metadata
              * @param array<string, mixed> $data
              * @param array<string, mixed> $context
+             * @param Mapper<T>            $next
              *
              * @return T
              *
              * @template T of object
              */
-            public function hydrate(ClassMetadata $metadata, array $data, array $context, Next $next): object
+            public function hydrate(ClassMetadata $metadata, array $data, array $context, Mapper $next): object
             {
                 $this->contexts[] = $context;
 
-                return $next->hydrate($metadata, $data, $context);
+                return $next->hydrate($data, $context);
             }
 
             /**
+             * @param ClassMetadata<T>     $metadata
+             * @param T                    $object
              * @param array<string, mixed> $context
+             * @param Mapper<T>            $next
              *
              * @return array<string, mixed>
+             *
+             * @template T of object
              */
-            public function extract(ClassMetadata $metadata, object $object, array $context, Next $next): array
+            public function extract(ClassMetadata $metadata, object $object, array $context, Mapper $next): array
             {
-                return $next->extract($metadata, $object, $context);
+                return $next->extract($object, $context);
             }
         };
 
@@ -855,30 +864,143 @@ final class StackHydratorTest extends TestCase
         self::assertSame(['profileId' => '1', 'email' => 'info@patchlevel.de'], $hydrator->extract($event));
     }
 
-    public function testTransformerFactory(): void
+    public function testMapperFactory(): void
     {
-        $factory = new UpperCaseSkillTransformerFactory();
-        $hydrator = new StackHydrator(
-            transformerFactory: new ChainTransformerFactory([$factory, new ReflectionTransformerFactory()]),
-        );
+        $factory = new UpperCaseSkillMapperFactory();
+        $hydrator = new StackHydrator(mapperFactories: [$factory]);
 
         self::assertEquals(new Skill('PHP'), $hydrator->hydrate(Skill::class, ['name' => 'php']));
         self::assertSame(['name' => 'PHP'], $hydrator->extract(new Skill('php')));
         self::assertSame(1, $factory->created);
+        self::assertSame($hydrator, $factory->hydrator);
 
-        // other classes are left to the next factory
+        // other classes are mapped with reflection
         self::assertEquals(
             new ProfileCreated(ProfileId::fromString('1'), Email::fromString('info@patchlevel.de')),
             $hydrator->hydrate(ProfileCreated::class, ['profileId' => '1', 'email' => 'info@patchlevel.de']),
         );
     }
 
-    public function testNoTransformerForClass(): void
+    public function testFirstMapperFactoryWins(): void
     {
-        $hydrator = new StackHydrator(transformerFactory: new UpperCaseSkillTransformerFactory());
+        $first = new UpperCaseSkillMapperFactory();
+        $second = new UpperCaseSkillMapperFactory();
+        $hydrator = new StackHydrator(mapperFactories: [$first, $second]);
 
+        $hydrator->hydrate(Skill::class, ['name' => 'php']);
+
+        self::assertSame(1, $first->created);
+        self::assertSame(0, $second->created);
+    }
+
+    public function testNestedObjectsAreMappedWithTheMapperOfTheirClass(): void
+    {
+        $hydrator = new StackHydrator(mapperFactories: [new UpperCaseSkillMapperFactory()]);
+
+        $object = $hydrator->hydrate(
+            NestedObjectsDto::class,
+            ['name' => 'foo', 'skill' => ['name' => 'php'], 'skills' => [['name' => 'symfony']]],
+        );
+
+        self::assertEquals(new NestedObjectsDto('foo', new Skill('PHP'), [new Skill('SYMFONY')]), $object);
+        self::assertSame(
+            ['name' => 'foo', 'skill' => ['name' => 'PHP'], 'skills' => [['name' => 'SYMFONY']], 'child' => null],
+            $hydrator->extract($object),
+        );
+    }
+
+    public function testMapper(): void
+    {
+        $hydrator = new StackHydrator();
+
+        $mapper = $hydrator->mapper(Skill::class);
+
+        self::assertInstanceOf(ReflectionMapper::class, $mapper);
+        self::assertSame($mapper, $hydrator->mapper(Skill::class));
+        self::assertEquals(new Skill('php'), $mapper->hydrate(['name' => 'php'], []));
+    }
+
+    public function testMapperIsWrappedInTheMiddlewares(): void
+    {
+        $hydrator = new StackHydrator(middlewares: [new DummyMiddleware()]);
+
+        self::assertInstanceOf(MiddlewareMapper::class, $hydrator->mapper(Skill::class));
+    }
+
+    #[RequiresPhp('>=8.4')]
+    public function testMapperOfALazyClass(): void
+    {
+        $hydrator = new StackHydrator(middlewares: [new DummyMiddleware()]);
+
+        self::assertInstanceOf(LazyMapper::class, $hydrator->mapper(LazyProfileCreated::class));
+    }
+
+    public function testNoMapperForAClassWithAClassNormalizer(): void
+    {
+        self::assertNull((new StackHydrator())->mapper(ProfileId::class));
+    }
+
+    public function testMapperOfAnUnknownClass(): void
+    {
         $this->expectException(ClassNotSupported::class);
 
-        $hydrator->hydrate(ProfileCreated::class, ['profileId' => '1', 'email' => 'info@patchlevel.de']);
+        /** @phpstan-ignore argument.type */
+        (new StackHydrator())->mapper('Unknown');
+    }
+
+    public function testMapperIsBuiltOncePerClass(): void
+    {
+        $middleware = $this->createMock(SkippableMiddleware::class);
+        $middleware->expects($this->once())->method('skip')->willReturn(Skip::Both);
+
+        $factory = new UpperCaseSkillMapperFactory();
+        $hydrator = new StackHydrator(middlewares: [$middleware], mapperFactories: [$factory]);
+
+        $skill = $hydrator->hydrate(Skill::class, ['name' => 'php']);
+        $hydrator->hydrate(Skill::class, ['name' => 'php']);
+        $hydrator->extract($skill);
+        $hydrator->extract($skill);
+
+        self::assertSame(1, $factory->created);
+    }
+
+    public function testHydrateWithArrayDataRequiredAndMiddlewares(): void
+    {
+        $middleware = $this->createMock(Middleware::class);
+        $middleware->expects($this->never())->method('hydrate');
+
+        $hydrator = new StackHydrator(middlewares: [$middleware]);
+
+        $this->expectException(ArrayDataRequired::class);
+
+        $hydrator->hydrate(ProfileCreated::class, 'foo');
+    }
+
+    public function testMiddlewaresRunInTheirOrder(): void
+    {
+        /** @var ArrayObject<int, string> $calls */
+        $calls = new ArrayObject();
+        $hydrator = new StackHydrator(middlewares: [
+            new RecordingMiddleware('first', $calls),
+            new RecordingMiddleware('second', $calls),
+        ]);
+
+        $hydrator->extract($hydrator->hydrate(Skill::class, ['name' => 'php']));
+
+        self::assertSame(['hydrate first', 'hydrate second', 'extract first', 'extract second'], $calls->getArrayCopy());
+    }
+
+    public function testMiddlewareAfterASkippedOneStillRuns(): void
+    {
+        $skipped = $this->createMock(SkippableMiddleware::class);
+        $skipped->method('skip')->willReturn(Skip::Both);
+
+        /** @var ArrayObject<int, string> $calls */
+        $calls = new ArrayObject();
+        $hydrator = new StackHydrator(middlewares: [new RecordingMiddleware('first', $calls), $skipped]);
+
+        $hydrator->extract($hydrator->hydrate(Skill::class, ['name' => 'php']));
+
+        self::assertSame(['hydrate first', 'extract first'], $calls->getArrayCopy());
     }
 }
