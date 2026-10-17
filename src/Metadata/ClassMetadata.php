@@ -110,7 +110,11 @@ final class ClassMetadata
     /** @param serialized $data */
     public function __unserialize(array $data): void
     {
-        $this->reflection = new ReflectionClass($data['className']);
+        /** @var class-string<T> $className */
+        $className = $data['className'];
+
+        $this->reflection = new ReflectionClass($className);
+        $this->className = $className;
         $this->normalizer = $data['normalizer'];
         $this->properties = $data['properties'];
         $this->lazy = $data['lazy'];

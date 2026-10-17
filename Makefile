@@ -39,13 +39,13 @@ snapshot: vendor                                                                
 	UPDATE_SNAPSHOTS=1 vendor/bin/phpunit --no-coverage --filter testGeneratedCodeMatchesSnapshot
 
 .PHONY: benchmark
-benchmark: vendor                                                               ## run benchmarks
-	vendor/bin/phpbench run tests/Benchmark --report=default
+benchmark: vendor                                                               ## run all benchmarks
+	vendor/bin/phpbench run --report=diff
 
-.PHONY: benchmark-diff-test
-benchmark-diff-test: vendor                                                          ## run benchmarks
-	vendor/bin/phpbench run tests/Benchmark --revs=1 --report=default --progress=none --tag=base
-	vendor/bin/phpbench run tests/Benchmark --revs=1 --report=diff --progress=none --ref=base
+.PHONY: benchmark-diff
+benchmark-diff: vendor                                                          ## run the benchmarks twice and compare the second run against the first, like the CI does
+	vendor/bin/phpbench run --progress=none --tag=base
+	vendor/bin/phpbench run --progress=none --report=diff --ref=base
 
 
 .PHONY: docs

@@ -5,6 +5,10 @@ name: "Mutation tests on diff"
 on:
     pull_request:
 
+concurrency:
+    group: ${{ github.workflow_ref }}
+    cancel-in-progress: true
+
 jobs:
     mutation-tests-diff:
         name: "Mutation tests on diff"
@@ -27,7 +31,7 @@ jobs:
                   fetch-depth: 0
 
             - name: "Install PHP"
-              uses: "shivammathur/setup-php@2.37.2"
+              uses: "shivammathur/setup-php@2.40.0"
               with:
                   coverage: "pcov"
                   php-version: "${{ matrix.php-version }}"
