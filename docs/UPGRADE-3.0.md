@@ -1,8 +1,6 @@
-
 ---
-
-## searchable: false
-
+searchable: false
+---
 # Upgrade 3.0
 
 ## Builder
