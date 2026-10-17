@@ -23,7 +23,7 @@ $hydrator = (new StackHydratorBuilder())
 ```
 ## Built-in extensions
 
-The library ships with four extensions out of the box:
+The library ships with five extensions out of the box:
 
 | Extension | Purpose |
 | --- | --- |
@@ -31,6 +31,7 @@ The library ships with four extensions out of the box:
 | `LifecycleExtension` | [Lifecycle hooks](lifecycle-hooks.md), run code before and after the extract and hydrate process. |
 | `CryptographyExtension` | [Cryptography](cryptography.md), encrypt and decrypt sensitive data with crypto-shredding. |
 | `UpcastExtension` | [Upcasting](upcasting.md), reshape outdated stored data while it is hydrated. |
+| `GroupsExtension` | [Groups](groups.md), extract and hydrate only the properties of selected groups. |
 
 ## Middleware
 
