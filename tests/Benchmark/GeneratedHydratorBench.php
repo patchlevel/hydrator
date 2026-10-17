@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Benchmark;
 
+use Patchlevel\Hydrator\Extension\Generated\GeneratedMapperExtension;
+use Patchlevel\Hydrator\Extension\Generated\GeneratedMapperWarmer;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\StackHydratorBuilder;
 use Patchlevel\Hydrator\Tests\Benchmark\Fixture\ProfileCreated;
@@ -12,14 +14,18 @@ use Patchlevel\Hydrator\Tests\Benchmark\Fixture\Skill;
 use PhpBench\Attributes as Bench;
 
 #[Bench\BeforeMethods('setUp')]
-final class HydratorBench
+final class GeneratedHydratorBench
 {
     private Hydrator $hydrator;
 
     public function __construct()
     {
-        $this->hydrator = (new StackHydratorBuilder())
-            ->build();
+        $builder = (new StackHydratorBuilder())
+            ->useExtension(new GeneratedMapperExtension(__DIR__ . '/../../var/cache'));
+
+        (new GeneratedMapperWarmer($builder->metadataFactory(), __DIR__ . '/../../var/cache'))->warmup([ProfileCreated::class]);
+
+        $this->hydrator = $builder->build();
     }
 
     public function setUp(): void

@@ -7,6 +7,8 @@ namespace Patchlevel\Hydrator\Tests\Benchmark;
 use Patchlevel\Hydrator\Extension\Cryptography\BaseCryptographer;
 use Patchlevel\Hydrator\Extension\Cryptography\CryptographyExtension;
 use Patchlevel\Hydrator\Extension\Cryptography\Store\InMemoryCipherKeyStore;
+use Patchlevel\Hydrator\Extension\Generated\GeneratedMapperExtension;
+use Patchlevel\Hydrator\Extension\Generated\GeneratedMapperWarmer;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\StackHydratorBuilder;
 use Patchlevel\Hydrator\Tests\Benchmark\Fixture\ProfileCreated;
@@ -15,7 +17,7 @@ use Patchlevel\Hydrator\Tests\Benchmark\Fixture\Skill;
 use PhpBench\Attributes as Bench;
 
 #[Bench\BeforeMethods('setUp')]
-final class HydratorWithCryptographyBench
+final class GeneratedHydratorWithCryptographyBench
 {
     private InMemoryCipherKeyStore $store;
 
@@ -25,9 +27,13 @@ final class HydratorWithCryptographyBench
     {
         $this->store = new InMemoryCipherKeyStore();
 
-        $this->hydrator = (new StackHydratorBuilder())
-            ->useExtension(new CryptographyExtension(BaseCryptographer::createWithOpenssl($this->store)))
-            ->build();
+        $builder = (new StackHydratorBuilder())
+            ->useExtension(new GeneratedMapperExtension(__DIR__ . '/../../var/cache'))
+            ->useExtension(new CryptographyExtension(BaseCryptographer::createWithOpenssl($this->store)));
+
+        (new GeneratedMapperWarmer($builder->metadataFactory(), __DIR__ . '/../../var/cache'))->warmup([ProfileCreated::class]);
+
+        $this->hydrator = $builder->build();
     }
 
     public function setUp(): void

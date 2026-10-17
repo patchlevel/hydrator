@@ -10,6 +10,8 @@
 
     <file>src</file>
     <file>tests</file>
+    <!-- generated code, kept as snapshot -->
+    <exclude-pattern>tests/Unit/Extension/Generated/Snapshot/*</exclude-pattern>
 
     <rule ref="PatchlevelCodingStandard">
         <exclude name="Generic.CodeAnalysis.UselessOverridingMethod.Found"/>
