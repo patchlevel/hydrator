@@ -8,6 +8,7 @@ use Patchlevel\Hydrator\CircularReference;
 use Patchlevel\Hydrator\DenormalizationFailure;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
+use Patchlevel\Hydrator\Metadata\PropertyMetadata;
 use Patchlevel\Hydrator\NormalizationFailure;
 use Patchlevel\Hydrator\Normalizer\ArrayNormalizer;
 use Patchlevel\Hydrator\Normalizer\InvalidType;
@@ -87,22 +88,29 @@ final class ReflectionMapper implements Mapper
 
         foreach ($metadata->properties as $propertyMetadata) {
             if (!array_key_exists($propertyMetadata->fieldName, $data)) {
-                if (!$propertyMetadata->reflection->isPromoted()) {
+                $alias = self::alias($propertyMetadata, $data);
+
+                if ($alias === null) {
+                    if (!$propertyMetadata->reflection->isPromoted()) {
+                        continue;
+                    }
+
+                    $constructorParameters ??= $metadata->promotedConstructorDefaults();
+
+                    if (!array_key_exists($propertyMetadata->propertyName, $constructorParameters)) {
+                        continue;
+                    }
+
+                    $propertyMetadata->reflection->setValue(
+                        $object,
+                        $constructorParameters[$propertyMetadata->propertyName]->getDefaultValue(),
+                    );
+
                     continue;
                 }
 
-                $constructorParameters ??= $metadata->promotedConstructorDefaults();
-
-                if (!array_key_exists($propertyMetadata->propertyName, $constructorParameters)) {
-                    continue;
-                }
-
-                $propertyMetadata->reflection->setValue(
-                    $object,
-                    $constructorParameters[$propertyMetadata->propertyName]->getDefaultValue(),
-                );
-
-                continue;
+                // the field is stored under a former name
+                $data[$propertyMetadata->fieldName] = $data[$alias];
             }
 
             if ($propertyMetadata->normalizer) {
@@ -141,6 +149,22 @@ final class ReflectionMapper implements Mapper
         }
 
         return $object;
+    }
+
+    /**
+     * The first alias of the property which is in the data.
+     *
+     * @param array<string, mixed> $data
+     */
+    private static function alias(PropertyMetadata $property, array $data): string|null
+    {
+        foreach ($property->aliases as $alias) {
+            if (array_key_exists($alias, $data)) {
+                return $alias;
+            }
+        }
+
+        return null;
     }
 
     /**

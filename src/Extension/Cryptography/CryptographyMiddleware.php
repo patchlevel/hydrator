@@ -9,6 +9,7 @@ use Patchlevel\Hydrator\Extension\Cryptography\Cipher\DecryptionFailed;
 use Patchlevel\Hydrator\Extension\Cryptography\Store\CipherKeyNotExists;
 use Patchlevel\Hydrator\Mapper\Mapper;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
+use Patchlevel\Hydrator\Metadata\PropertyMetadata;
 use Patchlevel\Hydrator\Middleware\Skip;
 use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
 use Stringable;
@@ -47,9 +48,10 @@ final class CryptographyMiddleware implements SkippableMiddleware
                 continue;
             }
 
-            $value = $data[$propertyMetadata->fieldName] ?? null;
+            $field = self::field($propertyMetadata, $data);
+            $value = $field === null ? null : $data[$field];
 
-            if ($value === null) {
+            if ($field === null || $value === null) {
                 continue;
             }
 
@@ -60,7 +62,7 @@ final class CryptographyMiddleware implements SkippableMiddleware
             $subjectId = $subjectIds->get($info->subjectIdName);
 
             try {
-                $data[$propertyMetadata->fieldName] = $this->cryptographer->decrypt($subjectId, $value);
+                $data[$field] = $this->cryptographer->decrypt($subjectId, $value);
             } catch (DecryptionFailed | CipherKeyNotExists) {
                 $fallback = $info->fallback instanceof Closure
                     ? ($info->fallback)($subjectId)
@@ -70,7 +72,7 @@ final class CryptographyMiddleware implements SkippableMiddleware
                     $fallback = $propertyMetadata->normalizer->normalize($fallback, $context);
                 }
 
-                $data[$propertyMetadata->fieldName] = $fallback;
+                $data[$field] = $fallback;
             }
         }
 
@@ -136,6 +138,26 @@ final class CryptographyMiddleware implements SkippableMiddleware
     }
 
     /**
+     * The key of the property in the data: the field name or, for data stored under a former name, the first alias.
+     *
+     * @param array<string, mixed> $data
+     */
+    private static function field(PropertyMetadata $property, array $data): string|null
+    {
+        if (array_key_exists($property->fieldName, $data)) {
+            return $property->fieldName;
+        }
+
+        foreach ($property->aliases as $alias) {
+            if (array_key_exists($alias, $data)) {
+                return $alias;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * @param array<string, mixed>|object $data
      * @param array<string, mixed>        $context
      */
@@ -157,11 +179,13 @@ final class CryptographyMiddleware implements SkippableMiddleware
 
         foreach ($mapping->nameToField as $name => $fieldName) {
             if (is_array($data)) {
-                if (!array_key_exists($fieldName, $data)) {
+                $field = self::field($metadata->propertyForField($fieldName), $data);
+
+                if ($field === null) {
                     throw new MissingSubjectIdForField($metadata->className, $fieldName);
                 }
 
-                $subjectId = $data[$fieldName];
+                $subjectId = $data[$field];
             } else {
                 $property = $metadata->propertyForField($fieldName);
                 $subjectId = $property->getValue($data);

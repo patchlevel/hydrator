@@ -16,19 +16,24 @@ use Symfony\Component\TypeInfo\Type;
  *     fieldName: string,
  *     normalizer: Normalizer|null,
  *     extras: array<string, mixed>,
+ *     aliases?: list<string>,
  * }
  */
 final class PropertyMetadata
 {
     public readonly string $propertyName;
 
-    /** @param array<string, mixed> $extras */
+    /**
+     * @param array<string, mixed> $extras
+     * @param list<string>         $aliases former field names, read while hydrating if the field is missing
+     */
     public function __construct(
         public readonly ReflectionProperty $reflection,
         public readonly Type $type,
         public string $fieldName,
         public Normalizer|null $normalizer = null,
         public array $extras = [],
+        public array $aliases = [],
     ) {
         $this->propertyName = $reflection->getName();
     }
@@ -53,6 +58,7 @@ final class PropertyMetadata
             'fieldName' => $this->fieldName,
             'normalizer' => $this->normalizer,
             'extras' => $this->extras,
+            'aliases' => $this->aliases,
         ];
     }
 
@@ -65,5 +71,6 @@ final class PropertyMetadata
         $this->fieldName = $data['fieldName'];
         $this->normalizer = $data['normalizer'];
         $this->extras = $data['extras'];
+        $this->aliases = $data['aliases'] ?? [];
     }
 }

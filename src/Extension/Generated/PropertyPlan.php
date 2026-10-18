@@ -23,6 +23,7 @@ final class PropertyPlan
      * @param int|null          $defaultSlot  slot of a promoted default which is resolved at runtime
      * @param class-string|null $hydrateScope class whose scope is needed to write the property
      * @param class-string|null $extractScope class whose scope is needed to read the property
+     * @param list<string>      $aliases      former field names, read while hydrating if the field is missing
      */
     public function __construct(
         public readonly string $name,
@@ -36,6 +37,7 @@ final class PropertyPlan
         public readonly int|null $defaultSlot = null,
         public readonly string|null $hydrateScope = null,
         public readonly string|null $extractScope = null,
+        public readonly array $aliases = [],
     ) {
     }
 

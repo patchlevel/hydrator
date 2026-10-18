@@ -122,6 +122,7 @@ final class ClassPlanner
             defaultSlot: $defaultSlot,
             hydrateScope: $inherited && ($reflection->isPrivate() || $reflection->isReadOnly() || self::privateSet($reflection)) ? $declaringClass : null,
             extractScope: $inherited && $reflection->isPrivate() ? $declaringClass : null,
+            aliases: $property->aliases,
         );
     }
 

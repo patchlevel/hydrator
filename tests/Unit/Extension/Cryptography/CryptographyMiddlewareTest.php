@@ -17,6 +17,7 @@ use Patchlevel\Hydrator\Mapper\ReflectionMapper;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Middleware\Skip;
+use Patchlevel\Hydrator\Tests\Unit\Extension\Cryptography\Fixture\RenamedSensitiveDataProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Extension\Cryptography\Fixture\SensitiveDataProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Extension\Cryptography\Fixture\SensitiveDataProfileCreatedFallbackCallback;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
@@ -174,6 +175,71 @@ final class CryptographyMiddlewareTest extends TestCase
         self::assertInstanceOf(SensitiveDataProfileCreated::class, $result);
         self::assertEquals(ProfileId::fromString('foo'), $result->profileId);
         self::assertEquals(new Email('unknown'), $result->email);
+    }
+
+    public function testDecryptAliasedFields(): void
+    {
+        $cryptographer = $this->createMock(Cryptographer::class);
+        $cryptographer->method('supports')->willReturn(true);
+        $cryptographer->expects($this->once())
+            ->method('decrypt')
+            ->with('foo', 'encrypted')
+            ->willReturn('info@patchlevel.de');
+
+        $middleware = new CryptographyMiddleware($cryptographer);
+
+        $result = $middleware->hydrate(
+            $this->metadata(RenamedSensitiveDataProfileCreated::class),
+            ['profileId' => 'foo', 'mail' => 'encrypted'],
+            [],
+            new ReflectionMapper($this->metadata(RenamedSensitiveDataProfileCreated::class)),
+        );
+
+        self::assertInstanceOf(RenamedSensitiveDataProfileCreated::class, $result);
+        self::assertEquals(ProfileId::fromString('foo'), $result->profileId);
+        self::assertEquals(new Email('info@patchlevel.de'), $result->email);
+    }
+
+    public function testDecryptAliasedFieldWithFallback(): void
+    {
+        $cryptographer = $this->createMock(Cryptographer::class);
+        $cryptographer->method('supports')->willReturn(true);
+        $cryptographer->method('decrypt')->willThrowException(CipherKeyNotExists::forSubjectId('foo'));
+
+        $middleware = new CryptographyMiddleware($cryptographer);
+
+        $result = $middleware->hydrate(
+            $this->metadata(RenamedSensitiveDataProfileCreated::class),
+            ['profileId' => 'foo', 'mail' => 'encrypted'],
+            [],
+            new ReflectionMapper($this->metadata(RenamedSensitiveDataProfileCreated::class)),
+        );
+
+        self::assertInstanceOf(RenamedSensitiveDataProfileCreated::class, $result);
+        self::assertEquals(new Email('unknown'), $result->email);
+    }
+
+    public function testDecryptPrefersTheFieldOverTheAlias(): void
+    {
+        $cryptographer = $this->createMock(Cryptographer::class);
+        $cryptographer->method('supports')->willReturn(true);
+        $cryptographer->expects($this->once())
+            ->method('decrypt')
+            ->with('new', 'encrypted new')
+            ->willReturn('new@patchlevel.de');
+
+        $middleware = new CryptographyMiddleware($cryptographer);
+
+        $result = $middleware->hydrate(
+            $this->metadata(RenamedSensitiveDataProfileCreated::class),
+            ['profileId' => 'old', 'id' => 'new', 'mail' => 'encrypted old', 'email' => 'encrypted new'],
+            [],
+            new ReflectionMapper($this->metadata(RenamedSensitiveDataProfileCreated::class)),
+        );
+
+        self::assertInstanceOf(RenamedSensitiveDataProfileCreated::class, $result);
+        self::assertEquals(ProfileId::fromString('new'), $result->profileId);
+        self::assertEquals(new Email('new@patchlevel.de'), $result->email);
     }
 
     public function testDecryptWithDecryptionFailed(): void

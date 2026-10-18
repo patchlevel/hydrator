@@ -30,6 +30,7 @@ use Symfony\Component\TypeInfo\TypeResolver\TypeResolver;
 use function array_key_exists;
 use function array_merge;
 use function array_values;
+use function in_array;
 
 final class AttributeMetadataFactory implements MetadataFactory
 {
@@ -100,6 +101,9 @@ final class AttributeMetadataFactory implements MetadataFactory
     {
         $properties = [];
 
+        /** @var array<string, string> $names field name or alias => property name */
+        $names = [];
+
         foreach ($reflectionClass->getProperties() as $reflectionProperty) {
             if ($reflectionProperty->isStatic()) {
                 continue;
@@ -113,15 +117,20 @@ final class AttributeMetadataFactory implements MetadataFactory
                 continue;
             }
 
-            $fieldName = $this->getFieldName($reflectionProperty);
+            [$fieldName, $aliases] = $this->getFieldName($reflectionProperty);
 
-            if (array_key_exists($fieldName, $properties)) {
-                throw DuplicatedFieldNameInMetadata::inClass(
-                    $fieldName,
-                    $reflectionClass->getName(),
-                    $properties[$fieldName]->propertyName,
-                    $reflectionProperty->getName(),
-                );
+            // aliases share the namespace of the field names, otherwise a field could belong to two properties
+            foreach ([$fieldName, ...$aliases] as $name) {
+                if (array_key_exists($name, $names)) {
+                    throw DuplicatedFieldNameInMetadata::inClass(
+                        $name,
+                        $reflectionClass->getName(),
+                        $names[$name],
+                        $reflectionProperty->getName(),
+                    );
+                }
+
+                $names[$name] = $reflectionProperty->getName();
             }
 
             $type = $this->typeResolver->resolve($reflectionProperty);
@@ -131,6 +140,7 @@ final class AttributeMetadataFactory implements MetadataFactory
                 $type,
                 $fieldName,
                 $this->getNormalizer($reflectionProperty, $type),
+                aliases: $aliases,
             );
         }
 
@@ -149,15 +159,18 @@ final class AttributeMetadataFactory implements MetadataFactory
         return $attributeReflectionList[0]->newInstance()->enabled;
     }
 
-    private function getFieldName(ReflectionProperty $reflectionProperty): string
+    /** @return array{string, list<string>} field name and its aliases */
+    private function getFieldName(ReflectionProperty $reflectionProperty): array
     {
         $attributeReflectionList = $reflectionProperty->getAttributes(NormalizedName::class);
 
         if ($attributeReflectionList === []) {
-            return $reflectionProperty->getName();
+            return [$reflectionProperty->getName(), []];
         }
 
-        return $attributeReflectionList[0]->newInstance()->name();
+        $attribute = $attributeReflectionList[0]->newInstance();
+
+        return [$attribute->name(), $attribute->aliases()];
     }
 
     private function hasIgnore(ReflectionProperty $reflectionProperty): bool
@@ -176,17 +189,23 @@ final class AttributeMetadataFactory implements MetadataFactory
     {
         $properties = [];
 
+        /** @var list<string> $names field names and aliases of $parent */
+        $names = [];
+
         foreach ($parent->properties as $property) {
             $properties[$property->fieldName] = $property;
+            $names = [...$names, $property->fieldName, ...$property->aliases];
         }
 
         foreach ($child->properties as $property) {
-            if (array_key_exists($property->fieldName, $properties)) {
-                throw DuplicatedFieldNameInMetadata::byInheritance(
-                    $property->fieldName,
-                    $parent->className,
-                    $child->className,
-                );
+            foreach ([$property->fieldName, ...$property->aliases] as $name) {
+                if (in_array($name, $names, true)) {
+                    throw DuplicatedFieldNameInMetadata::byInheritance(
+                        $name,
+                        $parent->className,
+                        $child->className,
+                    );
+                }
             }
 
             $properties[$property->fieldName] = $property;

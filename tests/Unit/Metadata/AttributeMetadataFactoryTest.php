@@ -12,6 +12,8 @@ use Patchlevel\Hydrator\Metadata\DuplicatedFieldNameInMetadata;
 use Patchlevel\Hydrator\Metadata\PropertyMetadataNotFound;
 use Patchlevel\Hydrator\Normalizer\EnumNormalizer;
 use Patchlevel\Hydrator\Normalizer\ObjectNormalizer;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\AliasDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\AliasParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\BrokenParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DistributionCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DuplicateFieldNameDto;
@@ -30,6 +32,7 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\TypeInfo\Type;
 
 #[CoversClass(AttributeMetadataFactory::class)]
+#[CoversClass(NormalizedName::class)]
 final class AttributeMetadataFactoryTest extends TestCase
 {
     public function testEmptyObject(): void
@@ -145,6 +148,102 @@ final class AttributeMetadataFactoryTest extends TestCase
         self::assertSame('name', $propertyMetadata->propertyName);
         self::assertSame('username', $propertyMetadata->fieldName);
         self::assertNull($propertyMetadata->normalizer);
+    }
+
+    public function testNormalizedNameWithAliases(): void
+    {
+        $metadata = (new AttributeMetadataFactory())->metadata(AliasDto::class);
+
+        self::assertSame(['mail', 'e_mail'], $metadata->properties['email']->aliases);
+        self::assertSame(['username'], $metadata->properties['name']->aliases);
+    }
+
+    public function testWithoutAliases(): void
+    {
+        $object = new class ('Foo') {
+            public function __construct(
+                #[NormalizedName('username')]
+                public string $name,
+                public string $email = '',
+            ) {
+            }
+        };
+
+        $metadata = (new AttributeMetadataFactory())->metadata($object::class);
+
+        self::assertSame([], $metadata->properties['name']->aliases);
+        self::assertSame([], $metadata->properties['email']->aliases);
+    }
+
+    public function testAliasDuplicatesFieldName(): void
+    {
+        $object = new class {
+            #[NormalizedName('email', aliases: ['mail'])]
+            public string $email = '';
+
+            public string $mail = '';
+        };
+
+        $this->expectException(DuplicatedFieldNameInMetadata::class);
+        $this->expectExceptionMessage('field name "mail" is duplicated in class');
+
+        (new AttributeMetadataFactory())->metadata($object::class);
+    }
+
+    public function testAliasDuplicatesAlias(): void
+    {
+        $object = new class {
+            #[NormalizedName('email', aliases: ['mail'])]
+            public string $email = '';
+
+            #[NormalizedName('backupEmail', aliases: ['mail'])]
+            public string $backupEmail = '';
+        };
+
+        $this->expectException(DuplicatedFieldNameInMetadata::class);
+        $this->expectExceptionMessage('field name "mail" is duplicated in class');
+
+        (new AttributeMetadataFactory())->metadata($object::class);
+    }
+
+    public function testExtendsAliasDuplicatesFieldName(): void
+    {
+        $object = new class extends AliasParentDto {
+            public string $mail = '';
+
+            public string $phone = '';
+        };
+
+        $this->expectException(DuplicatedFieldNameInMetadata::class);
+        $this->expectExceptionMessage('field name "mail" is duplicated due to inheritance');
+
+        (new AttributeMetadataFactory())->metadata($object::class);
+    }
+
+    public function testExtendsFieldNameDuplicatesAlias(): void
+    {
+        $object = new class extends AliasParentDto {
+            #[NormalizedName('contact', aliases: ['email'])]
+            public string $contact = '';
+        };
+
+        $this->expectException(DuplicatedFieldNameInMetadata::class);
+        $this->expectExceptionMessage('field name "email" is duplicated due to inheritance');
+
+        (new AttributeMetadataFactory())->metadata($object::class);
+    }
+
+    public function testExtendsWithAliases(): void
+    {
+        $object = new class extends AliasParentDto {
+            #[NormalizedName('name', aliases: ['username'])]
+            public string $name = '';
+        };
+
+        $metadata = (new AttributeMetadataFactory())->metadata($object::class);
+
+        self::assertSame(['mail'], $metadata->properties['email']->aliases);
+        self::assertSame(['username'], $metadata->properties['name']->aliases);
     }
 
     public function testDefineNormalizer(): void
