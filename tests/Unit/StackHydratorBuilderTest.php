@@ -8,7 +8,9 @@ use Patchlevel\Hydrator\Extension;
 use Patchlevel\Hydrator\Guesser\BuiltInGuesser;
 use Patchlevel\Hydrator\Guesser\ChainGuesser;
 use Patchlevel\Hydrator\Guesser\Guesser;
+use Patchlevel\Hydrator\Mapper\ChainPropertyFilter;
 use Patchlevel\Hydrator\Mapper\MapperFactory;
+use Patchlevel\Hydrator\Mapper\PropertyFilter;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\EnrichingMetadataFactory;
 use Patchlevel\Hydrator\Metadata\MetadataEnricher;
@@ -213,5 +215,22 @@ final class StackHydratorBuilderTest extends TestCase
         $builder->addMapperFactory($high, 1);
 
         self::assertSame([$high, $default, $low], $builder->mapperFactories());
+    }
+
+    public function testAddPropertyFilter(): void
+    {
+        $filter1 = $this->createMock(PropertyFilter::class);
+        $filter2 = $this->createMock(PropertyFilter::class);
+
+        $builder = new StackHydratorBuilder();
+
+        self::assertSame([], $builder->propertyFilters());
+        self::assertNull($builder->build()->propertyFilter());
+
+        $builder->addPropertyFilter($filter1);
+        $builder->addPropertyFilter($filter2);
+
+        self::assertSame([$filter1, $filter2], $builder->propertyFilters());
+        self::assertEquals(new ChainPropertyFilter([$filter1, $filter2]), $builder->build()->propertyFilter());
     }
 }

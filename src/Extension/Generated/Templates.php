@@ -127,6 +127,11 @@ final class {{className}} extends GeneratedMapper
         {{extractNested}}
     }
 
+    public function extractFiltered(object $object, array $context, array $fields, bool $inline): array
+    {
+        {{extractFiltered}}
+    }
+
     {{populate}}
 
     protected function initialize(): void
@@ -181,11 +186,7 @@ if ($this->tracked) {
     $this->callStack->objects[$id] = \{{class}}::class;
 
     try {
-        {{pre}}
-
-        return [
-            {{fields}}
-        ];
+        {{body}}
     } finally {
         unset($this->callStack->objects[$id]);
     }
@@ -212,6 +213,34 @@ PHP;
     public const ALIAS = <<<'PHP'
 if (!\array_key_exists({{field}}, $data) && \array_key_exists({{alias}}, $data)) {
     $data[{{field}}] = $data[{{alias}}];
+}
+PHP;
+
+    public const EXTRACT_FILTERED = <<<'PHP'
+$data = [];
+
+{{pre}}
+
+{{fields}}
+
+return $data;
+PHP;
+
+    public const EXTRACT_FILTERED_HELPER = <<<'PHP'
+$this->fp{{slot}} = Closure::bind(function (object $object, array $context, array $fields, bool $inline): array {
+    $data = [];
+
+    {{body}}
+
+    return $data;
+}, $this, \{{scope}}::class);
+PHP;
+
+    public const EXTRACT_FILTERED_FIELD = <<<'PHP'
+if (isset($fields[{{field}}])) {
+    {{code}}
+
+    $data[{{field}}] = {{value}};
 }
 PHP;
 

@@ -24,7 +24,7 @@ final class MapperFiles
     public const NAMESPACE = 'Patchlevel\\Hydrator\\Generated';
 
     /** Part of the name, bump it whenever the generated code changes. */
-    public const VERSION = 12;
+    public const VERSION = 13;
 
     public function __construct(
         public readonly string $cachePath,

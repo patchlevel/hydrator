@@ -13,6 +13,7 @@ use Patchlevel\Hydrator\CircularReference;
 use Patchlevel\Hydrator\ClassNotSupported;
 use Patchlevel\Hydrator\DenormalizationFailure;
 use Patchlevel\Hydrator\Hydrator;
+use Patchlevel\Hydrator\Mapper\ChainPropertyFilter;
 use Patchlevel\Hydrator\Mapper\LazyMapper;
 use Patchlevel\Hydrator\Mapper\Mapper;
 use Patchlevel\Hydrator\Mapper\ReflectionMapper;
@@ -30,6 +31,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle1Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle2Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle3Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ContextAwareDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\ContextPropertyFilter;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DefaultDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DummyMiddleware;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
@@ -1075,5 +1077,154 @@ final class StackHydratorTest extends TestCase
         $hydrator->extract($hydrator->hydrate(Skill::class, ['name' => 'php']));
 
         self::assertSame(['hydrate first', 'extract first'], $calls->getArrayCopy());
+    }
+
+    public function testPropertyFilter(): void
+    {
+        $first = new ContextPropertyFilter();
+        $second = new ContextPropertyFilter();
+
+        self::assertNull((new StackHydrator())->propertyFilter());
+        self::assertSame($first, (new StackHydrator(propertyFilters: [$first]))->propertyFilter());
+        self::assertEquals(
+            new ChainPropertyFilter([$first, $second]),
+            (new StackHydrator(propertyFilters: [$first, $second]))->propertyFilter(),
+        );
+    }
+
+    public function testExtractWithPropertyFilter(): void
+    {
+        $hydrator = new StackHydrator(propertyFilters: [new ContextPropertyFilter()]);
+        $event = new ProfileCreated(
+            ProfileId::fromString('1'),
+            Email::fromString('info@patchlevel.de'),
+        );
+
+        self::assertSame(
+            ['email' => 'info@patchlevel.de'],
+            $hydrator->extract($event, [ContextPropertyFilter::FIELDS => [ProfileCreated::class => ['email']]]),
+        );
+        self::assertSame(
+            ['profileId' => '1', 'email' => 'info@patchlevel.de'],
+            $hydrator->extract($event, [ContextPropertyFilter::FIELDS => [Skill::class => []]]),
+        );
+    }
+
+    public function testExtractWithPropertyFilterDoesNotReadFilteredProperties(): void
+    {
+        $hydrator = new StackHydrator(propertyFilters: [new ContextPropertyFilter()]);
+        $event = (new ReflectionClass(ProfileCreated::class))->newInstanceWithoutConstructor();
+        $event->profileId = ProfileId::fromString('1');
+
+        self::assertSame(
+            ['profileId' => '1'],
+            $hydrator->extract($event, [ContextPropertyFilter::FIELDS => [ProfileCreated::class => ['profileId']]]),
+        );
+    }
+
+    public function testExtractWithPropertyFilterOfNestedObjects(): void
+    {
+        $hydrator = new StackHydrator(propertyFilters: [new ContextPropertyFilter()]);
+        $event = new ProfileCreatedWrapper(
+            new ProfileCreated(
+                ProfileId::fromString('1'),
+                Email::fromString('info@patchlevel.de'),
+            ),
+        );
+
+        self::assertSame(
+            ['event' => ['profileId' => '1']],
+            $hydrator->extract($event, [ContextPropertyFilter::FIELDS => [ProfileCreated::class => ['profileId']]]),
+        );
+    }
+
+    public function testExtractWithPropertyFilterBreaksCircularReference(): void
+    {
+        $hydrator = new StackHydrator(propertyFilters: [new ContextPropertyFilter()]);
+
+        $dto1 = new Circle1Dto();
+        $dto2 = new Circle2Dto();
+        $dto3 = new Circle3Dto();
+
+        $dto1->to = $dto2;
+        $dto2->to = $dto3;
+        $dto3->to = $dto1;
+
+        self::assertSame(
+            ['to' => ['to' => []]],
+            $hydrator->extract($dto1, [ContextPropertyFilter::FIELDS => [Circle3Dto::class => []]]),
+        );
+    }
+
+    public function testHydrateWithPropertyFilter(): void
+    {
+        $hydrator = new StackHydrator(propertyFilters: [new ContextPropertyFilter()]);
+
+        $object = $hydrator->hydrate(
+            DefaultDto::class,
+            ['name' => 'test', 'email' => 'test@patchlevel.de', 'admin' => false],
+            [ContextPropertyFilter::FIELDS => [DefaultDto::class => ['name']]],
+        );
+
+        // filtered promoted properties fall back to their default, all others are not touched
+        self::assertEquals(new DefaultDto('test'), $object);
+    }
+
+    public function testHydrateWithPropertyFilterAndAlias(): void
+    {
+        $hydrator = new StackHydrator(propertyFilters: [new ContextPropertyFilter()]);
+
+        $object = $hydrator->hydrate(
+            AliasDto::class,
+            ['mail' => 'info@patchlevel.de', 'username' => 'patchlevel'],
+            [ContextPropertyFilter::FIELDS => [AliasDto::class => ['email']]],
+        );
+
+        // kept properties are read from their aliases, the aliases of filtered properties are ignored
+        self::assertEquals(new AliasDto(Email::fromString('info@patchlevel.de')), $object);
+
+        $object = $hydrator->hydrate(
+            AliasDto::class,
+            ['mail' => 'info@patchlevel.de', 'username' => 'patchlevel'],
+            [ContextPropertyFilter::FIELDS => [AliasDto::class => ['email', 'name']]],
+        );
+
+        self::assertEquals(new AliasDto(Email::fromString('info@patchlevel.de'), 'patchlevel'), $object);
+    }
+
+    public function testHydrateWithPropertyFilterAndObjectToPopulate(): void
+    {
+        $hydrator = new StackHydrator(propertyFilters: [new ContextPropertyFilter()]);
+        $dto = new DefaultDto('old', Email::fromString('old@patchlevel.de'));
+        $dto->admin = false;
+
+        $object = $hydrator->hydrate(
+            DefaultDto::class,
+            ['name' => 'new', 'email' => 'new@patchlevel.de', 'admin' => true],
+            [
+                ContextPropertyFilter::FIELDS => [DefaultDto::class => ['name']],
+                Hydrator::OBJECT_TO_POPULATE => $dto,
+            ],
+        );
+
+        // the filtered properties of an existing object are not touched, also not set to their default
+        self::assertSame($dto, $object);
+        self::assertSame('new', $dto->name);
+        self::assertEquals(Email::fromString('old@patchlevel.de'), $dto->email);
+        self::assertFalse($dto->admin);
+    }
+
+    public function testHydrateWithPropertyFilterOfNestedObjects(): void
+    {
+        $hydrator = new StackHydrator(propertyFilters: [new ContextPropertyFilter()]);
+
+        $object = $hydrator->hydrate(
+            ProfileCreatedWrapper::class,
+            ['event' => ['profileId' => '1', 'email' => 'info@patchlevel.de']],
+            [ContextPropertyFilter::FIELDS => [ProfileCreated::class => ['profileId']]],
+        );
+
+        self::assertEquals(ProfileId::fromString('1'), $object->profileCreated->profileId);
+        self::assertFalse(isset($object->profileCreated->email));
     }
 }

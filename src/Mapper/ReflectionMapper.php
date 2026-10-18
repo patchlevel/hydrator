@@ -33,6 +33,8 @@ use function spl_object_id;
  * their class right away, without the detour through the normalizer and the hydrator. This only happens for calls of
  * the hydrator which created this mapper: a hydrator which wraps it has to see the nested objects.
  *
+ * The {@see PropertyFilter} of the hydrator decides which properties are mapped for a call.
+ *
  * @template T of object
  * @implements Mapper<T>
  */
@@ -44,12 +46,15 @@ final class ReflectionMapper implements Mapper
     /** @var array<string, Mapper<object>|null> property name => mapper of the nested class */
     private array $nestedMappers = [];
 
+    private readonly PropertyFilter|null $filter;
+
     /** @param ClassMetadata<T> $metadata */
     public function __construct(
         private readonly ClassMetadata $metadata,
         private readonly StackHydrator|null $hydrator = null,
         private readonly CallStack $callStack = new CallStack(),
     ) {
+        $this->filter = $hydrator?->propertyFilter();
     }
 
     /**
@@ -84,6 +89,14 @@ final class ReflectionMapper implements Mapper
     {
         $metadata = $this->metadata;
         $constructorParameters = null;
+
+        if ($this->filter !== null) {
+            $fields = $this->filter->filter($metadata, $context);
+
+            if ($fields !== null) {
+                $data = self::withoutFilteredFields($metadata, $data, $fields);
+            }
+        }
 
         foreach ($metadata->properties as $propertyMetadata) {
             if (!array_key_exists($propertyMetadata->fieldName, $data)) {
@@ -151,6 +164,33 @@ final class ReflectionMapper implements Mapper
     }
 
     /**
+     * Removes the fields of the properties the filter leaves out, also under their aliases, so they are treated as
+     * missing. Unknown fields don't matter, they are not read anyway.
+     *
+     * @param ClassMetadata<object>           $metadata
+     * @param array<string, mixed>            $data
+     * @param array<string, PropertyMetadata> $fields   the properties to map by field name
+     *
+     * @return array<string, mixed>
+     */
+    private static function withoutFilteredFields(ClassMetadata $metadata, array $data, array $fields): array
+    {
+        foreach ($metadata->properties as $property) {
+            if (isset($fields[$property->fieldName])) {
+                continue;
+            }
+
+            unset($data[$property->fieldName]);
+
+            foreach ($property->aliases as $alias) {
+                unset($data[$alias]);
+            }
+        }
+
+        return $data;
+    }
+
+    /**
      * The first alias of the property which is in the data.
      *
      * @param array<string, mixed> $data
@@ -186,6 +226,12 @@ final class ReflectionMapper implements Mapper
      */
     private function extractProperties(object $object, array $context, array $nested): array
     {
+        $properties = $this->metadata->properties;
+
+        if ($this->filter !== null) {
+            $properties = $this->filter->filter($this->metadata, $context) ?? $properties;
+        }
+
         $objectId = spl_object_id($object);
 
         if (array_key_exists($objectId, $this->callStack->objects)) {
@@ -200,7 +246,7 @@ final class ReflectionMapper implements Mapper
         try {
             $data = [];
 
-            foreach ($this->metadata->properties as $propertyMetadata) {
+            foreach ($properties as $propertyMetadata) {
                 if ($propertyMetadata->normalizer) {
                     try {
                         /** @psalm-suppress MixedAssignment */

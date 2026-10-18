@@ -378,6 +378,37 @@ use Patchlevel\Hydrator\Extension\Upcast\UpcastExtension;
 
 $extension = new UpcastExtension(beforeMapping: [$mergeNameUpcaster]);
 ```
+## Groups
+
+### GroupsMiddleware
+
+The `GroupsMiddleware` has been removed. The groups are now applied by the
+mapper of every class through the `GroupsPropertyFilter`, which also works with
+the generated mappers. If you use the `GroupsExtension`, nothing changes. If you
+registered the middleware yourself, register the property filter instead, or
+use the `GroupsExtension`.
+
+before:
+
+```php
+use Patchlevel\Hydrator\Extension;
+use Patchlevel\Hydrator\Extension\Groups\GroupsMetadataEnricher;
+use Patchlevel\Hydrator\Extension\Groups\GroupsMiddleware;
+
+$builder
+    ->addMiddleware(new GroupsMiddleware(), Extension::PRIORITY_BEFORE_TRANSFORM)
+    ->addMetadataEnricher(new GroupsMetadataEnricher());
+```
+after:
+
+```php
+use Patchlevel\Hydrator\Extension\Groups\GroupsMetadataEnricher;
+use Patchlevel\Hydrator\Extension\Groups\GroupsPropertyFilter;
+
+$builder
+    ->addPropertyFilter(new GroupsPropertyFilter())
+    ->addMetadataEnricher(new GroupsMetadataEnricher());
+```
 ## Caching
 
 The serialized form of the normalizers changed. Clear the
