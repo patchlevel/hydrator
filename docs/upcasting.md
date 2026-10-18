@@ -11,15 +11,13 @@ Register the `UpcastExtension` on the builder and pass it a list of upcasters.
 Each upcaster receives the raw data array and returns a reshaped array.
 
 ```php
-use Patchlevel\Hydrator\CoreExtension;
 use Patchlevel\Hydrator\Extension\Upcast\CallbackUpcaster;
 use Patchlevel\Hydrator\Extension\Upcast\UpcastExtension;
 use Patchlevel\Hydrator\StackHydratorBuilder;
 
 $hydrator = (new StackHydratorBuilder())
-    ->useExtension(new CoreExtension())
     ->useExtension(new UpcastExtension(
-        beforeTransform: [
+        beforeMapping: [
             CallbackUpcaster::forClass(
                 ProfileCreated::class,
                 static function (array $data): array {
@@ -99,23 +97,23 @@ you pass your upcasters to the matching argument.
 | Argument | Runs | Works on |
 | --- | --- | --- |
 | `beforeEncoding` | before the values are decoded | the raw stored values (strings, ints, ...) |
-| `beforeTransform` | after decoding, right before the object is built | the decoded values (enums, dates, value objects, ...) |
+| `beforeMapping` | after decoding, right before the object is built | the decoded values (enums, dates, value objects, ...) |
 
 Use `beforeEncoding` when you rename or restructure fields whose raw form is
-enough, and `beforeTransform` when you need the already decoded values.
+enough, and `beforeMapping` when you need the already decoded values.
 
 ```php
 use Patchlevel\Hydrator\Extension\Upcast\UpcastExtension;
 
 $extension = new UpcastExtension(
     beforeEncoding: [$renameFieldUpcaster],
-    beforeTransform: [$mergeNameUpcaster],
+    beforeMapping: [$mergeNameUpcaster],
 );
 ```
 :::warning
 The [cryptography](cryptography.md) extension decrypts values during the
 decoding stage. A `beforeEncoding` upcaster therefore still sees the encrypted
-values, while a `beforeTransform` upcaster sees the decrypted ones. Pick the
+values, while a `beforeMapping` upcaster sees the decrypted ones. Pick the
 stage that matches the data you need.
 :::
 

@@ -12,12 +12,11 @@ use Patchlevel\Hydrator\Extension\Cryptography\MissingSubjectIdForField;
 use Patchlevel\Hydrator\Extension\Cryptography\Store\CipherKeyNotExists;
 use Patchlevel\Hydrator\Extension\Cryptography\SubjectIds;
 use Patchlevel\Hydrator\Extension\Cryptography\UnsupportedSubjectId;
+use Patchlevel\Hydrator\Mapper\Mapper;
+use Patchlevel\Hydrator\Mapper\ReflectionMapper;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
-use Patchlevel\Hydrator\Middleware\Middleware;
 use Patchlevel\Hydrator\Middleware\Skip;
-use Patchlevel\Hydrator\Middleware\Stack;
-use Patchlevel\Hydrator\Middleware\TransformMiddleware;
 use Patchlevel\Hydrator\Tests\Unit\Extension\Cryptography\Fixture\SensitiveDataProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Extension\Cryptography\Fixture\SensitiveDataProfileCreatedFallbackCallback;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
@@ -41,7 +40,7 @@ final class CryptographyMiddlewareTest extends TestCase
             $this->metadata(SensitiveDataProfileCreated::class),
             ['id' => null, 'email' => 'encrypted'],
             [],
-            new Stack([new TransformMiddleware()]),
+            new ReflectionMapper($this->metadata(SensitiveDataProfileCreated::class)),
         );
     }
 
@@ -57,7 +56,7 @@ final class CryptographyMiddlewareTest extends TestCase
             $this->metadata(SensitiveDataProfileCreated::class),
             ['email' => 'encrypted'],
             [],
-            new Stack([new TransformMiddleware()]),
+            new ReflectionMapper($this->metadata(SensitiveDataProfileCreated::class)),
         );
     }
 
@@ -76,20 +75,18 @@ final class CryptographyMiddlewareTest extends TestCase
 
         $metadata = $this->metadata(ProfileCreated::class);
 
-        $otherMiddleware = $this->createMock(Middleware::class);
-        $stack = new Stack([$otherMiddleware]);
-
-        $otherMiddleware
+        $next = $this->createMock(Mapper::class);
+        $next
             ->expects($this->once())
             ->method('extract')
-            ->with($metadata, $object, [SubjectIds::class => new SubjectIds()], $stack)
+            ->with($object, [SubjectIds::class => new SubjectIds()])
             ->willReturn($expected);
 
         $result = $middleware->extract(
             $metadata,
             $object,
             [],
-            $stack,
+            $next,
         );
 
         self::assertSame($expected, $result);
@@ -104,13 +101,11 @@ final class CryptographyMiddlewareTest extends TestCase
 
         $metadata = $this->metadata(SensitiveDataProfileCreated::class);
 
-        $otherMiddleware = $this->createMock(Middleware::class);
-        $stack = new Stack([$otherMiddleware]);
-
-        $otherMiddleware
+        $next = $this->createMock(Mapper::class);
+        $next
             ->expects($this->once())
             ->method('extract')
-            ->with($metadata, $object, [SubjectIds::class => new SubjectIds(['default' => 'foo'])], $stack)
+            ->with($object, [SubjectIds::class => new SubjectIds(['default' => 'foo'])])
             ->willReturn(['id' => 'foo', 'email' => 'info@patchlevel.de']);
 
         $cryptographer = $this->createMock(Cryptographer::class);
@@ -122,7 +117,7 @@ final class CryptographyMiddlewareTest extends TestCase
             $metadata,
             $object,
             [],
-            $stack,
+            $next,
         );
 
         self::assertEquals(['id' => 'foo', 'email' => 'encrypted'], $result);
@@ -142,13 +137,11 @@ final class CryptographyMiddlewareTest extends TestCase
 
         $metadata = $this->metadata(ProfileCreated::class);
 
-        $otherMiddleware = $this->createMock(Middleware::class);
-        $stack = new Stack([$otherMiddleware]);
-
-        $otherMiddleware
+        $next = $this->createMock(Mapper::class);
+        $next
             ->expects($this->once())
             ->method('hydrate')
-            ->with($metadata, $data, [SubjectIds::class => new SubjectIds()], $stack)
+            ->with($data, [SubjectIds::class => new SubjectIds()])
             ->willReturn($expected);
 
         $middleware = new CryptographyMiddleware($cryptographer);
@@ -157,7 +150,7 @@ final class CryptographyMiddlewareTest extends TestCase
             $metadata,
             $data,
             [],
-            $stack,
+            $next,
         );
 
         self::assertSame($expected, $result);
@@ -175,7 +168,7 @@ final class CryptographyMiddlewareTest extends TestCase
             $this->metadata(SensitiveDataProfileCreated::class),
             ['id' => 'foo', 'email' => 'encrypted'],
             [],
-            new Stack([new TransformMiddleware()]),
+            new ReflectionMapper($this->metadata(SensitiveDataProfileCreated::class)),
         );
 
         self::assertInstanceOf(SensitiveDataProfileCreated::class, $result);
@@ -195,7 +188,7 @@ final class CryptographyMiddlewareTest extends TestCase
             $this->metadata(SensitiveDataProfileCreated::class),
             ['id' => 'foo', 'email' => 'encrypted'],
             [],
-            new Stack([new TransformMiddleware()]),
+            new ReflectionMapper($this->metadata(SensitiveDataProfileCreated::class)),
         );
 
         self::assertInstanceOf(SensitiveDataProfileCreated::class, $result);
@@ -215,7 +208,7 @@ final class CryptographyMiddlewareTest extends TestCase
             $this->metadata(SensitiveDataProfileCreatedFallbackCallback::class),
             ['id' => 'foo', 'email' => 'encrypted'],
             [],
-            new Stack([new TransformMiddleware()]),
+            new ReflectionMapper($this->metadata(SensitiveDataProfileCreatedFallbackCallback::class)),
         );
 
         self::assertInstanceOf(SensitiveDataProfileCreatedFallbackCallback::class, $result);
@@ -235,7 +228,7 @@ final class CryptographyMiddlewareTest extends TestCase
             $this->metadata(SensitiveDataProfileCreated::class),
             ['id' => 'foo', 'email' => 'encrypted'],
             [],
-            new Stack([new TransformMiddleware()]),
+            new ReflectionMapper($this->metadata(SensitiveDataProfileCreated::class)),
         );
 
         self::assertInstanceOf(SensitiveDataProfileCreated::class, $result);

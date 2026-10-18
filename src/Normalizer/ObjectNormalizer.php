@@ -15,10 +15,8 @@ use Symfony\Component\TypeInfo\Type\TemplateType;
 use function is_array;
 
 #[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_CLASS)]
-final class ObjectNormalizer implements Normalizer, TypeAwareNormalizer, HydratorAwareNormalizer
+final class ObjectNormalizer implements Normalizer, TypeAwareNormalizer
 {
-    private Hydrator|null $hydrator = null;
-
     /** @param class-string|null $className */
     public function __construct(
         private string|null $className = null,
@@ -28,10 +26,6 @@ final class ObjectNormalizer implements Normalizer, TypeAwareNormalizer, Hydrato
     /** @param array<string, mixed> $context */
     public function normalize(mixed $value, array $context): mixed
     {
-        if (!$this->hydrator) {
-            throw new MissingHydrator();
-        }
-
         if ($value === null) {
             return null;
         }
@@ -42,16 +36,12 @@ final class ObjectNormalizer implements Normalizer, TypeAwareNormalizer, Hydrato
             throw InvalidArgument::withWrongType($className . '|null', $value);
         }
 
-        return $this->hydrator->extract($value, $context);
+        return self::hydrator($context)->extract($value, $context);
     }
 
     /** @param array<string, mixed> $context */
     public function denormalize(mixed $value, array $context): object|null
     {
-        if (!$this->hydrator) {
-            throw new MissingHydrator();
-        }
-
         if ($value === null) {
             return null;
         }
@@ -62,12 +52,7 @@ final class ObjectNormalizer implements Normalizer, TypeAwareNormalizer, Hydrato
 
         $className = $this->className();
 
-        return $this->hydrator->hydrate($className, $value, $context);
-    }
-
-    public function setHydrator(Hydrator $hydrator): void
-    {
-        $this->hydrator = $hydrator;
+        return self::hydrator($context)->hydrate($className, $value, $context);
     }
 
     public function handleType(Type|null $type): void
@@ -105,12 +90,15 @@ final class ObjectNormalizer implements Normalizer, TypeAwareNormalizer, Hydrato
         return $this->className;
     }
 
-    /** @return array{className: class-string|null, hydrator: null} */
-    public function __serialize(): array
+    /** @param array<string, mixed> $context */
+    private static function hydrator(array $context): Hydrator
     {
-        return [
-            'className' => $this->className,
-            'hydrator' => null,
-        ];
+        $hydrator = $context[Hydrator::HYDRATOR] ?? null;
+
+        if (!$hydrator instanceof Hydrator) {
+            throw new MissingHydrator();
+        }
+
+        return $hydrator;
     }
 }

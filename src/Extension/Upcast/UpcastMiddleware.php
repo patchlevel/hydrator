@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Extension\Upcast;
 
 use Patchlevel\Hydrator\Extension\Upcast\Attribute\UpcasterFor;
+use Patchlevel\Hydrator\Mapper\Mapper;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Middleware\Skip;
 use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
-use Patchlevel\Hydrator\Middleware\Stack;
 use ReflectionClass;
 
 use function array_map;
@@ -29,12 +29,13 @@ final readonly class UpcastMiddleware implements SkippableMiddleware
      * @param ClassMetadata<T>     $metadata
      * @param array<string, mixed> $data
      * @param array<string, mixed> $context
+     * @param Mapper<T>            $next
      *
      * @return T
      *
      * @template T of object
      */
-    public function hydrate(ClassMetadata $metadata, array $data, array $context, Stack $stack): object
+    public function hydrate(ClassMetadata $metadata, array $data, array $context, Mapper $next): object
     {
         foreach ($this->upcasters as $index => $upcaster) {
             $target = $this->targets[$index];
@@ -46,21 +47,22 @@ final readonly class UpcastMiddleware implements SkippableMiddleware
             $data = $upcaster->upcast($metadata, $data, $context);
         }
 
-        return $stack->next()->hydrate($metadata, $data, $context, $stack);
+        return $next->hydrate($data, $context);
     }
 
     /**
      * @param ClassMetadata<T>     $metadata
      * @param T                    $object
      * @param array<string, mixed> $context
+     * @param Mapper<T>            $next
      *
      * @return array<string, mixed>
      *
      * @template T of object
      */
-    public function extract(ClassMetadata $metadata, object $object, array $context, Stack $stack): array
+    public function extract(ClassMetadata $metadata, object $object, array $context, Mapper $next): array
     {
-        return $stack->next()->extract($metadata, $object, $context, $stack);
+        return $next->extract($object, $context);
     }
 
     /**

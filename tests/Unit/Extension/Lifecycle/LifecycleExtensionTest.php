@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Unit\Extension\Lifecycle;
 
-use Patchlevel\Hydrator\CoreExtension;
 use Patchlevel\Hydrator\Extension\Lifecycle\LifecycleExtension;
 use Patchlevel\Hydrator\StackHydratorBuilder;
 use Patchlevel\Hydrator\Tests\Unit\Extension\Lifecycle\Fixture\LifecycleFixture;
@@ -17,7 +16,6 @@ final class LifecycleExtensionTest extends TestCase
     public function testIntegration(): void
     {
         $hydrator = (new StackHydratorBuilder())
-            ->useExtension(new CoreExtension())
             ->useExtension(new LifecycleExtension())
             ->build();
 

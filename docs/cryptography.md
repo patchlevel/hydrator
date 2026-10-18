@@ -16,7 +16,6 @@ Register the `CryptographyExtension` on the builder and pass it a
 choice; it needs a [cipher key store](#cipher-key-store) to keep the keys.
 
 ```php
-use Patchlevel\Hydrator\CoreExtension;
 use Patchlevel\Hydrator\Extension\Cryptography\BaseCryptographer;
 use Patchlevel\Hydrator\Extension\Cryptography\CryptographyExtension;
 use Patchlevel\Hydrator\Extension\Cryptography\Store\InMemoryCipherKeyStore;
@@ -25,7 +24,6 @@ use Patchlevel\Hydrator\StackHydratorBuilder;
 $cipherKeyStore = new InMemoryCipherKeyStore();
 
 $hydrator = (new StackHydratorBuilder())
-    ->useExtension(new CoreExtension())
     ->useExtension(new CryptographyExtension(BaseCryptographer::createWithOpenssl($cipherKeyStore)))
     ->build();
 ```

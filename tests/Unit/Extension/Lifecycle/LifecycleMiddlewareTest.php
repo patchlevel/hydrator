@@ -6,15 +6,13 @@ namespace Patchlevel\Hydrator\Tests\Unit\Extension\Lifecycle;
 
 use Patchlevel\Hydrator\Extension\Lifecycle\Lifecycle;
 use Patchlevel\Hydrator\Extension\Lifecycle\LifecycleMiddleware;
+use Patchlevel\Hydrator\Mapper\Mapper;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
-use Patchlevel\Hydrator\Middleware\Middleware;
 use Patchlevel\Hydrator\Middleware\Skip;
-use Patchlevel\Hydrator\Middleware\Stack;
 use Patchlevel\Hydrator\Tests\Unit\Extension\Lifecycle\Fixture\LifecycleFixture;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use stdClass;
 
 use function assert;
 use function is_string;
@@ -31,42 +29,18 @@ final class LifecycleMiddlewareTest extends TestCase
             postHydrate: 'postHydrate',
         );
 
-        $innerMiddleware = new class implements Middleware {
-            /**
-             * @param ClassMetadata<T>     $metadata
-             * @param array<string, mixed> $data
-             * @param array<string, mixed> $context
-             *
-             * @return T
-             *
-             * @template T of object
-             */
-            public function hydrate(ClassMetadata $metadata, array $data, array $context, Stack $stack): object
-            {
+        $next = $this->createMock(Mapper::class);
+        $next
+            ->expects($this->once())
+            ->method('hydrate')
+            ->willReturnCallback(static function (array $data): LifecycleFixture {
                 $name = $data['name'] ?? '';
                 assert(is_string($name));
 
-                $object = new LifecycleFixture($name);
+                return new LifecycleFixture($name);
+            });
 
-                assert($object instanceof $metadata->className);
-
-                return $object;
-            }
-
-            /**
-             * @param array<string, mixed> $context
-             *
-             * @return array<string, mixed>
-             */
-            public function extract(ClassMetadata $metadata, object $object, array $context, Stack $stack): array
-            {
-                return [];
-            }
-        };
-
-        $stack = new Stack([$innerMiddleware]);
-
-        $object = $middleware->hydrate($metadata, ['name' => 'foo'], [], $stack);
+        $object = $middleware->hydrate($metadata, ['name' => 'foo'], [], $next);
 
         self::assertInstanceOf(LifecycleFixture::class, $object);
         self::assertSame('foo [preHydrate] [postHydrate]', $object->name);
@@ -81,44 +55,18 @@ final class LifecycleMiddlewareTest extends TestCase
             postExtract: 'postExtract',
         );
 
-        $innerMiddleware = new class implements Middleware {
-            /**
-             * @param ClassMetadata<T>     $metadata
-             * @param array<string, mixed> $data
-             * @param array<string, mixed> $context
-             *
-             * @return T
-             *
-             * @template T of object
-             */
-            public function hydrate(ClassMetadata $metadata, array $data, array $context, Stack $stack): object
-            {
-                $object = new stdClass();
+        $next = $this->createMock(Mapper::class);
+        $next
+            ->expects($this->once())
+            ->method('extract')
+            ->willReturnCallback(static function (object $object): array {
+                assert($object instanceof LifecycleFixture);
 
-                assert($object instanceof $metadata->className);
-
-                return $object;
-            }
-
-            /**
-             * @param array<string, mixed> $context
-             *
-             * @return array<string, mixed>
-             */
-            public function extract(ClassMetadata $metadata, object $object, array $context, Stack $stack): array
-            {
-                if ($object instanceof LifecycleFixture) {
-                    return ['name' => $object->name];
-                }
-
-                return [];
-            }
-        };
-
-        $stack = new Stack([$innerMiddleware]);
+                return ['name' => $object->name];
+            });
         $object = new LifecycleFixture('foo');
 
-        $data = $middleware->extract($metadata, $object, [], $stack);
+        $data = $middleware->extract($metadata, $object, [], $next);
 
         self::assertSame('foo [preExtract] [postExtract]', $data['name']);
     }

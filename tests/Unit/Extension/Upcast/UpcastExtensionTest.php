@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Unit\Extension\Upcast;
 
-use Patchlevel\Hydrator\CoreExtension;
 use Patchlevel\Hydrator\Extension\Cryptography\Cryptographer;
 use Patchlevel\Hydrator\Extension\Cryptography\CryptographyExtension;
 use Patchlevel\Hydrator\Extension\Cryptography\CryptographyMiddleware;
@@ -25,9 +24,8 @@ final class UpcastExtensionTest extends TestCase
     public function testIntegration(): void
     {
         $hydrator = (new StackHydratorBuilder())
-            ->useExtension(new CoreExtension())
             ->useExtension(new UpcastExtension(
-                beforeTransform: [
+                beforeMapping: [
                     CallbackUpcaster::forClass(
                         UpcastFixture::class,
                         static function (array $data): array {
@@ -56,7 +54,7 @@ final class UpcastExtensionTest extends TestCase
             UpcastFixture::class,
             static fn (array $data): array => $data,
         );
-        $beforeTransformUpcaster = CallbackUpcaster::forClass(
+        $beforeMappingUpcaster = CallbackUpcaster::forClass(
             UpcastFixture::class,
             static fn (array $data): array => $data,
         );
@@ -64,7 +62,7 @@ final class UpcastExtensionTest extends TestCase
         $builder = new StackHydratorBuilder();
         $builder->useExtension(new UpcastExtension(
             beforeEncoding: [$beforeEncodingUpcaster],
-            beforeTransform: [$beforeTransformUpcaster],
+            beforeMapping: [$beforeMappingUpcaster],
         ));
         $builder->useExtension(new CryptographyExtension($this->createMock(Cryptographer::class)));
 
