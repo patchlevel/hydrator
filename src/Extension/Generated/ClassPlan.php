@@ -44,6 +44,18 @@ final class ClassPlan
         return true;
     }
 
+    /** Whether missing fields of new objects fall back to the default of a promoted property. */
+    public function defaults(): bool
+    {
+        foreach ($this->properties as $property) {
+            if ($property->hasDefault()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /** @return array<int, NestedPlan> slot => nested class whose objects may be mapped in place */
     public function nested(): array
     {

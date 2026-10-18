@@ -60,6 +60,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\NestedLifecycleDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\NormalizerInBaseClassDefinedDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\PrivateChildDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\PrivateDefaultChildDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\PrivatePropertiesDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWithInlineNormalizer;
@@ -126,6 +127,7 @@ final class GeneratedStackHydratorTest extends TestCase
         ProfileCreatedWithInlineNormalizer::class,
         PrivatePropertiesDto::class,
         PrivateChildDto::class,
+        PrivateDefaultChildDto::class,
         SensitiveDataProfileCreated::class,
         NestedLifecycleDto::class,
         AliasDto::class,
@@ -507,6 +509,73 @@ final class GeneratedStackHydratorTest extends TestCase
             ['email' => 'info@patchlevel.de', 'name' => 'patchlevel'],
             $this->hydrator->extract(new AliasDto(Email::fromString('info@patchlevel.de'), 'patchlevel')),
         );
+    }
+
+    public function testHydrateWithObjectToPopulateAndAlias(): void
+    {
+        $dto = new AliasDto(Email::fromString('old@patchlevel.de'), 'old');
+
+        $object = $this->hydrator->hydrate(
+            AliasDto::class,
+            ['username' => 'new'],
+            [Hydrator::OBJECT_TO_POPULATE => $dto],
+        );
+
+        self::assertSame($dto, $object);
+        self::assertSame('new', $dto->name);
+        self::assertEquals(Email::fromString('old@patchlevel.de'), $dto->email);
+    }
+
+    public function testHydrateWithObjectToPopulateKeepsMissingFields(): void
+    {
+        $dto = new DefaultDto('old', Email::fromString('old@patchlevel.de'));
+        $dto->admin = false;
+
+        $object = $this->hydrator->hydrate(
+            DefaultDto::class,
+            ['name' => 'new'],
+            [Hydrator::OBJECT_TO_POPULATE => $dto],
+        );
+
+        // missing fields keep the values of the object, also promoted properties with a default
+        self::assertSame($dto, $object);
+        self::assertSame('new', $dto->name);
+        self::assertEquals(Email::fromString('old@patchlevel.de'), $dto->email);
+        self::assertFalse($dto->admin);
+    }
+
+    public function testHydrateWithObjectToPopulateKeepsMissingPrivateFields(): void
+    {
+        $dto = new PrivatePropertiesDto(ProfileId::fromString('1'), 'old', 30);
+
+        $object = $this->hydrator->hydrate(
+            PrivatePropertiesDto::class,
+            ['name' => 'new'],
+            [Hydrator::OBJECT_TO_POPULATE => $dto],
+        );
+
+        self::assertSame($dto, $object);
+        self::assertSame('1', $dto->profileId()->toString());
+        self::assertSame('new', $dto->name());
+        self::assertSame(30, $dto->age());
+    }
+
+    public function testHydrateWithObjectToPopulateKeepsMissingPrivateFieldsOfParent(): void
+    {
+        $dto = new PrivateDefaultChildDto('kept');
+
+        $object = $this->hydrator->hydrate(
+            PrivateDefaultChildDto::class,
+            ['name' => 'new'],
+            [Hydrator::OBJECT_TO_POPULATE => $dto],
+        );
+
+        self::assertSame($dto, $object);
+        self::assertSame('new', $dto->name);
+        self::assertSame('kept', $dto->note());
+
+        // new objects still fall back to the default
+        self::assertSame('default', $this->hydrator->hydrate(PrivateDefaultChildDto::class, [])->note());
     }
 
     public function testHydrateWithTypeMismatch(): void
