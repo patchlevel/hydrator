@@ -117,6 +117,70 @@ values, while a `beforeMapping` upcaster sees the decrypted ones. Pick the
 stage that matches the data you need.
 :::
 
+## Versions
+
+Upcasters usually have to find out the shape of the stored data themselves,
+for example by checking which fields exist. If you store a version together
+with the data, the upcasters can rely on it instead. Give each upcaster the
+version of the data it expects with `from`, it returns the data of the next
+version. Pass the version of the stored data per class in the context with
+`UpcastExtension::VERSIONS`.
+
+```php
+use Patchlevel\Hydrator\Extension\Upcast\CallbackUpcaster;
+use Patchlevel\Hydrator\Extension\Upcast\UpcastExtension;
+use Patchlevel\Hydrator\StackHydratorBuilder;
+
+$hydrator = (new StackHydratorBuilder())
+    ->useExtension(new UpcastExtension(
+        beforeMapping: [
+            CallbackUpcaster::forClass(
+                ProfileCreated::class,
+                static function (array $data): array {
+                    $data['name'] = $data['firstName'] . ' ' . $data['lastName'];
+                    unset($data['firstName'], $data['lastName']);
+
+                    return $data;
+                },
+                from: 1,
+            ),
+            CallbackUpcaster::forClass(
+                ProfileCreated::class,
+                static function (array $data): array {
+                    $data['email'] = strtolower($data['email']);
+
+                    return $data;
+                },
+                from: 2,
+            ),
+        ],
+    ))
+    ->build();
+
+$profile = $hydrator->hydrate(
+    ProfileCreated::class,
+    $payload,
+    [UpcastExtension::VERSIONS => [ProfileCreated::class => $version]],
+);
+```
+Data of version 1 runs through both upcasters, data of version 2 only through
+the second one and data of version 3, the current one, through none of them.
+Upcasters without a version run for data of every version, as before. An
+upcaster class gets its version with the attribute,
+`#[UpcasterFor(ProfileCreated::class, from: 1)]`.
+
+:::note
+Without a version in the context the data is treated as up to date, the
+versioned upcasters don't run. The version only applies to the given class, the
+data of nested objects is part of its shape.
+:::
+
+:::warning
+Register the versioned upcasters of a class in the order of their versions,
+the `UpcastMiddleware` throws an `UpcastersNotInVersionOrder` exception
+otherwise.
+:::
+
 ## Learn more
 
 * [How to write your own extension](extensions.md)

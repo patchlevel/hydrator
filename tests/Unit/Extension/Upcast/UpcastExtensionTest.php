@@ -48,6 +48,45 @@ final class UpcastExtensionTest extends TestCase
         self::assertSame('Jane Doe', $object->name);
     }
 
+    public function testIntegrationWithVersions(): void
+    {
+        $hydrator = (new StackHydratorBuilder())
+            ->useExtension(new UpcastExtension(
+                beforeMapping: [
+                    CallbackUpcaster::forClass(
+                        UpcastFixture::class,
+                        static function (array $data): array {
+                            $firstName = $data['firstName'] ?? '';
+                            $lastName = $data['lastName'] ?? '';
+                            assert(is_string($firstName));
+                            assert(is_string($lastName));
+
+                            return ['name' => $firstName . ' ' . $lastName];
+                        },
+                        from: 1,
+                    ),
+                ],
+            ))
+            ->build();
+
+        $object = $hydrator->hydrate(
+            UpcastFixture::class,
+            ['firstName' => 'Jane', 'lastName' => 'Doe'],
+            [UpcastExtension::VERSIONS => [UpcastFixture::class => 1]],
+        );
+
+        self::assertSame('Jane Doe', $object->name);
+
+        // data of the current version is left alone
+        $object = $hydrator->hydrate(
+            UpcastFixture::class,
+            ['name' => 'John Doe'],
+            [UpcastExtension::VERSIONS => [UpcastFixture::class => 2]],
+        );
+
+        self::assertSame('John Doe', $object->name);
+    }
+
     public function testConfigureAroundCryptography(): void
     {
         $beforeEncodingUpcaster = CallbackUpcaster::forClass(

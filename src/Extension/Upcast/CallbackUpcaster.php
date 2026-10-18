@@ -15,19 +15,24 @@ final class CallbackUpcaster implements Upcaster
     /**
      * @param class-string                                                               $className
      * @param callable(array<string, mixed>, array<string, mixed>): array<string, mixed> $callback
+     * @param int|null                                                                   $from      the version of the data the callback expects, see {@see Attribute\UpcasterFor::$from}
      */
-    public function __construct(public readonly string $className, callable $callback)
-    {
+    public function __construct(
+        public readonly string $className,
+        callable $callback,
+        public readonly int|null $from = null,
+    ) {
         $this->callback = Closure::fromCallable($callback);
     }
 
     /**
      * @param class-string                                                               $className
      * @param callable(array<string, mixed>, array<string, mixed>): array<string, mixed> $callback
+     * @param int|null                                                                   $from      the version of the data the callback expects, see {@see Attribute\UpcasterFor::$from}
      */
-    public static function forClass(string $className, callable $callback): self
+    public static function forClass(string $className, callable $callback, int|null $from = null): self
     {
-        return new self($className, $callback);
+        return new self($className, $callback, $from);
     }
 
     /**
