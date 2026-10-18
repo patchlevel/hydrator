@@ -40,6 +40,13 @@ final class CallbackUpcasterTest extends TestCase
         );
     }
 
+    public function testVersion(): void
+    {
+        self::assertNull(CallbackUpcaster::forClass(UpcastFixture::class, static fn (array $data): array => $data)->from);
+        self::assertSame(2, CallbackUpcaster::forClass(UpcastFixture::class, static fn (array $data): array => $data, 2)->from);
+        self::assertSame(3, (new CallbackUpcaster(UpcastFixture::class, static fn (array $data): array => $data, 3))->from);
+    }
+
     public function testSkipDifferentClass(): void
     {
         $metadata = (new AttributeMetadataFactory())->metadata(LifecycleFixture::class);
