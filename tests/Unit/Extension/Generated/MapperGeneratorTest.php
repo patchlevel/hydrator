@@ -22,7 +22,9 @@ use Patchlevel\Hydrator\Mapper\CallStack;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\StackHydrator;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\FingerprintChangedAliasDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\FingerprintChangedDefaultDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\FingerprintChangedPropertyNameDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\FingerprintChangedVisibilityDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\FingerprintDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\LifecycleFixture;
@@ -161,6 +163,8 @@ final class MapperGeneratorTest extends TestCase
     {
         yield 'changed default' => [FingerprintChangedDefaultDto::class];
         yield 'changed visibility' => [FingerprintChangedVisibilityDto::class];
+        yield 'added alias' => [FingerprintChangedAliasDto::class];
+        yield 'renamed property' => [FingerprintChangedPropertyNameDto::class];
     }
 
     public function testClassNormalizerIsNotGeneratable(): void

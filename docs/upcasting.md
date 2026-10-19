@@ -5,6 +5,11 @@ get renamed, split or merged. Upcasting reshapes the stored array on the fly
 while it is hydrated, so old payloads keep loading into your current classes
 without a migration of the underlying storage.
 
+:::tip
+If a field was only renamed, you don't need an upcaster. List the former name
+as an [alias](hydrator.md#aliases) of the field instead.
+:::
+
 ## Setup
 
 Register the `UpcastExtension` on the builder and pass it a list of upcasters.

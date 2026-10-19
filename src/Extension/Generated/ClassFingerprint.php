@@ -17,8 +17,8 @@ use function serialize;
 use function substr;
 
 /**
- * Fingerprint of everything the generated code of a class depends on: the properties with their field names,
- * normalizers, visibility, declaring class and inlined defaults, and the nested classes. It is part of the name of the
+ * Fingerprint of everything the generated code of a class depends on: the properties with their field names and
+ * aliases, normalizers, visibility, declaring class and inlined defaults, and the nested classes. It is part of the name of the
  * generated mapper, so a changed class has no generated mapper until it is warmed up again.
  *
  * @internal
@@ -60,6 +60,7 @@ final class ClassFingerprint
                 $declaringClass === $metadata->className ? null : $declaringClass,
                 $default,
                 $nested,
+                $property->aliases,
             ];
         }
 

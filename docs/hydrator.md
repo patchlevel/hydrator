@@ -130,6 +130,33 @@ You can rename a property without a backwards compatibility break in your stored
 data by keeping the old serialized name with `NormalizedName`.
 :::
 
+### Aliases
+
+If you rename the field itself, already stored data still uses the old name.
+List the former names as aliases: while hydrating, the first alias in the data
+is used if the field is missing. Extracting always writes the new name, so the
+stored data catches up over time.
+
+```php
+use Patchlevel\Hydrator\Attribute\NormalizedName;
+
+final class Profile
+{
+    #[NormalizedName('name', aliases: ['profile_name', 'username'])]
+    public string $name;
+}
+```
+```php
+$profile = $hydrator->hydrate(Profile::class, ['profile_name' => 'patchlevel']);
+```
+:::note
+Field names and aliases have to be unique within a class, including its parent
+classes. Middlewares, [upcasters](upcasting.md) and
+[lifecycle hooks](lifecycle-hooks.md) see the data as it is stored, with the
+alias. The [cryptography](cryptography.md) extension knows the aliases and also
+decrypts sensitive data stored under a former name.
+:::
+
 ## Ignore properties
 
 Sometimes it is necessary to exclude properties. You can do that with the

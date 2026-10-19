@@ -193,6 +193,12 @@ $this->ep{{slot}} = Closure::bind(function (object $object, array $context, bool
 }, $this, \{{scope}}::class);
 PHP;
 
+    public const ALIAS = <<<'PHP'
+if (!\array_key_exists({{field}}, $data) && \array_key_exists({{alias}}, $data)) {
+    $data[{{field}}] = $data[{{alias}}];
+}
+PHP;
+
     public const ASSIGN = <<<'PHP'
 if (\array_key_exists({{field}}, $data)) {
     {{value}}

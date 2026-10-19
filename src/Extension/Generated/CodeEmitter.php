@@ -218,8 +218,17 @@ final class CodeEmitter
     private function assignment(PropertyPlan $property): string
     {
         $template = $property->hasDefault() ? Templates::ASSIGN_DEFAULT : Templates::ASSIGN;
+        $code = [];
 
-        return Templates::render($template, [
+        // the first alias in the data takes the place of the missing field
+        foreach ($property->aliases as $alias) {
+            $code[] = Templates::render(Templates::ALIAS, [
+                'field' => var_export($property->field, true),
+                'alias' => var_export($alias, true),
+            ]);
+        }
+
+        $code[] = Templates::render($template, [
             'field' => var_export($property->field, true),
             'name' => $property->name,
             'property' => var_export($property->name, true),
@@ -227,6 +236,8 @@ final class CodeEmitter
             'value' => $this->denormalize($property, '$value'),
             'default' => $property->default ?? sprintf('$this->d%d->getDefaultValue()', $property->defaultSlot),
         ]);
+
+        return implode("\n\n", $code);
     }
 
     /** Code which denormalizes the field into the given variable. */

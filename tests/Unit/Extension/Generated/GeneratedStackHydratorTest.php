@@ -42,6 +42,7 @@ use Patchlevel\Hydrator\NormalizationFailure;
 use Patchlevel\Hydrator\StackHydrator;
 use Patchlevel\Hydrator\StackHydratorBuilder;
 use Patchlevel\Hydrator\Tests\Unit\Extension\Cryptography\Fixture\SensitiveDataProfileCreated;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\AliasDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\AsymmetricVisibilityDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle1Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle2Dto;
@@ -127,6 +128,7 @@ final class GeneratedStackHydratorTest extends TestCase
         PrivateChildDto::class,
         SensitiveDataProfileCreated::class,
         NestedLifecycleDto::class,
+        AliasDto::class,
     ];
 
     private static string $cachePath;
@@ -466,6 +468,45 @@ final class GeneratedStackHydratorTest extends TestCase
         self::assertSame($dto, $processedDto);
         self::assertSame($id, $processedDto->profileId);
         self::assertEquals(Email::fromString('other@patchlevel.de'), $processedDto->email);
+    }
+
+    public function testHydrateWithAlias(): void
+    {
+        $object = $this->hydrator->hydrate(AliasDto::class, ['mail' => 'info@patchlevel.de', 'username' => 'patchlevel']);
+
+        self::assertEquals(new AliasDto(Email::fromString('info@patchlevel.de'), 'patchlevel'), $object);
+    }
+
+    public function testHydrateWithFurtherAlias(): void
+    {
+        $object = $this->hydrator->hydrate(AliasDto::class, ['e_mail' => 'info@patchlevel.de']);
+
+        self::assertEquals(new AliasDto(Email::fromString('info@patchlevel.de')), $object);
+    }
+
+    public function testHydrateFieldIsPreferredOverAlias(): void
+    {
+        $object = $this->hydrator->hydrate(
+            AliasDto::class,
+            ['mail' => 'old@patchlevel.de', 'email' => 'new@patchlevel.de', 'username' => 'old', 'name' => 'new'],
+        );
+
+        self::assertEquals(new AliasDto(Email::fromString('new@patchlevel.de'), 'new'), $object);
+    }
+
+    public function testHydrateFirstAliasIsPreferred(): void
+    {
+        $object = $this->hydrator->hydrate(AliasDto::class, ['e_mail' => 'second@patchlevel.de', 'mail' => 'first@patchlevel.de']);
+
+        self::assertEquals(new AliasDto(Email::fromString('first@patchlevel.de')), $object);
+    }
+
+    public function testExtractWithAlias(): void
+    {
+        self::assertSame(
+            ['email' => 'info@patchlevel.de', 'name' => 'patchlevel'],
+            $this->hydrator->extract(new AliasDto(Email::fromString('info@patchlevel.de'), 'patchlevel')),
+        );
     }
 
     public function testHydrateWithTypeMismatch(): void
