@@ -78,10 +78,11 @@ final class CodeEmitter
             $this->properties[] = sprintf('public NestedMapper $x%d;', $slot);
         }
 
-        [$hydrate, $hydrateHelpers] = $this->hydrateBody();
+        [$hydrate, $hydrateHelpers] = $this->hydrateBody(true);
+        [$populate, $populateHelpers] = $plan->defaults() ? $this->hydrateBody(false) : ['', []];
         [$extract, $extractHelpers] = $this->extractBody();
 
-        foreach ([...$hydrateHelpers, ...$extractHelpers] as $helper) {
+        foreach ([...$hydrateHelpers, ...$populateHelpers, ...$extractHelpers] as $helper) {
             $initialize[] = $helper;
         }
 
@@ -95,6 +96,18 @@ final class CodeEmitter
                 'class' => $plan->className(),
             ]);
             $hydrate = 'return ($this->h)($object, $data, $context, $inline);';
+
+            if ($populate !== '') {
+                $this->properties[] = 'public Closure $p;';
+                $initialize[] = Templates::render(Templates::CLOSURE, [
+                    'slot' => 'p',
+                    'signature' => 'object $object, array $data, array $context, bool $inline',
+                    'return' => 'object',
+                    'body' => $populate,
+                    'class' => $plan->className(),
+                ]);
+                $populate = 'return ($this->p)($object, $data, $context, $inline);';
+            }
         }
 
         if ($plan->scopedExtract) {
@@ -122,6 +135,11 @@ final class CodeEmitter
             'properties' => implode("\n", $this->properties),
             // nested objects are only mapped right away for calls of the hydrator which created the mapper
             'hydrate' => self::withInline($hydrate, $plan->nested() === [] ? 'false' : Templates::OWNER),
+            // existing objects keep the values of missing fields, only classes with promoted defaults need own code
+            'populateCall' => $populate === '' ? '' : Templates::POPULATE_CALL,
+            'populate' => $populate === '' ? '' : Templates::render(Templates::POPULATE, [
+                'body' => self::withInline($populate, $plan->nested() === [] ? 'false' : Templates::OWNER),
+            ]),
             'extract' => self::withInline($extract, $plan->nested() === [] ? 'false' : Templates::OWNER),
             // the nested entry points are only called by a parent mapper which already did these checks
             'hydrateNested' => self::withInline($hydrate, 'true'),
@@ -131,7 +149,7 @@ final class CodeEmitter
         ]);
 
         // empty placeholders leave blank lines behind
-        $code = preg_replace(["/\n{3,}/", "/{\n\n/"], ["\n\n", "{\n"], $code);
+        $code = preg_replace(["/\n{3,}/", "/{\n\n/", "/\n\n([ \t]*})/"], ["\n\n", "{\n", "\n$1"], $code);
         assert($code !== null);
 
         return $code;
@@ -180,21 +198,23 @@ final class CodeEmitter
     /**
      * Generates the hydrate code, properties which need another scope are assigned in a helper closure.
      *
+     * @param bool $defaults whether missing fields fall back to the default of a promoted property, only for new objects
+     *
      * @return array{string, list<string>} body and init code of the helper closures
      */
-    private function hydrateBody(): array
+    private function hydrateBody(bool $defaults): array
     {
         $main = [];
         $scoped = [];
 
         foreach ($this->plan->properties as $property) {
             if ($property->hydrateScope !== null) {
-                $scoped[$property->hydrateScope][] = $this->assignment($property);
+                $scoped[$property->hydrateScope][] = $this->assignment($property, $defaults);
 
                 continue;
             }
 
-            $main[] = $this->assignment($property);
+            $main[] = $this->assignment($property, $defaults);
         }
 
         $helpers = [];
@@ -215,9 +235,9 @@ final class CodeEmitter
         return [implode("\n\n", $main), $helpers];
     }
 
-    private function assignment(PropertyPlan $property): string
+    private function assignment(PropertyPlan $property, bool $defaults): string
     {
-        $template = $property->hasDefault() ? Templates::ASSIGN_DEFAULT : Templates::ASSIGN;
+        $template = $defaults && $property->hasDefault() ? Templates::ASSIGN_DEFAULT : Templates::ASSIGN;
         $code = [];
 
         // the first alias in the data takes the place of the missing field

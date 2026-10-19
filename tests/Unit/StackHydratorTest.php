@@ -374,6 +374,39 @@ final class StackHydratorTest extends TestCase
         );
     }
 
+    public function testHydrateWithObjectToPopulateAndAlias(): void
+    {
+        $dto = new AliasDto(Email::fromString('old@patchlevel.de'), 'old');
+
+        $object = $this->hydrator->hydrate(
+            AliasDto::class,
+            ['username' => 'new'],
+            [Hydrator::OBJECT_TO_POPULATE => $dto],
+        );
+
+        self::assertSame($dto, $object);
+        self::assertSame('new', $dto->name);
+        self::assertEquals(Email::fromString('old@patchlevel.de'), $dto->email);
+    }
+
+    public function testHydrateWithObjectToPopulateKeepsMissingFields(): void
+    {
+        $dto = new DefaultDto('old', Email::fromString('old@patchlevel.de'));
+        $dto->admin = false;
+
+        $object = $this->hydrator->hydrate(
+            DefaultDto::class,
+            ['name' => 'new'],
+            [Hydrator::OBJECT_TO_POPULATE => $dto],
+        );
+
+        // missing fields keep the values of the object, also promoted properties with a default
+        self::assertSame($dto, $object);
+        self::assertSame('new', $dto->name);
+        self::assertEquals(Email::fromString('old@patchlevel.de'), $dto->email);
+        self::assertFalse($dto->admin);
+    }
+
     public function testHydrateWithTypeMismatch(): void
     {
         $this->expectException(TypeMismatch::class);

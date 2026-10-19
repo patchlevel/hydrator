@@ -60,17 +60,15 @@ final class ReflectionMapper implements Mapper
      */
     public function hydrate(array $data, array $context): object
     {
-        $metadata = $this->metadata;
-
         if (isset($context[Hydrator::OBJECT_TO_POPULATE])) {
             $object = $context[Hydrator::OBJECT_TO_POPULATE];
             // only unset if it is there, unset() copies the context even if the key does not exist
             unset($context[Hydrator::OBJECT_TO_POPULATE]);
-        } else {
-            $object = $metadata->newInstance();
+
+            return $this->hydrateProperties($object, $data, $context, $this->nested($context), true);
         }
 
-        return $this->hydrateProperties($object, $data, $context, $this->nested($context));
+        return $this->hydrateProperties($this->metadata->newInstance(), $data, $context, $this->nested($context));
     }
 
     /**
@@ -78,10 +76,11 @@ final class ReflectionMapper implements Mapper
      * @param array<string, mixed>                     $data
      * @param array<string, mixed>                     $context
      * @param array<string, array{class-string, bool}> $nested
+     * @param bool                                     $populate the object already exists, it keeps the values of missing fields
      *
      * @return T
      */
-    private function hydrateProperties(object $object, array $data, array $context, array $nested): object
+    private function hydrateProperties(object $object, array $data, array $context, array $nested, bool $populate = false): object
     {
         $metadata = $this->metadata;
         $constructorParameters = null;
@@ -91,7 +90,7 @@ final class ReflectionMapper implements Mapper
                 $alias = self::alias($propertyMetadata, $data);
 
                 if ($alias === null) {
-                    if (!$propertyMetadata->reflection->isPromoted()) {
+                    if ($populate || !$propertyMetadata->reflection->isPromoted()) {
                         continue;
                     }
 

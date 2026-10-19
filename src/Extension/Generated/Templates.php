@@ -98,6 +98,7 @@ final class {{className}} extends GeneratedMapper
         if (isset($context[Hydrator::OBJECT_TO_POPULATE])) {
             $object = $context[Hydrator::OBJECT_TO_POPULATE];
             unset($context[Hydrator::OBJECT_TO_POPULATE]);
+            {{populateCall}}
         } else {
             $object = $this->reflection->newInstanceWithoutConstructor();
         }
@@ -126,6 +127,8 @@ final class {{className}} extends GeneratedMapper
         {{extractNested}}
     }
 
+    {{populate}}
+
     protected function initialize(): void
     {
         {{initialize}}
@@ -137,6 +140,19 @@ final class {{className}} extends GeneratedMapper
     }
 }
 
+PHP;
+
+    public const POPULATE_CALL = <<<'PHP'
+
+return $this->populate($object, $data, $context);
+PHP;
+
+    /** Existing objects keep the values of missing fields, the defaults of promoted properties are only set for new objects. */
+    public const POPULATE = <<<'PHP'
+private function populate(object $object, array $data, array $context): object
+{
+    {{body}}
+}
 PHP;
 
     public const CLOSURE = <<<'PHP'
