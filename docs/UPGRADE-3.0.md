@@ -153,6 +153,35 @@ receive now contains the hydrator under the key `Hydrator::HYDRATOR`. Don't use
 the key `hydrator` for your own context values. If you serialize, log or compare
 the context, leave this key out.
 
+### Object to populate
+
+If you hydrate an existing object with `Hydrator::OBJECT_TO_POPULATE`, missing
+fields no longer reset promoted properties to their default value, the object
+keeps its current value. If you relied on the reset, pass the default value in
+the data.
+
+before:
+
+```php
+use Patchlevel\Hydrator\Hydrator;
+
+$profile = new Profile('patchlevel', Role::Admin);
+
+$hydrator->hydrate(Profile::class, ['name' => 'hydrator'], [Hydrator::OBJECT_TO_POPULATE => $profile]);
+
+// $profile->role is Role::Member, the default value of the promoted property
+```
+after:
+
+```php
+use Patchlevel\Hydrator\Hydrator;
+
+$profile = new Profile('patchlevel', Role::Admin);
+
+$hydrator->hydrate(Profile::class, ['name' => 'hydrator'], [Hydrator::OBJECT_TO_POPULATE => $profile]);
+
+// $profile->role is still Role::Admin
+```
 ### Wrapping a hydrator
 
 If you wrap the hydrator in your own `Hydrator` implementation, add it to the
@@ -348,6 +377,37 @@ after:
 use Patchlevel\Hydrator\Extension\Upcast\UpcastExtension;
 
 $extension = new UpcastExtension(beforeMapping: [$mergeNameUpcaster]);
+```
+## Groups
+
+### GroupsMiddleware
+
+The `GroupsMiddleware` has been removed. The groups are now applied by the
+mapper of every class through the `GroupsPropertyFilter`, which also works with
+the generated mappers. If you use the `GroupsExtension`, nothing changes. If you
+registered the middleware yourself, register the property filter instead, or
+use the `GroupsExtension`.
+
+before:
+
+```php
+use Patchlevel\Hydrator\Extension;
+use Patchlevel\Hydrator\Extension\Groups\GroupsMetadataEnricher;
+use Patchlevel\Hydrator\Extension\Groups\GroupsMiddleware;
+
+$builder
+    ->addMiddleware(new GroupsMiddleware(), Extension::PRIORITY_BEFORE_TRANSFORM)
+    ->addMetadataEnricher(new GroupsMetadataEnricher());
+```
+after:
+
+```php
+use Patchlevel\Hydrator\Extension\Groups\GroupsMetadataEnricher;
+use Patchlevel\Hydrator\Extension\Groups\GroupsPropertyFilter;
+
+$builder
+    ->addPropertyFilter(new GroupsPropertyFilter())
+    ->addMetadataEnricher(new GroupsMetadataEnricher());
 ```
 ## Caching
 

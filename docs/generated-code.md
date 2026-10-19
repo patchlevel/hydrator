@@ -32,8 +32,9 @@ directory. Classes without one are mapped with reflection as usual.
 The generated code behaves exactly like the `ReflectionMapper`: objects
 are created without calling the constructor, missing fields keep their promoted
 default value, private and readonly properties are supported and the same
-exceptions are thrown. You can switch between both without changing your
-classes.
+exceptions are thrown. [Groups](groups.md) and other
+[property filters](extensions.md#property-filters) are applied as well. You can
+switch between both without changing your classes.
 :::
 
 ## Warm up

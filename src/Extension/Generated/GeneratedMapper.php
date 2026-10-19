@@ -7,6 +7,7 @@ namespace Patchlevel\Hydrator\Extension\Generated;
 use Patchlevel\Hydrator\Mapper\CallStack;
 use Patchlevel\Hydrator\Mapper\Mapper;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
+use Patchlevel\Hydrator\Metadata\PropertyMetadata;
 use Patchlevel\Hydrator\Normalizer\ArrayNormalizer;
 use Patchlevel\Hydrator\Normalizer\ArrayShapeNormalizer;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
@@ -22,7 +23,7 @@ use Throwable;
  *
  * The mappers are initialized on the first use: only then the hydrator has built the mappers of the nested classes.
  * Nested objects are mapped with the mapper of their class right away, for calls of the hydrator which created this
- * mapper.
+ * mapper. If the hydrator has a property filter, the mapper is wrapped in a {@see FilteredMapper}.
  *
  * The members are public, because the generated code also runs in closures bound to the scope of the mapped class to
  * access its private properties.
@@ -84,6 +85,17 @@ abstract class GeneratedMapper implements Mapper, NestedMapper
         return $this->recursive = $this->mayReachItself();
     }
 
+    /**
+     * Only reads the properties the property filter keeps, see {@see FilteredMapper}.
+     *
+     * @param array<string, mixed>            $context
+     * @param array<string, PropertyMetadata> $fields  the properties to extract by field name
+     * @param bool                            $inline  nested objects may be mapped with the mapper of their class right away
+     *
+     * @return array<string, mixed>
+     */
+    abstract public function extractFiltered(object $object, array $context, array $fields, bool $inline): array;
+
     /** Resolves the normalizers and the mappers of the nested classes. */
     abstract protected function initialize(): void;
 
@@ -104,8 +116,8 @@ abstract class GeneratedMapper implements Mapper, NestedMapper
     /**
      * The mapper the hydrator runs for the nested class, if the objects of the property can be mapped with it right
      * away: the property still has the object normalizer of the class the code was generated for and the nested
-     * class has no class normalizer. A generated mapper is called directly, any other chain, for example with
-     * middlewares, through a {@see ChainNestedMapper}.
+     * class has no class normalizer. A generated mapper is called directly, also inside a {@see FilteredMapper}, any
+     * other chain, for example with middlewares, through a {@see ChainNestedMapper}.
      *
      * @param class-string $class
      */
@@ -129,7 +141,7 @@ abstract class GeneratedMapper implements Mapper, NestedMapper
             return null;
         }
 
-        if ($mapper === null || $mapper instanceof self) {
+        if ($mapper === null || $mapper instanceof self || $mapper instanceof FilteredMapper) {
             return $mapper;
         }
 
@@ -139,6 +151,10 @@ abstract class GeneratedMapper implements Mapper, NestedMapper
     /** Initializes a nested generated mapper, the nested class may lead back to this one. */
     final protected static function initNested(NestedMapper|null $mapper): void
     {
+        if ($mapper instanceof FilteredMapper) {
+            $mapper = $mapper->mapper;
+        }
+
         if (!$mapper instanceof self) {
             return;
         }
@@ -149,6 +165,10 @@ abstract class GeneratedMapper implements Mapper, NestedMapper
     /** Whether objects extracted with the mapper can lead back to the same object. */
     final protected static function reaches(NestedMapper $mapper): bool
     {
+        if ($mapper instanceof FilteredMapper) {
+            $mapper = $mapper->mapper;
+        }
+
         // the middlewares and the lazy proxy of a chain are not known, they might
         return !$mapper instanceof self || $mapper->recursive();
     }

@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator;
 
 use Patchlevel\Hydrator\Mapper\CallStack;
+use Patchlevel\Hydrator\Mapper\ChainPropertyFilter;
 use Patchlevel\Hydrator\Mapper\LazyMapper;
 use Patchlevel\Hydrator\Mapper\Mapper;
 use Patchlevel\Hydrator\Mapper\MapperFactory;
+use Patchlevel\Hydrator\Mapper\PropertyFilter;
 use Patchlevel\Hydrator\Mapper\ReflectionMapper;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
@@ -21,6 +23,7 @@ use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
 use function array_key_exists;
 use function array_reverse;
 use function assert;
+use function count;
 use function is_array;
 
 use const PHP_VERSION_ID;
@@ -40,6 +43,8 @@ final class StackHydrator implements Hydrator
 
     private readonly CallStack $callStack;
 
+    private readonly PropertyFilter|null $propertyFilter;
+
     /**
      * The context of calls without a context, built once: adding the hydrator to an empty context would allocate a new
      * array on every call.
@@ -49,17 +54,24 @@ final class StackHydrator implements Hydrator
     private readonly array $context;
 
     /**
-     * @param list<Middleware>    $middlewares     wrap the mapper of every class, in this order
-     * @param list<MapperFactory> $mapperFactories asked in this order for the mapper of a class, the first mapper wins
+     * @param list<Middleware>     $middlewares     wrap the mapper of every class, in this order
+     * @param list<MapperFactory>  $mapperFactories asked in this order for the mapper of a class, the first mapper wins
+     * @param list<PropertyFilter> $propertyFilters a property is only mapped if every filter keeps it
      */
     public function __construct(
         private readonly MetadataFactory $metadataFactory = new AttributeMetadataFactory(),
         private readonly array $middlewares = [],
         private readonly bool $defaultLazy = false,
         private readonly array $mapperFactories = [],
+        array $propertyFilters = [],
     ) {
         $this->callStack = new CallStack();
         $this->context = [self::HYDRATOR => $this];
+        $this->propertyFilter = match (count($propertyFilters)) {
+            0 => null,
+            1 => $propertyFilters[0],
+            default => new ChainPropertyFilter($propertyFilters),
+        };
     }
 
     /**
@@ -164,6 +176,15 @@ final class StackHydrator implements Hydrator
         }
 
         return $this->mappers[$class] = $mapper;
+    }
+
+    /**
+     * The filter the mappers of this hydrator apply to the properties of every object, null if there is none. Mappers
+     * of a {@see MapperFactory} have to apply it as well.
+     */
+    public function propertyFilter(): PropertyFilter|null
+    {
+        return $this->propertyFilter;
     }
 
     /**

@@ -106,6 +106,10 @@ $profile = $hydrator->hydrate(
     [Hydrator::OBJECT_TO_POPULATE => $profile],
 );
 ```
+Only the fields in the data are set. Properties whose fields are missing keep
+their current value, promoted properties are not reset to their default value
+either. Defaults are only used for new objects.
+
 ## Rename fields
 
 By default, the property name is used to name the field in the extracted

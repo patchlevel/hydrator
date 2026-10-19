@@ -8,6 +8,7 @@ use Patchlevel\Hydrator\Guesser\BuiltInGuesser;
 use Patchlevel\Hydrator\Guesser\ChainGuesser;
 use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\Mapper\MapperFactory;
+use Patchlevel\Hydrator\Mapper\PropertyFilter;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\EnrichingMetadataFactory;
 use Patchlevel\Hydrator\Metadata\MetadataEnricher;
@@ -36,6 +37,9 @@ final class StackHydratorBuilder
 
     /** @var array<int, list<MapperFactory>> */
     private array $mapperFactories = [];
+
+    /** @var list<PropertyFilter> */
+    private array $propertyFilters = [];
 
     private CacheItemPoolInterface|CacheInterface|null $cache = null;
 
@@ -80,6 +84,18 @@ final class StackHydratorBuilder
         return $this;
     }
 
+    /**
+     * Filters decide which properties are mapped for a call, a property is only mapped if every filter keeps it.
+     *
+     * @return $this
+     */
+    public function addPropertyFilter(PropertyFilter $filter): static
+    {
+        $this->propertyFilters[] = $filter;
+
+        return $this;
+    }
+
     public function enableDefaultLazy(bool $lazy = true): static
     {
         $this->defaultLazy = $lazy;
@@ -108,6 +124,7 @@ final class StackHydratorBuilder
             $this->middlewares(),
             $this->defaultLazy,
             $this->mapperFactories(),
+            $this->propertyFilters,
         );
     }
 
@@ -162,6 +179,12 @@ final class StackHydratorBuilder
         krsort($this->mapperFactories);
 
         return array_merge(...$this->mapperFactories);
+    }
+
+    /** @return list<PropertyFilter> */
+    public function propertyFilters(): array
+    {
+        return $this->propertyFilters;
     }
 
     /** @return list<MetadataEnricher> */

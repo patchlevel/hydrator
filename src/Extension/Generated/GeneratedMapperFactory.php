@@ -58,6 +58,12 @@ final class GeneratedMapperFactory implements MapperFactory
         $mapper = new $fqcn($metadata, $hydrator, $this->callStacks[$hydrator] ??= new CallStack());
         assert($mapper instanceof GeneratedMapper);
 
-        return $mapper;
+        $filter = $hydrator->propertyFilter();
+
+        if ($filter === null) {
+            return $mapper;
+        }
+
+        return new FilteredMapper($mapper, $filter);
     }
 }

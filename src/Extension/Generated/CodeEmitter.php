@@ -78,10 +78,12 @@ final class CodeEmitter
             $this->properties[] = sprintf('public NestedMapper $x%d;', $slot);
         }
 
-        [$hydrate, $hydrateHelpers] = $this->hydrateBody();
+        [$hydrate, $hydrateHelpers] = $this->hydrateBody(true);
+        [$populate, $populateHelpers] = $plan->defaults() ? $this->hydrateBody(false) : ['', []];
         [$extract, $extractHelpers] = $this->extractBody();
+        [$extractFiltered, $filteredHelpers] = $this->extractFilteredBody();
 
-        foreach ([...$hydrateHelpers, ...$extractHelpers] as $helper) {
+        foreach ([...$hydrateHelpers, ...$populateHelpers, ...$extractHelpers, ...$filteredHelpers] as $helper) {
             $initialize[] = $helper;
         }
 
@@ -95,6 +97,18 @@ final class CodeEmitter
                 'class' => $plan->className(),
             ]);
             $hydrate = 'return ($this->h)($object, $data, $context, $inline);';
+
+            if ($populate !== '') {
+                $this->properties[] = 'public Closure $p;';
+                $initialize[] = Templates::render(Templates::CLOSURE, [
+                    'slot' => 'p',
+                    'signature' => 'object $object, array $data, array $context, bool $inline',
+                    'return' => 'object',
+                    'body' => $populate,
+                    'class' => $plan->className(),
+                ]);
+                $populate = 'return ($this->p)($object, $data, $context, $inline);';
+            }
         }
 
         if ($plan->scopedExtract) {
@@ -107,6 +121,16 @@ final class CodeEmitter
                 'class' => $plan->className(),
             ]);
             $extract = 'return ($this->e)($object, $context, $inline);';
+
+            $this->properties[] = 'public Closure $f;';
+            $initialize[] = Templates::render(Templates::CLOSURE, [
+                'slot' => 'f',
+                'signature' => 'object $object, array $context, array $fields, bool $inline',
+                'return' => 'array',
+                'body' => $extractFiltered,
+                'class' => $plan->className(),
+            ]);
+            $extractFiltered = 'return ($this->f)($object, $context, $fields, $inline);';
         }
 
         foreach ($plan->nested() as $slot => $nested) {
@@ -122,16 +146,22 @@ final class CodeEmitter
             'properties' => implode("\n", $this->properties),
             // nested objects are only mapped right away for calls of the hydrator which created the mapper
             'hydrate' => self::withInline($hydrate, $plan->nested() === [] ? 'false' : Templates::OWNER),
+            // existing objects keep the values of missing fields, only classes with promoted defaults need own code
+            'populateCall' => $populate === '' ? '' : Templates::POPULATE_CALL,
+            'populate' => $populate === '' ? '' : Templates::render(Templates::POPULATE, [
+                'body' => self::withInline($populate, $plan->nested() === [] ? 'false' : Templates::OWNER),
+            ]),
             'extract' => self::withInline($extract, $plan->nested() === [] ? 'false' : Templates::OWNER),
             // the nested entry points are only called by a parent mapper which already did these checks
             'hydrateNested' => self::withInline($hydrate, 'true'),
             'extractNested' => self::withInline($extract, 'true'),
+            'extractFiltered' => $extractFiltered,
             'initialize' => $initialize === [] ? '// nothing to resolve' : implode("\n", $initialize),
             'recursive' => $this->recursive(),
         ]);
 
         // empty placeholders leave blank lines behind
-        $code = preg_replace(["/\n{3,}/", "/{\n\n/"], ["\n\n", "{\n"], $code);
+        $code = preg_replace(["/\n{3,}/", "/{\n\n/", "/\n\n([ \t]*})/"], ["\n\n", "{\n", "\n$1"], $code);
         assert($code !== null);
 
         return $code;
@@ -180,21 +210,23 @@ final class CodeEmitter
     /**
      * Generates the hydrate code, properties which need another scope are assigned in a helper closure.
      *
+     * @param bool $defaults whether missing fields fall back to the default of a promoted property, only for new objects
+     *
      * @return array{string, list<string>} body and init code of the helper closures
      */
-    private function hydrateBody(): array
+    private function hydrateBody(bool $defaults): array
     {
         $main = [];
         $scoped = [];
 
         foreach ($this->plan->properties as $property) {
             if ($property->hydrateScope !== null) {
-                $scoped[$property->hydrateScope][] = $this->assignment($property);
+                $scoped[$property->hydrateScope][] = $this->assignment($property, $defaults);
 
                 continue;
             }
 
-            $main[] = $this->assignment($property);
+            $main[] = $this->assignment($property, $defaults);
         }
 
         $helpers = [];
@@ -215,9 +247,9 @@ final class CodeEmitter
         return [implode("\n\n", $main), $helpers];
     }
 
-    private function assignment(PropertyPlan $property): string
+    private function assignment(PropertyPlan $property, bool $defaults): string
     {
-        $template = $property->hasDefault() ? Templates::ASSIGN_DEFAULT : Templates::ASSIGN;
+        $template = $defaults && $property->hasDefault() ? Templates::ASSIGN_DEFAULT : Templates::ASSIGN;
         $code = [];
 
         // the first alias in the data takes the place of the missing field
@@ -335,21 +367,88 @@ final class CodeEmitter
             array_unshift($pre, sprintf('[%s] = ($this->ep%d)($object, $context, $inline);', implode(', ', $variables), $slot));
         }
 
-        $variables = [
-            'class' => $this->plan->className(),
+        $body = Templates::render(Templates::EXTRACT_PLAIN, [
             'pre' => implode("\n\n", $pre),
             'fields' => implode("\n", $fields),
-        ];
+        ]);
 
-        if ($this->plan->leaf()) {
-            return [Templates::render(Templates::EXTRACT_PLAIN, $variables), $helpers];
+        return [$this->tracked($body), $helpers];
+    }
+
+    /**
+     * Generates the extract code for calls with a property filter, it only reads the properties in $fields. Properties
+     * which need another scope are read in a helper closure, which only returns the values of the kept properties.
+     *
+     * @return array{string, list<string>} body and init code of the helper closures
+     */
+    private function extractFilteredBody(): array
+    {
+        $fields = [];
+        $scoped = [];
+
+        /** @var array<class-string, int> $slots */
+        $slots = [];
+
+        foreach ($this->plan->properties as $property) {
+            $field = var_export($property->field, true);
+            [$code, $expression] = $this->normalize($property);
+            $block = Templates::render(Templates::EXTRACT_FILTERED_FIELD, [
+                'field' => $field,
+                'code' => $code,
+                'value' => $expression,
+            ]);
+
+            if ($property->extractScope === null) {
+                $fields[] = $block;
+
+                continue;
+            }
+
+            $scope = $property->extractScope;
+            $slot = $slots[$scope] ??= $this->helperSlots++;
+            $scoped[$scope][] = $block;
+            $fields[] = Templates::render(Templates::EXTRACT_FILTERED_FIELD, [
+                'field' => $field,
+                'code' => '',
+                'value' => sprintf('$s%d[%s]', $slot, $field),
+            ]);
         }
 
-        return [
-            Templates::render(Templates::EXTRACT_TRACKED, $variables) . "\n\n"
-                . Templates::render(Templates::EXTRACT_PLAIN, $variables),
-            $helpers,
-        ];
+        $pre = [];
+        $helpers = [];
+
+        foreach ($scoped as $scope => $blocks) {
+            $slot = $slots[$scope];
+            $this->properties[] = sprintf('public Closure $fp%d;', $slot);
+
+            $helpers[] = Templates::render(Templates::EXTRACT_FILTERED_HELPER, [
+                'slot' => (string)$slot,
+                'scope' => $scope,
+                'body' => implode("\n\n", $blocks),
+            ]);
+
+            $pre[] = sprintf('$s%1$d = ($this->fp%1$d)($object, $context, $fields, $inline);', $slot);
+        }
+
+        $body = Templates::render(Templates::EXTRACT_FILTERED, [
+            'pre' => implode("\n", $pre),
+            'fields' => implode("\n\n", $fields),
+        ]);
+
+        return [$this->tracked($body), $helpers];
+    }
+
+    /** Classes which may lead back to themselves track the extracted objects to detect circular references. */
+    private function tracked(string $body): string
+    {
+        if ($this->plan->leaf()) {
+            return $body;
+        }
+
+        return Templates::render(Templates::EXTRACT_TRACKED, [
+            'class' => $this->plan->className(),
+            'body' => $body,
+        ]) . "\n\n" . $body;
     }
 
     /** @return array{string, string} preparing code and the expression for the normalized value */

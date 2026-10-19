@@ -8,6 +8,7 @@ use Patchlevel\Hydrator\Extension\Generated\ChainNestedMapper;
 use Patchlevel\Hydrator\Extension\Generated\ClassPlan;
 use Patchlevel\Hydrator\Extension\Generated\ClassPlanner;
 use Patchlevel\Hydrator\Extension\Generated\CodeEmitter;
+use Patchlevel\Hydrator\Extension\Generated\FilteredMapper;
 use Patchlevel\Hydrator\Extension\Generated\GeneratedMapper;
 use Patchlevel\Hydrator\Extension\Generated\GeneratedMapperExtension;
 use Patchlevel\Hydrator\Extension\Generated\GeneratedMapperFactory;
@@ -29,6 +30,7 @@ final class NoCodeGenerationAtRuntimeTest
                 Selector::classname(GeneratedMapperFactory::class),
                 Selector::classname(GeneratedMapper::class),
                 Selector::classname(ChainNestedMapper::class),
+                Selector::classname(FilteredMapper::class),
             )
             ->shouldNotDependOn()
             ->classes(

@@ -84,6 +84,17 @@ final class MapperGeneratorTest extends TestCase
         self::assertSame([LifecycleFixture::class], $code->nested);
     }
 
+    public function testClassesWithoutNormalizersDoNotTrackCircularReferences(): void
+    {
+        $code = (new MapperGenerator())->generate(
+            (new AttributeMetadataFactory())->metadata(LifecycleFixture::class),
+            'Foo\\Bar',
+        )->code;
+
+        self::assertStringNotContainsString('$this->tracked', $code);
+        self::assertStringContainsString('public function extractFiltered(', $code);
+    }
+
     /**
      * The snapshots make every change of the generated code visible in the diff of a pull request.
      * Run "make snapshot" after an intended change of the generator.
