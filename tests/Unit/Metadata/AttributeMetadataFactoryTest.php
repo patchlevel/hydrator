@@ -34,6 +34,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\PureEnum;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Skill;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\StatusWithNormalizer;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\SubId;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Wrapper;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -394,14 +395,6 @@ final class AttributeMetadataFactoryTest extends TestCase
         self::assertTrue($metadata->lazy);
     }
 
-    public function testClassMetadataWithNormalizer(): void
-    {
-        $metadataFactory = new AttributeMetadataFactory();
-        $metadata = $metadataFactory->metadata(ProfileId::class);
-
-        self::assertInstanceOf(IdNormalizer::class, $metadata->normalizer);
-    }
-
     public function testLazyIsInheritedFromParent(): void
     {
         $object = new class extends BaseLazyDto {
@@ -423,6 +416,23 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadata = $metadataFactory->metadata($object::class);
 
         self::assertFalse($metadata->lazy);
+    }
+
+    public function testClassNormalizerOfChildWinsOverParent(): void
+    {
+        $metadataFactory = new AttributeMetadataFactory();
+        $metadata = $metadataFactory->metadata(SubId::class);
+
+        self::assertInstanceOf(IdNormalizer::class, $metadata->normalizer);
+        self::assertSame(SubId::class, $metadata->normalizer->idClass());
+    }
+
+    public function testClassMetadataWithNormalizer(): void
+    {
+        $metadataFactory = new AttributeMetadataFactory();
+        $metadata = $metadataFactory->metadata(ProfileId::class);
+
+        self::assertInstanceOf(IdNormalizer::class, $metadata->normalizer);
     }
 
     public function testInferNormalizerForNullableCollectionItems(): void

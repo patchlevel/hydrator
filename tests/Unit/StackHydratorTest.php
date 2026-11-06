@@ -55,6 +55,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\Square;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\StatusWithInterfaceNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\StatusWithNormalizer;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\SubId;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ValueObject;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer;
 use Patchlevel\Hydrator\TypeMismatch;
@@ -667,6 +668,14 @@ final class StackHydratorTest extends TestCase
             StatusWithInterfaceNormalizer::Draft,
             $this->hydrator->hydrate(StatusWithInterfaceNormalizer::class, 'draft'),
         );
+    }
+
+    public function testRoundTripWithClassNormalizerFromAbstractParent(): void
+    {
+        $data = $this->hydrator->extract(SubId::fromString('1'));
+
+        self::assertSame('1', $data);
+        self::assertEquals(SubId::fromString('1'), $this->hydrator->hydrate(SubId::class, $data));
     }
 
     public function testExtractWithObjectMapOnInterfaceAndAbstractClass(): void
