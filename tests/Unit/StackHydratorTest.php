@@ -46,6 +46,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWrapper;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Skill;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\StatusWithInterfaceNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\StatusWithNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ValueObject;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer;
@@ -237,6 +238,11 @@ final class StackHydratorTest extends TestCase
         );
 
         self::assertEquals('id', $data);
+    }
+
+    public function testExtractBackedEnum(): void
+    {
+        self::assertSame('draft', $this->hydrator->extract(Status::Draft));
     }
 
     public function testHydrate(): void
@@ -590,6 +596,26 @@ final class StackHydratorTest extends TestCase
         );
 
         self::assertEquals(ProfileId::fromString('id'), $object);
+    }
+
+    public function testHydrateBackedEnum(): void
+    {
+        self::assertSame(Status::Draft, $this->hydrator->hydrate(Status::class, 'draft'));
+    }
+
+    public function testBackedEnumWithEnumNormalizerOnTheEnum(): void
+    {
+        self::assertSame('draft', $this->hydrator->extract(StatusWithNormalizer::Draft));
+        self::assertSame(StatusWithNormalizer::Draft, $this->hydrator->hydrate(StatusWithNormalizer::class, 'draft'));
+    }
+
+    public function testBackedEnumWithEnumNormalizerFromAnInterface(): void
+    {
+        self::assertSame('draft', $this->hydrator->extract(StatusWithInterfaceNormalizer::Draft));
+        self::assertSame(
+            StatusWithInterfaceNormalizer::Draft,
+            $this->hydrator->hydrate(StatusWithInterfaceNormalizer::class, 'draft'),
+        );
     }
 
     #[RequiresPhp('>=8.4')]
