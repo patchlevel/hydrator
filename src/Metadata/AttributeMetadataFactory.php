@@ -250,48 +250,48 @@ final class AttributeMetadataFactory implements MetadataFactory
     }
 
     /**
-     * @param ClassMetadata<T> $parent
+     * @param ClassMetadata<T> $child
      *
      * @return ClassMetadata<T>
      *
      * @template T of object
      */
-    private function mergeMetadata(ClassMetadata $parent, ClassMetadata $child): ClassMetadata
+    private function mergeMetadata(ClassMetadata $child, ClassMetadata $parent): ClassMetadata
     {
         $properties = [];
 
-        foreach ($parent->properties() as $property) {
+        foreach ($child->properties() as $property) {
             $properties[$property->fieldName()] = $property;
         }
 
-        foreach ($child->properties() as $property) {
+        foreach ($parent->properties() as $property) {
             if (array_key_exists($property->fieldName(), $properties)) {
                 throw DuplicatedFieldNameInMetadata::byInheritance(
                     $property->fieldName(),
-                    $parent->className(),
                     $child->className(),
+                    $parent->className(),
                 );
             }
 
             $properties[$property->fieldName()] = $property;
         }
 
-        $parentDataSubjectIdField = $parent->dataSubjectIdField();
         $childDataSubjectIdField = $child->dataSubjectIdField();
+        $parentDataSubjectIdField = $parent->dataSubjectIdField();
 
-        if ($parentDataSubjectIdField !== null && $childDataSubjectIdField !== null) {
-            $parentProperty = $parent->propertyForField($parentDataSubjectIdField);
+        if ($childDataSubjectIdField !== null && $parentDataSubjectIdField !== null) {
             $childProperty = $child->propertyForField($childDataSubjectIdField);
+            $parentProperty = $parent->propertyForField($parentDataSubjectIdField);
 
-            throw new MultipleDataSubjectId($parentProperty->propertyName(), $childProperty->propertyName());
+            throw new MultipleDataSubjectId($childProperty->propertyName(), $parentProperty->propertyName());
         }
 
         return new ClassMetadata(
-            $parent->reflection(),
+            $child->reflection(),
             array_values($properties),
-            $parentDataSubjectIdField ?? $childDataSubjectIdField,
-            array_merge($parent->postHydrateCallbacks(), $child->postHydrateCallbacks()),
-            array_merge($parent->preExtractCallbacks(), $child->preExtractCallbacks()),
+            $childDataSubjectIdField ?? $parentDataSubjectIdField,
+            array_merge($child->postHydrateCallbacks(), $parent->postHydrateCallbacks()),
+            array_merge($child->preExtractCallbacks(), $parent->preExtractCallbacks()),
             $child->lazy() ?? $parent->lazy(),
         );
     }

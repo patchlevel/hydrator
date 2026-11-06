@@ -22,6 +22,7 @@ use Patchlevel\Hydrator\Normalizer\ArrayShapeNormalizer;
 use Patchlevel\Hydrator\Normalizer\DateTimeImmutableNormalizer;
 use Patchlevel\Hydrator\Normalizer\EnumNormalizer;
 use Patchlevel\Hydrator\Normalizer\ObjectNormalizer;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\BaseLazyDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\BrokenParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DistributionCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DuplicateFieldNameDto;
@@ -548,6 +549,29 @@ final class AttributeMetadataFactoryTest extends TestCase
         $metadata = $metadataFactory->metadata($object::class);
 
         self::assertTrue($metadata->lazy());
+    }
+
+    public function testLazyIsInheritedFromParent(): void
+    {
+        $object = new class extends BaseLazyDto {
+        };
+
+        $metadataFactory = new AttributeMetadataFactory();
+        $metadata = $metadataFactory->metadata($object::class);
+
+        self::assertTrue($metadata->lazy);
+    }
+
+    public function testLazyOfChildWinsOverParent(): void
+    {
+        $object = new #[Lazy(false)]
+        class extends BaseLazyDto {
+        };
+
+        $metadataFactory = new AttributeMetadataFactory();
+        $metadata = $metadataFactory->metadata($object::class);
+
+        self::assertFalse($metadata->lazy);
     }
 
     public function testInferNormalizerForNullableCollectionItems(): void
