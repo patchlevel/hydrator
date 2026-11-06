@@ -93,6 +93,72 @@ final class ArrayShapeNormalizerTest extends TestCase
         $this->assertEquals(['foo' => 1], $normalizer->denormalize(['foo' => '1'], []));
     }
 
+    public function testNormalizeKeepsKeysWithoutNormalizer(): void
+    {
+        $innerNormalizer = $this->createMock(Normalizer::class);
+        $innerNormalizer->expects($this->once())->method('normalize')->with(1, [])->willReturn('1');
+
+        $normalizer = new ArrayShapeNormalizer(['foo' => $innerNormalizer]);
+
+        $this->assertSame(
+            ['height' => 180, 'foo' => '1', 'note' => null, 'unknown' => ['x']],
+            $normalizer->normalize(['height' => 180, 'foo' => 1, 'note' => null, 'unknown' => ['x']], []),
+        );
+    }
+
+    public function testDenormalizeKeepsKeysWithoutNormalizer(): void
+    {
+        $innerNormalizer = $this->createMock(Normalizer::class);
+        $innerNormalizer->expects($this->once())->method('denormalize')->with('1', [])->willReturn(1);
+
+        $normalizer = new ArrayShapeNormalizer(['foo' => $innerNormalizer]);
+
+        $this->assertSame(
+            ['height' => 180, 'foo' => 1, 'note' => null, 'unknown' => ['x']],
+            $normalizer->denormalize(['height' => 180, 'foo' => '1', 'note' => null, 'unknown' => ['x']], []),
+        );
+    }
+
+    public function testNormalizePassesNullToInnerNormalizer(): void
+    {
+        $innerNormalizer = $this->createMock(Normalizer::class);
+        $innerNormalizer->expects($this->once())->method('normalize')->with(null, [])->willReturn(null);
+
+        $normalizer = new ArrayShapeNormalizer(['foo' => $innerNormalizer]);
+
+        $this->assertSame(['foo' => null], $normalizer->normalize(['foo' => null], []));
+    }
+
+    public function testDenormalizePassesNullToInnerNormalizer(): void
+    {
+        $innerNormalizer = $this->createMock(Normalizer::class);
+        $innerNormalizer->expects($this->once())->method('denormalize')->with(null, [])->willReturn(null);
+
+        $normalizer = new ArrayShapeNormalizer(['foo' => $innerNormalizer]);
+
+        $this->assertSame(['foo' => null], $normalizer->denormalize(['foo' => null], []));
+    }
+
+    public function testNormalizeSkipsMissingKeys(): void
+    {
+        $innerNormalizer = $this->createMock(Normalizer::class);
+        $innerNormalizer->expects($this->never())->method('normalize');
+
+        $normalizer = new ArrayShapeNormalizer(['foo' => $innerNormalizer]);
+
+        $this->assertSame(['bar' => 1], $normalizer->normalize(['bar' => 1], []));
+    }
+
+    public function testDenormalizeSkipsMissingKeys(): void
+    {
+        $innerNormalizer = $this->createMock(Normalizer::class);
+        $innerNormalizer->expects($this->never())->method('denormalize');
+
+        $normalizer = new ArrayShapeNormalizer(['foo' => $innerNormalizer]);
+
+        $this->assertSame(['bar' => 1], $normalizer->denormalize(['bar' => 1], []));
+    }
+
     public function testNormalizePassesContextToInnerNormalizer(): void
     {
         $context = ['key' => 'value'];
