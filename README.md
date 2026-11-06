@@ -609,6 +609,10 @@ readonly class Dto
 }
 ```
 
+> [!NOTE]
+> Hooks of parent classes are called as well, each one once. If a child class overrides
+> a hook method, only the child's version is called, with or without the attribute.
+
 ### Events
 
 Another way to intervene in the extract and hydrate process is through events. 

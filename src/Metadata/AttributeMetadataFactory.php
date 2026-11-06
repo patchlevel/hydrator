@@ -290,10 +290,44 @@ final class AttributeMetadataFactory implements MetadataFactory
             $child->reflection(),
             array_values($properties),
             $childDataSubjectIdField ?? $parentDataSubjectIdField,
-            array_merge($child->postHydrateCallbacks(), $parent->postHydrateCallbacks()),
-            array_merge($child->preExtractCallbacks(), $parent->preExtractCallbacks()),
+            $this->mergeCallbacks($child->reflection(), $child->postHydrateCallbacks(), $parent->postHydrateCallbacks()),
+            $this->mergeCallbacks($child->reflection(), $child->preExtractCallbacks(), $parent->preExtractCallbacks()),
             $child->lazy() ?? $parent->lazy(),
         );
+    }
+
+    /**
+     * Every callback is resolved to the method PHP calls on the child, so an inherited method
+     * shows up once and an overridden one runs as the child's version. Private methods are not
+     * inherited and stay as they are.
+     *
+     * @param ReflectionClass<object> $child
+     * @param list<CallbackMetadata>  $childCallbacks
+     * @param list<CallbackMetadata>  $parentCallbacks
+     *
+     * @return list<CallbackMetadata>
+     */
+    private function mergeCallbacks(ReflectionClass $child, array $childCallbacks, array $parentCallbacks): array
+    {
+        $callbacks = [];
+
+        foreach (array_merge($childCallbacks, $parentCallbacks) as $callback) {
+            $method = $callback->reflection();
+
+            if (!$method->isPrivate()) {
+                $method = $child->getMethod($method->getName());
+            }
+
+            $key = $method->getDeclaringClass()->getName() . '::' . $method->getName();
+
+            if (array_key_exists($key, $callbacks)) {
+                continue;
+            }
+
+            $callbacks[$key] = new CallbackMetadata($method);
+        }
+
+        return array_values($callbacks);
     }
 
     /** @param ReflectionClass<object> $reflectionClass */

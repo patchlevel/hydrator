@@ -7,6 +7,8 @@ namespace Patchlevel\Hydrator\Tests\Unit;
 use DateTime;
 use DateTimeImmutable;
 use DateTimeZone;
+use Patchlevel\Hydrator\Attribute\PostHydrate;
+use Patchlevel\Hydrator\Attribute\PreExtract;
 use Patchlevel\Hydrator\CircularReference;
 use Patchlevel\Hydrator\ClassNotSupported;
 use Patchlevel\Hydrator\Cryptography\PayloadCryptographer;
@@ -36,6 +38,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithNullableItemsDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\LazyProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\NormalizerInBaseClassDefinedDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDtoWithHooks;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWithInlineNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWithNormalizer;
@@ -660,6 +663,77 @@ final class MetadataHydratorTest extends TestCase
 
         self::assertEquals(true, $object->postHydrateCalled);
         self::assertEquals(false, $object->preExtractCalled);
+    }
+
+    public function testInheritedHooksRunOnce(): void
+    {
+        $child = new class extends ParentDtoWithHooks {
+        };
+
+        $object = $this->hydrator->hydrate($child::class, []);
+
+        self::assertSame(['parent postHydrate'], $object->calls);
+
+        $this->hydrator->extract($object);
+
+        self::assertSame(['parent postHydrate', 'parent preExtract'], $object->calls);
+    }
+
+    public function testOverriddenHookRunsOnceAsChildVersion(): void
+    {
+        $child = new class extends ParentDtoWithHooks {
+            #[PostHydrate]
+            protected function postHydrate(): void
+            {
+                $this->calls[] = 'child postHydrate';
+            }
+        };
+
+        $object = $this->hydrator->hydrate($child::class, []);
+
+        self::assertSame(['child postHydrate'], $object->calls);
+    }
+
+    public function testOverriddenHookWithoutAttributeRunsOnceAsChildVersion(): void
+    {
+        $child = new class extends ParentDtoWithHooks {
+            protected function postHydrate(): void
+            {
+                $this->calls[] = 'child postHydrate';
+            }
+        };
+
+        $object = $this->hydrator->hydrate($child::class, []);
+
+        self::assertSame(['child postHydrate'], $object->calls);
+    }
+
+    public function testHooksOfParentAndChildRunOnceEach(): void
+    {
+        $child = new class extends ParentDtoWithHooks {
+            #[PostHydrate]
+            protected function childPostHydrate(): void
+            {
+                $this->calls[] = 'child postHydrate';
+            }
+
+            #[PreExtract]
+            protected function childPreExtract(): void
+            {
+                $this->calls[] = 'child preExtract';
+            }
+        };
+
+        $object = $this->hydrator->hydrate($child::class, []);
+
+        self::assertSame(['child postHydrate', 'parent postHydrate'], $object->calls);
+
+        $this->hydrator->extract($object);
+
+        self::assertSame(
+            ['child postHydrate', 'parent postHydrate', 'child preExtract', 'parent preExtract'],
+            $object->calls,
+        );
     }
 
     #[RequiresPhp('>=8.4')]
