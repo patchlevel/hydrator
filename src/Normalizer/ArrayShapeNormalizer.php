@@ -10,6 +10,7 @@ use Symfony\Component\TypeInfo\Type;
 use Symfony\Component\TypeInfo\Type\ArrayShapeType;
 use Symfony\Component\TypeInfo\Type\NullableType;
 
+use function array_key_exists;
 use function is_array;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
@@ -36,21 +37,19 @@ final readonly class ArrayShapeNormalizer implements NormalizerWithContext, Type
             throw InvalidArgument::withWrongType('array|null', $value);
         }
 
-        $result = [];
-
         foreach ($this->normalizerMap as $field => $normalizer) {
-            if (!isset($value[$field])) {
+            if (!array_key_exists($field, $value)) {
                 continue;
             }
 
             if ($normalizer instanceof NormalizerWithContext) {
-                $result[$field] = $normalizer->normalize($value[$field], $context);
+                $value[$field] = $normalizer->normalize($value[$field], $context);
             } else {
-                $result[$field] = $normalizer->normalize($value[$field]);
+                $value[$field] = $normalizer->normalize($value[$field]);
             }
         }
 
-        return $result;
+        return $value;
     }
 
     /**
@@ -68,21 +67,19 @@ final readonly class ArrayShapeNormalizer implements NormalizerWithContext, Type
             throw InvalidArgument::withWrongType('array|null', $value);
         }
 
-        $result = [];
-
         foreach ($this->normalizerMap as $field => $normalizer) {
-            if (!isset($value[$field])) {
+            if (!array_key_exists($field, $value)) {
                 continue;
             }
 
             if ($normalizer instanceof NormalizerWithContext) {
-                $result[$field] = $normalizer->denormalize($value[$field], $context);
+                $value[$field] = $normalizer->denormalize($value[$field], $context);
             } else {
-                $result[$field] = $normalizer->denormalize($value[$field]);
+                $value[$field] = $normalizer->denormalize($value[$field]);
             }
         }
 
-        return $result;
+        return $value;
     }
 
     public function setHydrator(Hydrator $hydrator): void

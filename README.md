@@ -211,6 +211,12 @@ final class DTO
 }
 ```
 
+> [!NOTE]
+> Only the keys with a normalizer are converted. All other keys, including keys
+> that are not part of the shape, are kept as they are, so they must already hold
+> values that your storage can handle. A `null` value is passed to the normalizer
+> of its key, like for any other property.
+
 #### DateTimeImmutable
 
 With the `DateTimeImmutable` Normalizer, as the name suggests,
