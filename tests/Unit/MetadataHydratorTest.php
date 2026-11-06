@@ -7,6 +7,8 @@ namespace Patchlevel\Hydrator\Tests\Unit;
 use DateTime;
 use DateTimeImmutable;
 use DateTimeZone;
+use Patchlevel\Hydrator\Attribute\PostHydrate;
+use Patchlevel\Hydrator\Attribute\PreExtract;
 use Patchlevel\Hydrator\CircularReference;
 use Patchlevel\Hydrator\ClassNotSupported;
 use Patchlevel\Hydrator\Cryptography\PayloadCryptographer;
@@ -26,13 +28,17 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\ContextAwareDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DefaultDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DtoWithHooks;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\ExplicitArrayShapeNormalizerDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerBrokenDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithArrayShapeDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithIterablesDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithNullableDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithNullableItemsDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\LazyProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\NormalizerInBaseClassDefinedDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDtoWithHooks;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWithInlineNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWithNormalizer;
@@ -572,6 +578,74 @@ final class MetadataHydratorTest extends TestCase
         self::assertEquals($expected, $event);
     }
 
+    public function testRoundTripWithInferNormalizerForNullableCollectionItems(): void
+    {
+        $object = new InferNormalizerWithNullableItemsDto(
+            [new Skill('php'), null],
+            ['foo' => Status::Draft, 'bar' => null],
+            [new DateTimeImmutable('2015-02-13 22:34:32+01:00'), null],
+            ['foo' => [Status::Closed, null]],
+        );
+
+        $data = [
+            'skills' => [['name' => 'php'], null],
+            'statuses' => ['foo' => 'draft', 'bar' => null],
+            'dates' => ['2015-02-13T22:34:32+01:00', null],
+            'nested' => ['foo' => ['closed', null]],
+        ];
+
+        self::assertSame($data, $this->hydrator->extract($object));
+        self::assertEquals(
+            $object,
+            $this->hydrator->hydrate(InferNormalizerWithNullableItemsDto::class, $data),
+        );
+    }
+
+    public function testRoundTripWithArrayShape(): void
+    {
+        $object = new InferNormalizerWithArrayShapeDto([
+            'height' => 180,
+            'nickname' => null,
+            'skills' => [new Skill('php'), new Skill('go')],
+            'status' => null,
+            'createdAt' => new DateTimeImmutable('2015-02-13 22:34:32+01:00'),
+        ]);
+
+        $data = [
+            'profile' => [
+                'height' => 180,
+                'nickname' => null,
+                'skills' => [['name' => 'php'], ['name' => 'go']],
+                'status' => null,
+                'createdAt' => '2015-02-13T22:34:32+01:00',
+            ],
+        ];
+
+        self::assertSame($data, $this->hydrator->extract($object));
+        self::assertEquals($object, $this->hydrator->hydrate(InferNormalizerWithArrayShapeDto::class, $data));
+    }
+
+    public function testRoundTripWithExplicitArrayShapeNormalizerAndFieldMissingInDocblock(): void
+    {
+        $object = new ExplicitArrayShapeNormalizerDto([
+            'status' => Status::Draft,
+            'skill' => new Skill('php'),
+        ]);
+
+        $data = [
+            'shape' => [
+                'status' => 'draft',
+                'skill' => ['name' => 'php'],
+            ],
+        ];
+
+        self::assertSame($data, $this->hydrator->extract($object));
+        self::assertEquals(
+            $object,
+            $this->hydrator->hydrate(ExplicitArrayShapeNormalizerDto::class, $data),
+        );
+    }
+
     public function testHydrateWithInferNormalizerFailed(): void
     {
         $this->expectException(TypeMismatch::class);
@@ -589,6 +663,77 @@ final class MetadataHydratorTest extends TestCase
 
         self::assertEquals(true, $object->postHydrateCalled);
         self::assertEquals(false, $object->preExtractCalled);
+    }
+
+    public function testInheritedHooksRunOnce(): void
+    {
+        $child = new class extends ParentDtoWithHooks {
+        };
+
+        $object = $this->hydrator->hydrate($child::class, []);
+
+        self::assertSame(['parent postHydrate'], $object->calls);
+
+        $this->hydrator->extract($object);
+
+        self::assertSame(['parent postHydrate', 'parent preExtract'], $object->calls);
+    }
+
+    public function testOverriddenHookRunsOnceAsChildVersion(): void
+    {
+        $child = new class extends ParentDtoWithHooks {
+            #[PostHydrate]
+            protected function postHydrate(): void
+            {
+                $this->calls[] = 'child postHydrate';
+            }
+        };
+
+        $object = $this->hydrator->hydrate($child::class, []);
+
+        self::assertSame(['child postHydrate'], $object->calls);
+    }
+
+    public function testOverriddenHookWithoutAttributeRunsOnceAsChildVersion(): void
+    {
+        $child = new class extends ParentDtoWithHooks {
+            protected function postHydrate(): void
+            {
+                $this->calls[] = 'child postHydrate';
+            }
+        };
+
+        $object = $this->hydrator->hydrate($child::class, []);
+
+        self::assertSame(['child postHydrate'], $object->calls);
+    }
+
+    public function testHooksOfParentAndChildRunOnceEach(): void
+    {
+        $child = new class extends ParentDtoWithHooks {
+            #[PostHydrate]
+            protected function childPostHydrate(): void
+            {
+                $this->calls[] = 'child postHydrate';
+            }
+
+            #[PreExtract]
+            protected function childPreExtract(): void
+            {
+                $this->calls[] = 'child preExtract';
+            }
+        };
+
+        $object = $this->hydrator->hydrate($child::class, []);
+
+        self::assertSame(['child postHydrate', 'parent postHydrate'], $object->calls);
+
+        $this->hydrator->extract($object);
+
+        self::assertSame(
+            ['child postHydrate', 'parent postHydrate', 'child preExtract', 'parent preExtract'],
+            $object->calls,
+        );
     }
 
     #[RequiresPhp('>=8.4')]

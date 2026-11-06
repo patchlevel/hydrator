@@ -119,7 +119,7 @@ $event = $hydrator->hydrate(
     ]
 );
 
-$oldEvent == $event // true
+$oldEvent == $event; // true
 ```
 
 > [!WARNING]
@@ -166,6 +166,7 @@ Below you will find the list of all normalizers and how to set them manually or 
 
 If you have a collection (array, iterable, list) with a data type that needs to be normalized, 
 you can use the ArrayNormalizer and pass it the required normalizer.
+If the type of the items is given in the docblock, the normalizer is inferred and no attribute is needed.
 
 ```php
 use Patchlevel\Hydrator\Normalizer\ArrayNormalizer;
@@ -176,7 +177,6 @@ final class DTO
     /**
      * @var list<DateTimeImmutable>
      */
-    #[ArrayNormalizer]
     public array $dates;
     
     #[ArrayNormalizer(new DateTimeImmutableNormalizer())]
@@ -189,7 +189,9 @@ final class DTO
 
 #### ArrayShape
 
-If you have an array with a specific shape, you can use the `ArrayShapeNormalizer`.
+If you have an array with a specific shape, you can use the `ArrayShapeNormalizer`
+and pass it a map of field names to normalizers.
+If the shape is given in the docblock, the normalizer is inferred and no attribute is needed.
 
 ```php
 use Patchlevel\Hydrator\Normalizer\ArrayShapeNormalizer;
@@ -203,13 +205,18 @@ final class DTO
      *     otherField: string
      * }
      */
-    #[ArrayShapeNormalizer]
     public array $meta;
     
     #[ArrayShapeNormalizer(['date' => new DateTimeImmutableNormalizer()])]
     public array $explicitMeta;
 }
 ```
+
+> [!NOTE]
+> Only the keys with a normalizer are converted. All other keys, including keys
+> that are not part of the shape, are kept as they are, so they must already hold
+> values that your storage can handle. A `null` value is passed to the normalizer
+> of its key, like for any other property.
 
 #### DateTimeImmutable
 
@@ -310,9 +317,9 @@ use Patchlevel\Hydrator\Normalizer\ObjectNormalizer;
 final class DTO
 {
     #[ObjectNormalizer]
-    public AnohterDto $anotherDto;
+    public AnotherDto $anotherDto;
     
-    #[ObjectNormalizer(AnohterDto::class)]
+    #[ObjectNormalizer(AnotherDto::class)]
     public object $object;
 }
 
@@ -431,8 +438,12 @@ use Patchlevel\Hydrator\Normalizer\InvalidArgument;
 #[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_CLASS)]
 class NameNormalizer implements Normalizer
 {
-    public function normalize(mixed $value): string
+    public function normalize(mixed $value): ?string
     {
+        if ($value === null) {
+            return null;
+        }
+
         if (!$value instanceof Name) {
             throw InvalidArgument::withWrongType(Name::class, $value);
         }
@@ -461,7 +472,7 @@ Now we can also use the normalizer directly.
 final class DTO
 {
     #[NameNormalizer]
-    public Name $name
+    public Name $name;
 }
 ```
 
@@ -491,7 +502,7 @@ class NameGuesser implements Guesser
     public function guess(ObjectType $object): Normalizer|null
     {
         return match($object->getClassName()) {
-            case Name::class => new NameNormalizer(),
+            Name::class => new NameNormalizer(),
             default => null,
         };
     }
@@ -520,7 +531,7 @@ use Patchlevel\Hydrator\Attribute\NormalizedName;
 final class DTO
 {
     #[NormalizedName('profile_name')]
-    public string $name
+    public string $name;
 }
 ```
 
@@ -602,6 +613,10 @@ readonly class Dto
     }
 }
 ```
+
+> [!NOTE]
+> Hooks of parent classes are called as well, each one once. If a child class overrides
+> a hook method, only the child's version is called, with or without the attribute.
 
 ### Events
 

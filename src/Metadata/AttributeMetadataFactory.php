@@ -250,50 +250,84 @@ final class AttributeMetadataFactory implements MetadataFactory
     }
 
     /**
-     * @param ClassMetadata<T> $parent
+     * @param ClassMetadata<T> $child
      *
      * @return ClassMetadata<T>
      *
      * @template T of object
      */
-    private function mergeMetadata(ClassMetadata $parent, ClassMetadata $child): ClassMetadata
+    private function mergeMetadata(ClassMetadata $child, ClassMetadata $parent): ClassMetadata
     {
         $properties = [];
 
-        foreach ($parent->properties() as $property) {
+        foreach ($child->properties() as $property) {
             $properties[$property->fieldName()] = $property;
         }
 
-        foreach ($child->properties() as $property) {
+        foreach ($parent->properties() as $property) {
             if (array_key_exists($property->fieldName(), $properties)) {
                 throw DuplicatedFieldNameInMetadata::byInheritance(
                     $property->fieldName(),
-                    $parent->className(),
                     $child->className(),
+                    $parent->className(),
                 );
             }
 
             $properties[$property->fieldName()] = $property;
         }
 
-        $parentDataSubjectIdField = $parent->dataSubjectIdField();
         $childDataSubjectIdField = $child->dataSubjectIdField();
+        $parentDataSubjectIdField = $parent->dataSubjectIdField();
 
-        if ($parentDataSubjectIdField !== null && $childDataSubjectIdField !== null) {
-            $parentProperty = $parent->propertyForField($parentDataSubjectIdField);
+        if ($childDataSubjectIdField !== null && $parentDataSubjectIdField !== null) {
             $childProperty = $child->propertyForField($childDataSubjectIdField);
+            $parentProperty = $parent->propertyForField($parentDataSubjectIdField);
 
-            throw new MultipleDataSubjectId($parentProperty->propertyName(), $childProperty->propertyName());
+            throw new MultipleDataSubjectId($childProperty->propertyName(), $parentProperty->propertyName());
         }
 
         return new ClassMetadata(
-            $parent->reflection(),
+            $child->reflection(),
             array_values($properties),
-            $parentDataSubjectIdField ?? $childDataSubjectIdField,
-            array_merge($parent->postHydrateCallbacks(), $child->postHydrateCallbacks()),
-            array_merge($parent->preExtractCallbacks(), $child->preExtractCallbacks()),
+            $childDataSubjectIdField ?? $parentDataSubjectIdField,
+            $this->mergeCallbacks($child->reflection(), $child->postHydrateCallbacks(), $parent->postHydrateCallbacks()),
+            $this->mergeCallbacks($child->reflection(), $child->preExtractCallbacks(), $parent->preExtractCallbacks()),
             $child->lazy() ?? $parent->lazy(),
         );
+    }
+
+    /**
+     * Every callback is resolved to the method PHP calls on the child, so an inherited method
+     * shows up once and an overridden one runs as the child's version. Private methods are not
+     * inherited and stay as they are.
+     *
+     * @param ReflectionClass<object> $child
+     * @param list<CallbackMetadata>  $childCallbacks
+     * @param list<CallbackMetadata>  $parentCallbacks
+     *
+     * @return list<CallbackMetadata>
+     */
+    private function mergeCallbacks(ReflectionClass $child, array $childCallbacks, array $parentCallbacks): array
+    {
+        $callbacks = [];
+
+        foreach (array_merge($childCallbacks, $parentCallbacks) as $callback) {
+            $method = $callback->reflection();
+
+            if (!$method->isPrivate()) {
+                $method = $child->getMethod($method->getName());
+            }
+
+            $key = $method->getDeclaringClass()->getName() . '::' . $method->getName();
+
+            if (array_key_exists($key, $callbacks)) {
+                continue;
+            }
+
+            $callbacks[$key] = new CallbackMetadata($method);
+        }
+
+        return array_values($callbacks);
     }
 
     /** @param ReflectionClass<object> $reflectionClass */
@@ -419,21 +453,7 @@ final class AttributeMetadataFactory implements MetadataFactory
             $normalizers = [];
 
             foreach ($shape as $field => $fieldInfo) {
-                $valueType = $fieldInfo['type'];
-
-                if ($valueType instanceof NullableType) {
-                    $valueType = $valueType->getWrappedType();
-                }
-
-                $normalizer = null;
-
-                if ($valueType instanceof ObjectType) {
-                    $normalizer = $this->findNormalizerOnClass($valueType->getClassName());
-                }
-
-                if ($normalizer === null) {
-                    $normalizer = $this->inferNormalizerByType($valueType);
-                }
+                $normalizer = $this->inferNormalizerByType($fieldInfo['type']);
 
                 if ($normalizer === null) {
                     continue;
@@ -450,21 +470,7 @@ final class AttributeMetadataFactory implements MetadataFactory
         }
 
         if ($type instanceof CollectionType) {
-            $valueType = $type->getCollectionValueType();
-
-            if ($valueType instanceof NullableType) {
-                $valueType = $type->getWrappedType();
-            }
-
-            $normalizer = null;
-
-            if ($valueType instanceof ObjectType) {
-                $normalizer = $this->findNormalizerOnClass($valueType->getClassName());
-            }
-
-            if ($normalizer === null) {
-                $normalizer = $this->inferNormalizerByType($valueType);
-            }
+            $normalizer = $this->inferNormalizerByType($type->getCollectionValueType());
 
             if ($normalizer) {
                 return new ArrayNormalizer($normalizer);

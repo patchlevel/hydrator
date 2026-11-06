@@ -7,11 +7,15 @@ namespace Patchlevel\Hydrator\Tests\Unit\Normalizer;
 use Attribute;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\Normalizer\ArrayShapeNormalizer;
+use Patchlevel\Hydrator\Normalizer\EnumNormalizer;
 use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
 use Patchlevel\Hydrator\Normalizer\InvalidArgument;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
 use Patchlevel\Hydrator\Normalizer\NormalizerWithContext;
+use Patchlevel\Hydrator\Normalizer\TypeAwareNormalizer;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\TypeInfo\Type;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final class ArrayShapeNormalizerTest extends TestCase
@@ -90,6 +94,72 @@ final class ArrayShapeNormalizerTest extends TestCase
         $this->assertEquals(['foo' => 1], $normalizer->denormalize(['foo' => '1']));
     }
 
+    public function testNormalizeKeepsKeysWithoutNormalizer(): void
+    {
+        $innerNormalizer = $this->createMock(Normalizer::class);
+        $innerNormalizer->expects($this->once())->method('normalize')->with(1)->willReturn('1');
+
+        $normalizer = new ArrayShapeNormalizer(['foo' => $innerNormalizer]);
+
+        $this->assertSame(
+            ['height' => 180, 'foo' => '1', 'note' => null, 'unknown' => ['x']],
+            $normalizer->normalize(['height' => 180, 'foo' => 1, 'note' => null, 'unknown' => ['x']]),
+        );
+    }
+
+    public function testDenormalizeKeepsKeysWithoutNormalizer(): void
+    {
+        $innerNormalizer = $this->createMock(Normalizer::class);
+        $innerNormalizer->expects($this->once())->method('denormalize')->with('1')->willReturn(1);
+
+        $normalizer = new ArrayShapeNormalizer(['foo' => $innerNormalizer]);
+
+        $this->assertSame(
+            ['height' => 180, 'foo' => 1, 'note' => null, 'unknown' => ['x']],
+            $normalizer->denormalize(['height' => 180, 'foo' => '1', 'note' => null, 'unknown' => ['x']]),
+        );
+    }
+
+    public function testNormalizePassesNullToInnerNormalizer(): void
+    {
+        $innerNormalizer = $this->createMock(Normalizer::class);
+        $innerNormalizer->expects($this->once())->method('normalize')->with(null)->willReturn(null);
+
+        $normalizer = new ArrayShapeNormalizer(['foo' => $innerNormalizer]);
+
+        $this->assertSame(['foo' => null], $normalizer->normalize(['foo' => null]));
+    }
+
+    public function testDenormalizePassesNullToInnerNormalizer(): void
+    {
+        $innerNormalizer = $this->createMock(Normalizer::class);
+        $innerNormalizer->expects($this->once())->method('denormalize')->with(null)->willReturn(null);
+
+        $normalizer = new ArrayShapeNormalizer(['foo' => $innerNormalizer]);
+
+        $this->assertSame(['foo' => null], $normalizer->denormalize(['foo' => null]));
+    }
+
+    public function testNormalizeSkipsMissingKeys(): void
+    {
+        $innerNormalizer = $this->createMock(Normalizer::class);
+        $innerNormalizer->expects($this->never())->method('normalize');
+
+        $normalizer = new ArrayShapeNormalizer(['foo' => $innerNormalizer]);
+
+        $this->assertSame(['bar' => 1], $normalizer->normalize(['bar' => 1]));
+    }
+
+    public function testDenormalizeSkipsMissingKeys(): void
+    {
+        $innerNormalizer = $this->createMock(Normalizer::class);
+        $innerNormalizer->expects($this->never())->method('denormalize');
+
+        $normalizer = new ArrayShapeNormalizer(['foo' => $innerNormalizer]);
+
+        $this->assertSame(['bar' => 1], $normalizer->denormalize(['bar' => 1]));
+    }
+
     public function testNormalizePassesContextToInnerNormalizer(): void
     {
         $context = ['key' => 'value'];
@@ -160,6 +230,29 @@ final class ArrayShapeNormalizerTest extends TestCase
 
         $normalizer = new ArrayShapeNormalizer(['foo' => $normalizer]);
         $normalizer->setHydrator($hydrator);
+    }
+
+    public function testHandleTypePassesFieldTypes(): void
+    {
+        $innerNormalizer = new EnumNormalizer();
+
+        $normalizer = new ArrayShapeNormalizer(['status' => $innerNormalizer]);
+        $normalizer->handleType(Type::nullable(Type::arrayShape(['status' => Type::enum(Status::class)])));
+
+        self::assertSame(Status::class, $innerNormalizer->className());
+    }
+
+    public function testHandleTypeSkipsFieldsMissingInShape(): void
+    {
+        $statusNormalizer = new EnumNormalizer();
+
+        $missingNormalizer = $this->createMockForIntersectionOfInterfaces([Normalizer::class, TypeAwareNormalizer::class]);
+        $missingNormalizer->expects($this->never())->method('handleType');
+
+        $normalizer = new ArrayShapeNormalizer(['status' => $statusNormalizer, 'missing' => $missingNormalizer]);
+        $normalizer->handleType(Type::arrayShape(['status' => Type::enum(Status::class)]));
+
+        self::assertSame(Status::class, $statusNormalizer->className());
     }
 
     public function testInnerNormalizers(): void
