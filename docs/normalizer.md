@@ -78,6 +78,13 @@ final class Profile
     public array $explicitMeta;
 }
 ```
+:::note
+Only the keys with a normalizer are converted. All other keys, including keys
+that are not part of the shape, are kept as they are, so they must already hold
+values that your storage can handle. A `null` value is passed to the normalizer
+of its key, like for any other property.
+:::
+
 ## DateTimeImmutable
 
 With the `DateTimeImmutableNormalizer` you can convert `DateTimeImmutable`

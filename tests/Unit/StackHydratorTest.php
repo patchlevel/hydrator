@@ -33,6 +33,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\DefaultDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DummyMiddleware;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithArrayShapeDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithIterablesDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithNullableDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\LazyProfileCreated;
@@ -555,6 +556,30 @@ final class StackHydratorTest extends TestCase
         );
 
         self::assertEquals($expected, $event);
+    }
+
+    public function testRoundTripWithArrayShape(): void
+    {
+        $object = new InferNormalizerWithArrayShapeDto([
+            'height' => 180,
+            'nickname' => null,
+            'skills' => [new Skill('php'), new Skill('go')],
+            'status' => null,
+            'createdAt' => new DateTimeImmutable('2015-02-13 22:34:32+01:00'),
+        ]);
+
+        $data = [
+            'profile' => [
+                'height' => 180,
+                'nickname' => null,
+                'skills' => [['name' => 'php'], ['name' => 'go']],
+                'status' => null,
+                'createdAt' => '2015-02-13T22:34:32+01:00',
+            ],
+        ];
+
+        self::assertSame($data, $this->hydrator->extract($object));
+        self::assertEquals($object, $this->hydrator->hydrate(InferNormalizerWithArrayShapeDto::class, $data));
     }
 
     public function testHydrateWithClassNormalizer(): void
