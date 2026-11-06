@@ -26,6 +26,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\ContextAwareDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DefaultDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DtoWithHooks;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\ExplicitArrayShapeNormalizerDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerBrokenDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithArrayShapeDto;
@@ -619,6 +620,27 @@ final class MetadataHydratorTest extends TestCase
 
         self::assertSame($data, $this->hydrator->extract($object));
         self::assertEquals($object, $this->hydrator->hydrate(InferNormalizerWithArrayShapeDto::class, $data));
+    }
+
+    public function testRoundTripWithExplicitArrayShapeNormalizerAndFieldMissingInDocblock(): void
+    {
+        $object = new ExplicitArrayShapeNormalizerDto([
+            'status' => Status::Draft,
+            'skill' => new Skill('php'),
+        ]);
+
+        $data = [
+            'shape' => [
+                'status' => 'draft',
+                'skill' => ['name' => 'php'],
+            ],
+        ];
+
+        self::assertSame($data, $this->hydrator->extract($object));
+        self::assertEquals(
+            $object,
+            $this->hydrator->hydrate(ExplicitArrayShapeNormalizerDto::class, $data),
+        );
     }
 
     public function testHydrateWithInferNormalizerFailed(): void
