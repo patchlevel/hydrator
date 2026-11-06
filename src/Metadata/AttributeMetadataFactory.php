@@ -12,6 +12,7 @@ use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\Normalizer\ArrayNormalizer;
 use Patchlevel\Hydrator\Normalizer\ArrayShapeNormalizer;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
+use Patchlevel\Hydrator\Normalizer\ObjectMapNormalizer;
 use Patchlevel\Hydrator\Normalizer\ObjectNormalizer;
 use Patchlevel\Hydrator\Normalizer\TypeAwareNormalizer;
 use ReflectionAttribute;
@@ -225,7 +226,10 @@ final class AttributeMetadataFactory implements MetadataFactory
         $type = $reflectionClass->isEnum() ? Type::enum($className) : Type::object($className);
         $normalizer = $this->inferNormalizerByType($type);
 
-        if ($normalizer instanceof ObjectNormalizer) {
+        // Both hand the object back to the hydrator. As class normalizer of a mapped class they
+        // would end in a recursion, and a map is only meant for properties typed as the
+        // interface or parent class that declares it.
+        if ($normalizer instanceof ObjectNormalizer || $normalizer instanceof ObjectMapNormalizer) {
             return null;
         }
 

@@ -227,6 +227,11 @@ final class Page
 :::note
 Auto detection of the concrete type is not possible here. You have to specify the
 map yourself.
+
+The map is only used for properties. Extracting a mapped class directly, e.g.
+`$hydrator->extract($contentBlock)`, returns its plain fields without the type
+field, and hydrating the interface itself at the top level, e.g.
+`$hydrator->hydrate(Block::class, $data)`, is not supported.
 :::
 
 ## Inline
