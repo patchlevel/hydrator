@@ -6,11 +6,15 @@ namespace Patchlevel\Hydrator\Tests\Unit\Normalizer;
 
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\Normalizer\ArrayShapeNormalizer;
+use Patchlevel\Hydrator\Normalizer\EnumNormalizer;
 use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
 use Patchlevel\Hydrator\Normalizer\InvalidArgument;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
+use Patchlevel\Hydrator\Normalizer\TypeAwareNormalizer;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\TypeInfo\Type;
 
 #[CoversClass(ArrayShapeNormalizer::class)]
 final class ArrayShapeNormalizerTest extends TestCase
@@ -163,6 +167,29 @@ final class ArrayShapeNormalizerTest extends TestCase
 
         $normalizer = new ArrayShapeNormalizer(['foo' => $normalizer]);
         $normalizer->setHydrator($hydrator);
+    }
+
+    public function testHandleTypePassesFieldTypes(): void
+    {
+        $innerNormalizer = new EnumNormalizer();
+
+        $normalizer = new ArrayShapeNormalizer(['status' => $innerNormalizer]);
+        $normalizer->handleType(Type::nullable(Type::arrayShape(['status' => Type::enum(Status::class)])));
+
+        self::assertSame(Status::class, $innerNormalizer->className());
+    }
+
+    public function testHandleTypeSkipsFieldsMissingInShape(): void
+    {
+        $statusNormalizer = new EnumNormalizer();
+
+        $missingNormalizer = $this->createMockForIntersectionOfInterfaces([Normalizer::class, TypeAwareNormalizer::class]);
+        $missingNormalizer->expects($this->never())->method('handleType');
+
+        $normalizer = new ArrayShapeNormalizer(['status' => $statusNormalizer, 'missing' => $missingNormalizer]);
+        $normalizer->handleType(Type::arrayShape(['status' => Type::enum(Status::class)]));
+
+        self::assertSame(Status::class, $statusNormalizer->className());
     }
 
     public function testInnerNormalizers(): void

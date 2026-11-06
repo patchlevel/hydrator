@@ -32,6 +32,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\ContextAwareDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DefaultDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DummyMiddleware;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\ExplicitArrayShapeNormalizerDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithIterablesDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithNullableDto;
@@ -578,6 +579,27 @@ final class StackHydratorTest extends TestCase
         self::assertEquals(
             $object,
             $this->hydrator->hydrate(InferNormalizerWithNullableItemsDto::class, $data),
+        );
+    }
+
+    public function testRoundTripWithExplicitArrayShapeNormalizerAndFieldMissingInDocblock(): void
+    {
+        $object = new ExplicitArrayShapeNormalizerDto([
+            'status' => Status::Draft,
+            'skill' => new Skill('php'),
+        ]);
+
+        $data = [
+            'shape' => [
+                'status' => 'draft',
+                'skill' => ['name' => 'php'],
+            ],
+        ];
+
+        self::assertSame($data, $this->hydrator->extract($object));
+        self::assertEquals(
+            $object,
+            $this->hydrator->hydrate(ExplicitArrayShapeNormalizerDto::class, $data),
         );
     }
 

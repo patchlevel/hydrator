@@ -10,6 +10,7 @@ use Symfony\Component\TypeInfo\Type;
 use Symfony\Component\TypeInfo\Type\ArrayShapeType;
 use Symfony\Component\TypeInfo\Type\NullableType;
 
+use function array_key_exists;
 use function is_array;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
@@ -105,7 +106,7 @@ final readonly class ArrayShapeNormalizer implements Normalizer, TypeAwareNormal
         $shape = $type->getShape();
 
         foreach ($this->normalizerMap as $field => $normalizer) {
-            if (!$normalizer instanceof TypeAwareNormalizer) {
+            if (!$normalizer instanceof TypeAwareNormalizer || !array_key_exists($field, $shape)) {
                 continue;
             }
 
