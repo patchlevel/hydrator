@@ -119,7 +119,7 @@ $event = $hydrator->hydrate(
     ]
 );
 
-$oldEvent == $event // true
+$oldEvent == $event; // true
 ```
 
 > [!WARNING]
@@ -438,8 +438,12 @@ use Patchlevel\Hydrator\Normalizer\InvalidArgument;
 #[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_CLASS)]
 class NameNormalizer implements Normalizer
 {
-    public function normalize(mixed $value): string
+    public function normalize(mixed $value): ?string
     {
+        if ($value === null) {
+            return null;
+        }
+
         if (!$value instanceof Name) {
             throw InvalidArgument::withWrongType(Name::class, $value);
         }
