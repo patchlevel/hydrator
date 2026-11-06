@@ -29,7 +29,6 @@ use Symfony\Component\TypeInfo\Type\TemplateType;
 use Symfony\Component\TypeInfo\TypeResolver\TypeResolver;
 
 use function array_key_exists;
-use function array_merge;
 use function array_values;
 
 final class AttributeMetadataFactory implements MetadataFactory
@@ -198,7 +197,6 @@ final class AttributeMetadataFactory implements MetadataFactory
             $child->normalizer ?? $parent->normalizer,
             array_values($properties),
             $child->lazy ?? $parent->lazy,
-            array_merge($parent->extras, $child->extras),
         );
     }
 
