@@ -223,13 +223,13 @@ parameters:
 			path: tests/Unit/Fixture/DtoWithHooks.php
 
 		-
-			message: '#^Method class@anonymous/tests/Unit/Metadata/AttributeMetadataFactoryTest\.php\:477\:\:postHydrate\(\) is unused\.$#'
+			message: '#^Method class@anonymous/tests/Unit/Metadata/AttributeMetadataFactoryTest\.php\:481\:\:postHydrate\(\) is unused\.$#'
 			identifier: method.unused
 			count: 1
 			path: tests/Unit/Metadata/AttributeMetadataFactoryTest.php
 
 		-
-			message: '#^Method class@anonymous/tests/Unit/Metadata/AttributeMetadataFactoryTest\.php\:477\:\:preExtract\(\) is unused\.$#'
+			message: '#^Method class@anonymous/tests/Unit/Metadata/AttributeMetadataFactoryTest\.php\:481\:\:preExtract\(\) is unused\.$#'
 			identifier: method.unused
 			count: 1
 			path: tests/Unit/Metadata/AttributeMetadataFactoryTest.php
@@ -241,13 +241,13 @@ parameters:
 			path: tests/Unit/Metadata/AttributeMetadataFactoryTest.php
 
 		-
-			message: '#^Static method class@anonymous/tests/Unit/Metadata/AttributeMetadataFactoryTest\.php\:505\:\:postHydrate\(\) is unused\.$#'
+			message: '#^Static method class@anonymous/tests/Unit/Metadata/AttributeMetadataFactoryTest\.php\:509\:\:postHydrate\(\) is unused\.$#'
 			identifier: method.unused
 			count: 1
 			path: tests/Unit/Metadata/AttributeMetadataFactoryTest.php
 
 		-
-			message: '#^Static method class@anonymous/tests/Unit/Metadata/AttributeMetadataFactoryTest\.php\:505\:\:preExtract\(\) is unused\.$#'
+			message: '#^Static method class@anonymous/tests/Unit/Metadata/AttributeMetadataFactoryTest\.php\:509\:\:preExtract\(\) is unused\.$#'
 			identifier: method.unused
 			count: 1
 			path: tests/Unit/Metadata/AttributeMetadataFactoryTest.php
