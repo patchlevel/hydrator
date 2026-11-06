@@ -312,7 +312,7 @@ final class AttributeMetadataFactory implements MetadataFactory
             $valueType = $type->getCollectionValueType();
 
             if ($valueType instanceof NullableType) {
-                $valueType = $type->getWrappedType();
+                $valueType = $valueType->getWrappedType();
             }
 
             $normalizer = null;

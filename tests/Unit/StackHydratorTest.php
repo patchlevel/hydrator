@@ -35,6 +35,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithIterablesDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithNullableDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithNullableItemsDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\LazyProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\NormalizerInBaseClassDefinedDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDto;
@@ -555,6 +556,29 @@ final class StackHydratorTest extends TestCase
         );
 
         self::assertEquals($expected, $event);
+    }
+
+    public function testRoundTripWithInferNormalizerForNullableCollectionItems(): void
+    {
+        $object = new InferNormalizerWithNullableItemsDto(
+            [new Skill('php'), null],
+            ['foo' => Status::Draft, 'bar' => null],
+            [new DateTimeImmutable('2015-02-13 22:34:32+01:00'), null],
+            ['foo' => [Status::Closed, null]],
+        );
+
+        $data = [
+            'skills' => [['name' => 'php'], null],
+            'statuses' => ['foo' => 'draft', 'bar' => null],
+            'dates' => ['2015-02-13T22:34:32+01:00', null],
+            'nested' => ['foo' => ['closed', null]],
+        ];
+
+        self::assertSame($data, $this->hydrator->extract($object));
+        self::assertEquals(
+            $object,
+            $this->hydrator->hydrate(InferNormalizerWithNullableItemsDto::class, $data),
+        );
     }
 
     public function testHydrateWithClassNormalizer(): void

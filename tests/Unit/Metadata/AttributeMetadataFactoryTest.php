@@ -10,6 +10,8 @@ use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassNotFound;
 use Patchlevel\Hydrator\Metadata\DuplicatedFieldNameInMetadata;
 use Patchlevel\Hydrator\Metadata\PropertyMetadataNotFound;
+use Patchlevel\Hydrator\Normalizer\ArrayNormalizer;
+use Patchlevel\Hydrator\Normalizer\DateTimeImmutableNormalizer;
 use Patchlevel\Hydrator\Normalizer\EnumNormalizer;
 use Patchlevel\Hydrator\Normalizer\ObjectNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\BrokenParentDto;
@@ -20,9 +22,11 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\EmailNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\IdNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\IgnoreDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\IgnoreParentDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithNullableItemsDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWithGeneric;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\Skill;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Wrapper;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -220,6 +224,29 @@ final class AttributeMetadataFactoryTest extends TestCase
         $propertyMetadata = $metadata->propertyForField('profileId');
 
         self::assertEquals(new IdNormalizer(ProfileId::class), $propertyMetadata->normalizer);
+    }
+
+    public function testInferNormalizerForNullableCollectionItems(): void
+    {
+        $metadataFactory = new AttributeMetadataFactory();
+        $metadata = $metadataFactory->metadata(InferNormalizerWithNullableItemsDto::class);
+
+        self::assertEquals(
+            new ArrayNormalizer(new ObjectNormalizer(Skill::class)),
+            $metadata->propertyForField('skills')->normalizer,
+        );
+        self::assertEquals(
+            new ArrayNormalizer(new EnumNormalizer(Status::class)),
+            $metadata->propertyForField('statuses')->normalizer,
+        );
+        self::assertEquals(
+            new ArrayNormalizer(new DateTimeImmutableNormalizer()),
+            $metadata->propertyForField('dates')->normalizer,
+        );
+        self::assertEquals(
+            new ArrayNormalizer(new ArrayNormalizer(new EnumNormalizer(Status::class))),
+            $metadata->propertyForField('nested')->normalizer,
+        );
     }
 
     public function testInferNormalizerWithGeneric(): void
