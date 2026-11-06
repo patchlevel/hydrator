@@ -278,21 +278,7 @@ final class AttributeMetadataFactory implements MetadataFactory
             $normalizers = [];
 
             foreach ($shape as $field => $fieldInfo) {
-                $valueType = $fieldInfo['type'];
-
-                if ($valueType instanceof NullableType) {
-                    $valueType = $valueType->getWrappedType();
-                }
-
-                $normalizer = null;
-
-                if ($valueType instanceof ObjectType) {
-                    $normalizer = $this->findNormalizerOnClass($valueType->getClassName());
-                }
-
-                if ($normalizer === null) {
-                    $normalizer = $this->inferNormalizerByType($valueType);
-                }
+                $normalizer = $this->inferNormalizerByType($fieldInfo['type']);
 
                 if ($normalizer === null) {
                     continue;
@@ -309,21 +295,7 @@ final class AttributeMetadataFactory implements MetadataFactory
         }
 
         if ($type instanceof CollectionType) {
-            $valueType = $type->getCollectionValueType();
-
-            if ($valueType instanceof NullableType) {
-                $valueType = $valueType->getWrappedType();
-            }
-
-            $normalizer = null;
-
-            if ($valueType instanceof ObjectType) {
-                $normalizer = $this->findNormalizerOnClass($valueType->getClassName());
-            }
-
-            if ($normalizer === null) {
-                $normalizer = $this->inferNormalizerByType($valueType);
-            }
+            $normalizer = $this->inferNormalizerByType($type->getCollectionValueType());
 
             if ($normalizer) {
                 return new ArrayNormalizer($normalizer);
