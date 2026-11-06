@@ -117,6 +117,27 @@ final class ObjectNormalizerTest extends TestCase
         );
     }
 
+    public function testDenormalizePassesNonArrayValueToHydrator(): void
+    {
+        $hydrator = $this->createMock(Hydrator::class);
+
+        $expected = ProfileId::fromString('1');
+
+        $hydrator->expects($this->once())->method('hydrate')->with(
+            ProfileId::class,
+            '1',
+        )
+            ->willReturn($expected);
+
+        $normalizer = new ObjectNormalizer(ProfileId::class);
+        $normalizer->setHydrator($hydrator);
+
+        $this->assertEquals(
+            $expected,
+            $normalizer->denormalize('1', []),
+        );
+    }
+
     public function testNormalizePassesContextToHydrator(): void
     {
         $context = ['key' => 'value'];
