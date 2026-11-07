@@ -102,7 +102,7 @@ final readonly class ArrayShapeNormalizer implements Normalizer, TypeAwareNormal
         $shape = $type->getShape();
 
         foreach ($this->normalizerMap as $field => $normalizer) {
-            if (!$normalizer instanceof TypeAwareNormalizer) {
+            if (!$normalizer instanceof TypeAwareNormalizer || !array_key_exists($field, $shape)) {
                 continue;
             }
 
