@@ -25,18 +25,26 @@ use Patchlevel\Hydrator\NormalizationFailure;
 use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
 use Patchlevel\Hydrator\StackHydrator;
 use Patchlevel\Hydrator\StackHydratorBuilder;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle1Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle2Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle3Dto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\CodeBlock;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\ContentBlock;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ContextAwareDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DefaultDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DummyMiddleware;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\ExplicitArrayShapeNormalizerDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\ExplicitObjectNormalizerDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithArrayShapeDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithIterablesDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithNullableDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithNullableItemsDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\LazyProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\NormalizerInBaseClassDefinedDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\ObjectMapDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWithInlineNormalizer;
@@ -44,8 +52,11 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWithNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWrapper;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Skill;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\Square;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\StatusWithInterfaceNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\StatusWithNormalizer;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\SubId;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ValueObject;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer;
 use Patchlevel\Hydrator\TypeMismatch;
@@ -236,6 +247,11 @@ final class StackHydratorTest extends TestCase
         );
 
         self::assertEquals('id', $data);
+    }
+
+    public function testExtractBackedEnum(): void
+    {
+        self::assertSame('draft', $this->hydrator->extract(Status::Draft));
     }
 
     public function testHydrate(): void
@@ -557,6 +573,74 @@ final class StackHydratorTest extends TestCase
         self::assertEquals($expected, $event);
     }
 
+    public function testRoundTripWithInferNormalizerForNullableCollectionItems(): void
+    {
+        $object = new InferNormalizerWithNullableItemsDto(
+            [new Skill('php'), null],
+            ['foo' => Status::Draft, 'bar' => null],
+            [new DateTimeImmutable('2015-02-13 22:34:32+01:00'), null],
+            ['foo' => [Status::Closed, null]],
+        );
+
+        $data = [
+            'skills' => [['name' => 'php'], null],
+            'statuses' => ['foo' => 'draft', 'bar' => null],
+            'dates' => ['2015-02-13T22:34:32+01:00', null],
+            'nested' => ['foo' => ['closed', null]],
+        ];
+
+        self::assertSame($data, $this->hydrator->extract($object));
+        self::assertEquals(
+            $object,
+            $this->hydrator->hydrate(InferNormalizerWithNullableItemsDto::class, $data),
+        );
+    }
+
+    public function testRoundTripWithArrayShape(): void
+    {
+        $object = new InferNormalizerWithArrayShapeDto([
+            'height' => 180,
+            'nickname' => null,
+            'skills' => [new Skill('php'), new Skill('go')],
+            'status' => null,
+            'createdAt' => new DateTimeImmutable('2015-02-13 22:34:32+01:00'),
+        ]);
+
+        $data = [
+            'profile' => [
+                'height' => 180,
+                'nickname' => null,
+                'skills' => [['name' => 'php'], ['name' => 'go']],
+                'status' => null,
+                'createdAt' => '2015-02-13T22:34:32+01:00',
+            ],
+        ];
+
+        self::assertSame($data, $this->hydrator->extract($object));
+        self::assertEquals($object, $this->hydrator->hydrate(InferNormalizerWithArrayShapeDto::class, $data));
+    }
+
+    public function testRoundTripWithExplicitArrayShapeNormalizerAndFieldMissingInDocblock(): void
+    {
+        $object = new ExplicitArrayShapeNormalizerDto([
+            'status' => Status::Draft,
+            'skill' => new Skill('php'),
+        ]);
+
+        $data = [
+            'shape' => [
+                'status' => 'draft',
+                'skill' => ['name' => 'php'],
+            ],
+        ];
+
+        self::assertSame($data, $this->hydrator->extract($object));
+        self::assertEquals(
+            $object,
+            $this->hydrator->hydrate(ExplicitArrayShapeNormalizerDto::class, $data),
+        );
+    }
+
     public function testHydrateWithClassNormalizer(): void
     {
         $object = $this->hydrator->hydrate(
@@ -565,6 +649,126 @@ final class StackHydratorTest extends TestCase
         );
 
         self::assertEquals(ProfileId::fromString('id'), $object);
+    }
+
+    public function testHydrateBackedEnum(): void
+    {
+        self::assertSame(Status::Draft, $this->hydrator->hydrate(Status::class, 'draft'));
+    }
+
+    public function testBackedEnumWithEnumNormalizerOnTheEnum(): void
+    {
+        self::assertSame('draft', $this->hydrator->extract(StatusWithNormalizer::Draft));
+        self::assertSame(StatusWithNormalizer::Draft, $this->hydrator->hydrate(StatusWithNormalizer::class, 'draft'));
+    }
+
+    public function testBackedEnumWithEnumNormalizerFromAnInterface(): void
+    {
+        self::assertSame('draft', $this->hydrator->extract(StatusWithInterfaceNormalizer::Draft));
+        self::assertSame(
+            StatusWithInterfaceNormalizer::Draft,
+            $this->hydrator->hydrate(StatusWithInterfaceNormalizer::class, 'draft'),
+        );
+    }
+
+    public function testRoundTripWithClassNormalizerFromAbstractParent(): void
+    {
+        $data = $this->hydrator->extract(SubId::fromString('1'));
+
+        self::assertSame('1', $data);
+        self::assertEquals(SubId::fromString('1'), $this->hydrator->hydrate(SubId::class, $data));
+    }
+
+    public function testExtractWithObjectMapOnInterfaceAndAbstractClass(): void
+    {
+        $object = new ObjectMapDto(
+            new ContentBlock('foo'),
+            new ContentBlock('bar'),
+            [new ContentBlock('baz'), new CodeBlock('echo 1;')],
+            new Circle(5),
+        );
+
+        self::assertSame(
+            [
+                'block' => ['text' => 'foo', '_type' => 'content'],
+                'contentBlock' => ['text' => 'bar', '_type' => 'content'],
+                'blocks' => [
+                    ['text' => 'baz', '_type' => 'content'],
+                    ['code' => 'echo 1;', '_type' => 'code'],
+                ],
+                'shape' => ['radius' => 5, '_type' => 'circle'],
+            ],
+            $this->hydrator->extract($object),
+        );
+    }
+
+    public function testHydrateWithObjectMapOnInterfaceAndAbstractClass(): void
+    {
+        $object = $this->hydrator->hydrate(
+            ObjectMapDto::class,
+            [
+                'block' => ['_type' => 'code', 'code' => 'echo 1;'],
+                'contentBlock' => ['_type' => 'content', 'text' => 'bar'],
+                'blocks' => [
+                    ['_type' => 'content', 'text' => 'baz'],
+                    ['_type' => 'code', 'code' => 'echo 2;'],
+                ],
+                'shape' => ['_type' => 'square', 'size' => 3],
+            ],
+        );
+
+        self::assertEquals(
+            new ObjectMapDto(
+                new CodeBlock('echo 1;'),
+                new ContentBlock('bar'),
+                [new ContentBlock('baz'), new CodeBlock('echo 2;')],
+                new Square(3),
+            ),
+            $object,
+        );
+    }
+
+    public function testExtractClassOfObjectMap(): void
+    {
+        self::assertSame(['text' => 'foo'], $this->hydrator->extract(new ContentBlock('foo')));
+        self::assertSame(['radius' => 5], $this->hydrator->extract(new Circle(5)));
+    }
+
+    public function testHydrateClassOfObjectMap(): void
+    {
+        self::assertEquals(
+            new ContentBlock('foo'),
+            $this->hydrator->hydrate(ContentBlock::class, ['text' => 'foo']),
+        );
+
+        self::assertEquals(
+            new Circle(5),
+            $this->hydrator->hydrate(Circle::class, ['radius' => 5]),
+        );
+    }
+
+    public function testRoundTripWithExplicitObjectNormalizerAndClassNormalizer(): void
+    {
+        $object = new ExplicitObjectNormalizerDto(ProfileId::fromString('1'));
+
+        $data = $this->hydrator->extract($object);
+
+        self::assertEquals(['profileId' => '1'], $data);
+        self::assertEquals($object, $this->hydrator->hydrate(ExplicitObjectNormalizerDto::class, $data));
+    }
+
+    public function testHydrateWithExplicitObjectNormalizerAndNonArrayData(): void
+    {
+        try {
+            $this->hydrator->hydrate(
+                ProfileCreatedWrapper::class,
+                ['event' => 'foo'],
+            );
+
+            self::fail('DenormalizationFailure was not thrown');
+        } catch (DenormalizationFailure $e) {
+            self::assertInstanceOf(ArrayDataRequired::class, $e->getPrevious());
+        }
     }
 
     #[RequiresPhp('>=8.4')]
