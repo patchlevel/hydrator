@@ -78,6 +78,13 @@ final class Profile
     public array $explicitMeta;
 }
 ```
+:::note
+Only the keys with a normalizer are converted. All other keys, including keys
+that are not part of the shape, are kept as they are, so they must already hold
+values that your storage can handle. A `null` value is passed to the normalizer
+of its key, like for any other property.
+:::
+
 ## DateTimeImmutable
 
 With the `DateTimeImmutableNormalizer` you can convert `DateTimeImmutable`
@@ -220,6 +227,11 @@ final class Page
 :::note
 Auto detection of the concrete type is not possible here. You have to specify the
 map yourself.
+
+The map is only used for properties. Extracting a mapped class directly, e.g.
+`$hydrator->extract($contentBlock)`, returns its plain fields without the type
+field, and hydrating the interface itself at the top level, e.g.
+`$hydrator->hydrate(Block::class, $data)`, is not supported.
 :::
 
 ## Inline

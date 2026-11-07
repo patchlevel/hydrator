@@ -10,6 +10,7 @@ use Symfony\Component\TypeInfo\Type;
 use Symfony\Component\TypeInfo\Type\ArrayShapeType;
 use Symfony\Component\TypeInfo\Type\NullableType;
 
+use function array_key_exists;
 use function is_array;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
@@ -36,17 +37,15 @@ final readonly class ArrayShapeNormalizer implements Normalizer, TypeAwareNormal
             throw InvalidArgument::withWrongType('array|null', $value);
         }
 
-        $result = [];
-
         foreach ($this->normalizerMap as $field => $normalizer) {
-            if (!isset($value[$field])) {
+            if (!array_key_exists($field, $value)) {
                 continue;
             }
 
-            $result[$field] = $normalizer->normalize($value[$field], $context);
+            $value[$field] = $normalizer->normalize($value[$field], $context);
         }
 
-        return $result;
+        return $value;
     }
 
     /**
@@ -64,17 +63,15 @@ final readonly class ArrayShapeNormalizer implements Normalizer, TypeAwareNormal
             throw InvalidArgument::withWrongType('array|null', $value);
         }
 
-        $result = [];
-
         foreach ($this->normalizerMap as $field => $normalizer) {
-            if (!isset($value[$field])) {
+            if (!array_key_exists($field, $value)) {
                 continue;
             }
 
-            $result[$field] = $normalizer->denormalize($value[$field], $context);
+            $value[$field] = $normalizer->denormalize($value[$field], $context);
         }
 
-        return $result;
+        return $value;
     }
 
     public function setHydrator(Hydrator $hydrator): void
@@ -105,7 +102,7 @@ final readonly class ArrayShapeNormalizer implements Normalizer, TypeAwareNormal
         $shape = $type->getShape();
 
         foreach ($this->normalizerMap as $field => $normalizer) {
-            if (!$normalizer instanceof TypeAwareNormalizer) {
+            if (!$normalizer instanceof TypeAwareNormalizer || !array_key_exists($field, $shape)) {
                 continue;
             }
 
