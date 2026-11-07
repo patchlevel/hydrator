@@ -166,26 +166,26 @@ final class AttributeMetadataFactory implements MetadataFactory
     }
 
     /**
-     * @param ClassMetadata<T> $parent
+     * @param ClassMetadata<T> $child
      *
      * @return ClassMetadata<T>
      *
      * @template T of object
      */
-    private function mergeMetadata(ClassMetadata $parent, ClassMetadata $child): ClassMetadata
+    private function mergeMetadata(ClassMetadata $child, ClassMetadata $parent): ClassMetadata
     {
         $properties = [];
 
-        foreach ($parent->properties as $property) {
+        foreach ($child->properties as $property) {
             $properties[$property->fieldName] = $property;
         }
 
-        foreach ($child->properties as $property) {
+        foreach ($parent->properties as $property) {
             if (array_key_exists($property->fieldName, $properties)) {
                 throw DuplicatedFieldNameInMetadata::byInheritance(
                     $property->fieldName,
-                    $parent->className,
                     $child->className,
+                    $parent->className,
                 );
             }
 
@@ -193,7 +193,7 @@ final class AttributeMetadataFactory implements MetadataFactory
         }
 
         return new ClassMetadata(
-            $parent->reflection,
+            $child->reflection,
             $child->normalizer ?? $parent->normalizer,
             array_values($properties),
             $child->lazy ?? $parent->lazy,
@@ -278,21 +278,7 @@ final class AttributeMetadataFactory implements MetadataFactory
             $normalizers = [];
 
             foreach ($shape as $field => $fieldInfo) {
-                $valueType = $fieldInfo['type'];
-
-                if ($valueType instanceof NullableType) {
-                    $valueType = $valueType->getWrappedType();
-                }
-
-                $normalizer = null;
-
-                if ($valueType instanceof ObjectType) {
-                    $normalizer = $this->findNormalizerOnClass($valueType->getClassName());
-                }
-
-                if ($normalizer === null) {
-                    $normalizer = $this->inferNormalizerByType($valueType);
-                }
+                $normalizer = $this->inferNormalizerByType($fieldInfo['type']);
 
                 if ($normalizer === null) {
                     continue;
@@ -309,21 +295,7 @@ final class AttributeMetadataFactory implements MetadataFactory
         }
 
         if ($type instanceof CollectionType) {
-            $valueType = $type->getCollectionValueType();
-
-            if ($valueType instanceof NullableType) {
-                $valueType = $type->getWrappedType();
-            }
-
-            $normalizer = null;
-
-            if ($valueType instanceof ObjectType) {
-                $normalizer = $this->findNormalizerOnClass($valueType->getClassName());
-            }
-
-            if ($normalizer === null) {
-                $normalizer = $this->inferNormalizerByType($valueType);
-            }
+            $normalizer = $this->inferNormalizerByType($type->getCollectionValueType());
 
             if ($normalizer) {
                 return new ArrayNormalizer($normalizer);

@@ -28,9 +28,12 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle3Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ContextAwareDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DefaultDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\ExplicitArrayShapeNormalizerDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithArrayShapeDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithIterablesDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithNullableDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithNullableItemsDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\LazyProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\NormalizerInBaseClassDefinedDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDto;
@@ -540,6 +543,74 @@ final class StackHydratorTest extends TestCase
         );
 
         self::assertEquals($expected, $event);
+    }
+
+    public function testRoundTripWithInferNormalizerForNullableCollectionItems(): void
+    {
+        $object = new InferNormalizerWithNullableItemsDto(
+            [new Skill('php'), null],
+            ['foo' => Status::Draft, 'bar' => null],
+            [new DateTimeImmutable('2015-02-13 22:34:32+01:00'), null],
+            ['foo' => [Status::Closed, null]],
+        );
+
+        $data = [
+            'skills' => [['name' => 'php'], null],
+            'statuses' => ['foo' => 'draft', 'bar' => null],
+            'dates' => ['2015-02-13T22:34:32+01:00', null],
+            'nested' => ['foo' => ['closed', null]],
+        ];
+
+        self::assertSame($data, $this->hydrator->extract($object));
+        self::assertEquals(
+            $object,
+            $this->hydrator->hydrate(InferNormalizerWithNullableItemsDto::class, $data),
+        );
+    }
+
+    public function testRoundTripWithArrayShape(): void
+    {
+        $object = new InferNormalizerWithArrayShapeDto([
+            'height' => 180,
+            'nickname' => null,
+            'skills' => [new Skill('php'), new Skill('go')],
+            'status' => null,
+            'createdAt' => new DateTimeImmutable('2015-02-13 22:34:32+01:00'),
+        ]);
+
+        $data = [
+            'profile' => [
+                'height' => 180,
+                'nickname' => null,
+                'skills' => [['name' => 'php'], ['name' => 'go']],
+                'status' => null,
+                'createdAt' => '2015-02-13T22:34:32+01:00',
+            ],
+        ];
+
+        self::assertSame($data, $this->hydrator->extract($object));
+        self::assertEquals($object, $this->hydrator->hydrate(InferNormalizerWithArrayShapeDto::class, $data));
+    }
+
+    public function testRoundTripWithExplicitArrayShapeNormalizerAndFieldMissingInDocblock(): void
+    {
+        $object = new ExplicitArrayShapeNormalizerDto([
+            'status' => Status::Draft,
+            'skill' => new Skill('php'),
+        ]);
+
+        $data = [
+            'shape' => [
+                'status' => 'draft',
+                'skill' => ['name' => 'php'],
+            ],
+        ];
+
+        self::assertSame($data, $this->hydrator->extract($object));
+        self::assertEquals(
+            $object,
+            $this->hydrator->hydrate(ExplicitArrayShapeNormalizerDto::class, $data),
+        );
     }
 
     public function testHydrateWithClassNormalizer(): void
