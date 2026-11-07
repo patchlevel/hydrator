@@ -14,13 +14,13 @@ final class DateIntervalNormalizerTest extends TestCase
     public function testNormalizeWithNull(): void
     {
         $normalizer = new DateIntervalNormalizer();
-        self::assertNull($normalizer->normalize(null));
+        self::assertNull($normalizer->normalize(null, []));
     }
 
     public function testDenormalizeWithNull(): void
     {
         $normalizer = new DateIntervalNormalizer();
-        self::assertNull($normalizer->denormalize(null));
+        self::assertNull($normalizer->denormalize(null, []));
     }
 
     public function testNormalizeWithInvalidArgument(): void
@@ -29,7 +29,7 @@ final class DateIntervalNormalizerTest extends TestCase
         $this->expectExceptionCode(0);
 
         $normalizer = new DateIntervalNormalizer();
-        $normalizer->normalize(123);
+        $normalizer->normalize(123, []);
     }
 
     public function testDenormalizeWithInvalidArgument(): void
@@ -38,25 +38,25 @@ final class DateIntervalNormalizerTest extends TestCase
         $this->expectExceptionCode(0);
 
         $normalizer = new DateIntervalNormalizer();
-        $normalizer->denormalize(123);
+        $normalizer->denormalize(123, []);
     }
 
     public function testNormalizeWithValue(): void
     {
         $normalizer = new DateIntervalNormalizer();
-        self::assertSame('P02Y02M25DT06H07M08S', $normalizer->normalize(new DateInterval('P2Y2M3W4DT6H7M8S')));
+        self::assertSame('P02Y02M25DT06H07M08S', $normalizer->normalize(new DateInterval('P2Y2M3W4DT6H7M8S'), []));
     }
 
     public function testNormalizeWithChangeFormat(): void
     {
         $normalizer = new DateIntervalNormalizer(format: 'P%YY%MM');
-        self::assertSame('P02Y02M', $normalizer->normalize(new DateInterval('P2Y2M3W4DT6H7M8S')));
+        self::assertSame('P02Y02M', $normalizer->normalize(new DateInterval('P2Y2M3W4DT6H7M8S'), []));
     }
 
     public function testDenormalizeWithValue(): void
     {
         $normalizer = new DateIntervalNormalizer();
-        $denormalized = $normalizer->denormalize('P00Y00M35DT00H00M00S');
+        $denormalized = $normalizer->denormalize('P00Y00M35DT00H00M00S', []);
         self::assertNotNull($denormalized);
 
         $this->assertEqualInterval(
@@ -68,7 +68,7 @@ final class DateIntervalNormalizerTest extends TestCase
     public function testDenormalizeWithChangeFormat(): void
     {
         $normalizer = new DateIntervalNormalizer(format: 'P%YY');
-        $denormalized = $normalizer->denormalize('P5Y');
+        $denormalized = $normalizer->denormalize('P5Y', []);
         self::assertNotNull($denormalized);
 
         $this->assertEqualInterval(
@@ -83,7 +83,7 @@ final class DateIntervalNormalizerTest extends TestCase
         $this->expectExceptionMessage('Invalid serialized date interval string');
         $this->expectExceptionCode(0);
 
-        (new DateIntervalNormalizer())->denormalize('Kermit');
+        (new DateIntervalNormalizer())->denormalize('Kermit', []);
     }
 
     private function assertEqualInterval(DateInterval $a, DateInterval $b): void

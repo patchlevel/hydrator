@@ -18,7 +18,6 @@ use Psr\SimpleCache\CacheInterface;
 use function array_merge;
 use function krsort;
 
-/** @experimental */
 final class StackHydratorBuilder
 {
     private bool $defaultLazy = false;

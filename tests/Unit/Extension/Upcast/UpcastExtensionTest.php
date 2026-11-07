@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Tests\Unit\Extension\Upcast;
 
 use Patchlevel\Hydrator\CoreExtension;
-use Patchlevel\Hydrator\Cryptography\PayloadCryptographer;
 use Patchlevel\Hydrator\Extension\Cryptography\Cryptographer;
 use Patchlevel\Hydrator\Extension\Cryptography\CryptographyExtension;
 use Patchlevel\Hydrator\Extension\Cryptography\CryptographyMiddleware;
-use Patchlevel\Hydrator\Extension\Cryptography\LegacyCryptographyDecryptMiddleware;
 use Patchlevel\Hydrator\Extension\Upcast\CallbackUpcaster;
 use Patchlevel\Hydrator\Extension\Upcast\UpcastExtension;
 use Patchlevel\Hydrator\Extension\Upcast\UpcastMiddleware;
@@ -76,35 +74,5 @@ final class UpcastExtensionTest extends TestCase
         self::assertInstanceOf(UpcastMiddleware::class, $middlewares[0]);
         self::assertInstanceOf(CryptographyMiddleware::class, $middlewares[1]);
         self::assertInstanceOf(UpcastMiddleware::class, $middlewares[2]);
-    }
-
-    public function testConfigureAroundLegacyCryptography(): void
-    {
-        $beforeEncodingUpcaster = CallbackUpcaster::forClass(
-            UpcastFixture::class,
-            static fn (array $data): array => $data,
-        );
-        $beforeTransformUpcaster = CallbackUpcaster::forClass(
-            UpcastFixture::class,
-            static fn (array $data): array => $data,
-        );
-
-        $builder = new StackHydratorBuilder();
-        $builder->useExtension(new UpcastExtension(
-            beforeEncoding: [$beforeEncodingUpcaster],
-            beforeTransform: [$beforeTransformUpcaster],
-        ));
-        $builder->useExtension(new CryptographyExtension(
-            $this->createMock(Cryptographer::class),
-            $this->createMock(PayloadCryptographer::class),
-        ));
-
-        $middlewares = $builder->middlewares();
-
-        self::assertCount(4, $middlewares);
-        self::assertInstanceOf(UpcastMiddleware::class, $middlewares[0]);
-        self::assertInstanceOf(LegacyCryptographyDecryptMiddleware::class, $middlewares[1]);
-        self::assertInstanceOf(CryptographyMiddleware::class, $middlewares[2]);
-        self::assertInstanceOf(UpcastMiddleware::class, $middlewares[3]);
     }
 }

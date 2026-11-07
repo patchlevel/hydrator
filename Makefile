@@ -27,7 +27,7 @@ phpunit: vendor                                                                 
 
 .PHONY: infection
 infection: vendor                                                               ## run infection
-	XDEBUG_MODE=coverage vendor/bin/infection --threads=3
+	XDEBUG_MODE=coverage php -d memory_limit=312M vendor/bin/infection --threads=3
 
 .PHONY: static
 static: phpstan cs                                               				## run static analysers

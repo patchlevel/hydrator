@@ -5,10 +5,7 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Normalizer;
 
 use Attribute;
-use Deprecated;
 use Patchlevel\Hydrator\Hydrator;
-use Patchlevel\Hydrator\HydratorWithContext;
-use ReflectionType;
 use Symfony\Component\TypeInfo\Type;
 use Symfony\Component\TypeInfo\Type\GenericType;
 use Symfony\Component\TypeInfo\Type\NullableType;
@@ -18,7 +15,7 @@ use Symfony\Component\TypeInfo\Type\TemplateType;
 use function is_array;
 
 #[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_CLASS)]
-final class ObjectNormalizer implements NormalizerWithContext, ReflectionTypeAwareNormalizer, TypeAwareNormalizer, HydratorAwareNormalizer
+final class ObjectNormalizer implements Normalizer, TypeAwareNormalizer, HydratorAwareNormalizer
 {
     private Hydrator|null $hydrator = null;
 
@@ -28,12 +25,8 @@ final class ObjectNormalizer implements NormalizerWithContext, ReflectionTypeAwa
     ) {
     }
 
-    /**
-     * @param array<string, mixed> $context
-     *
-     * @return array<string, mixed>|null
-     */
-    public function normalize(mixed $value, array $context = []): array|null
+    /** @param array<string, mixed> $context */
+    public function normalize(mixed $value, array $context): mixed
     {
         if (!$this->hydrator) {
             throw new MissingHydrator();
@@ -49,15 +42,11 @@ final class ObjectNormalizer implements NormalizerWithContext, ReflectionTypeAwa
             throw InvalidArgument::withWrongType($className . '|null', $value);
         }
 
-        if ($this->hydrator instanceof HydratorWithContext) {
-            return $this->hydrator->extract($value, $context);
-        }
-
-        return $this->hydrator->extract($value);
+        return $this->hydrator->extract($value, $context);
     }
 
     /** @param array<string, mixed> $context */
-    public function denormalize(mixed $value, array $context = []): object|null
+    public function denormalize(mixed $value, array $context): object|null
     {
         if (!$this->hydrator) {
             throw new MissingHydrator();
@@ -73,26 +62,12 @@ final class ObjectNormalizer implements NormalizerWithContext, ReflectionTypeAwa
 
         $className = $this->className();
 
-        if ($this->hydrator instanceof HydratorWithContext) {
-            return $this->hydrator->hydrate($className, $value, $context);
-        }
-
-        return $this->hydrator->hydrate($className, $value);
+        return $this->hydrator->hydrate($className, $value, $context);
     }
 
     public function setHydrator(Hydrator $hydrator): void
     {
         $this->hydrator = $hydrator;
-    }
-
-    /** @deprecated use handleType instead */
-    public function handleReflectionType(ReflectionType|null $reflectionType): void
-    {
-        if ($this->className !== null || $reflectionType === null) {
-            return;
-        }
-
-        $this->className = ReflectionTypeUtil::classString($reflectionType);
     }
 
     public function handleType(Type|null $type): void
@@ -118,13 +93,6 @@ final class ObjectNormalizer implements NormalizerWithContext, ReflectionTypeAwa
         }
 
         $this->className = $type->getClassName();
-    }
-
-    /** @return class-string */
-    #[Deprecated('Use `className()` method instead')]
-    public function getClassName(): string
-    {
-        return $this->className();
     }
 
     /** @return class-string */

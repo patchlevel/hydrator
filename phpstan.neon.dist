@@ -15,3 +15,7 @@ services:
 		class: Patchlevel\Hydrator\Tests\Architecture\FinalClassesTest
 		tags:
 			- phpat.test
+	-
+		class: Patchlevel\Hydrator\Tests\Architecture\ExceptionImplementsHydratorExceptionTest
+		tags:
+			- phpat.test

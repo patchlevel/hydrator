@@ -17,7 +17,6 @@ use function openssl_random_pseudo_bytes;
 
 use const JSON_THROW_ON_ERROR;
 
-/** @experimental */
 final class OpensslCipher implements Cipher
 {
     public function encrypt(CipherKey $key, mixed $data): EncryptedData

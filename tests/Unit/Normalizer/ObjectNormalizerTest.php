@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Unit\Normalizer;
 
-use Attribute;
 use Patchlevel\Hydrator\Hydrator;
-use Patchlevel\Hydrator\HydratorWithContext;
 use Patchlevel\Hydrator\Normalizer\InvalidArgument;
 use Patchlevel\Hydrator\Normalizer\InvalidType;
 use Patchlevel\Hydrator\Normalizer\MissingHydrator;
@@ -15,16 +13,14 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\AutoTypeDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreated;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use ReflectionClass;
-use ReflectionType;
-use RuntimeException;
 use Symfony\Component\TypeInfo\Type;
 
 use function serialize;
 use function unserialize;
 
-#[Attribute(Attribute::TARGET_PROPERTY)]
+#[CoversClass(ObjectNormalizer::class)]
 final class ObjectNormalizerTest extends TestCase
 {
     public function testNormalizeMissingHydrator(): void
@@ -32,7 +28,7 @@ final class ObjectNormalizerTest extends TestCase
         $this->expectException(MissingHydrator::class);
 
         $normalizer = new ObjectNormalizer(ProfileCreated::class);
-        $this->assertEquals(null, $normalizer->normalize(null));
+        $this->assertEquals(null, $normalizer->normalize(null, []));
     }
 
     public function testDenormalizeMissingHydrator(): void
@@ -40,7 +36,7 @@ final class ObjectNormalizerTest extends TestCase
         $this->expectException(MissingHydrator::class);
 
         $normalizer = new ObjectNormalizer(ProfileCreated::class);
-        $this->assertEquals(null, $normalizer->denormalize(null));
+        $this->assertEquals(null, $normalizer->denormalize(null, []));
     }
 
     public function testNormalizeWithNull(): void
@@ -50,7 +46,7 @@ final class ObjectNormalizerTest extends TestCase
         $normalizer = new ObjectNormalizer(ProfileCreated::class);
         $normalizer->setHydrator($hydrator);
 
-        $this->assertEquals(null, $normalizer->normalize(null));
+        $this->assertEquals(null, $normalizer->normalize(null, []));
     }
 
     public function testDenormalizeWithNull(): void
@@ -60,7 +56,7 @@ final class ObjectNormalizerTest extends TestCase
         $normalizer = new ObjectNormalizer(ProfileCreated::class);
         $normalizer->setHydrator($hydrator);
 
-        $this->assertEquals(null, $normalizer->denormalize(null));
+        $this->assertEquals(null, $normalizer->denormalize(null, []));
     }
 
     public function testNormalizeWithInvalidArgument(): void
@@ -73,20 +69,7 @@ final class ObjectNormalizerTest extends TestCase
 
         $normalizer = new ObjectNormalizer(ProfileCreated::class);
         $normalizer->setHydrator($hydrator);
-        $normalizer->normalize('foo');
-    }
-
-    public function testDenormalizeWithInvalidArgument(): void
-    {
-        $this->expectException(InvalidArgument::class);
-        $this->expectExceptionCode(0);
-        $this->expectExceptionMessage('array<string, mixed>|null" was expected but "string" was passed.');
-
-        $hydrator = $this->createMock(Hydrator::class);
-
-        $normalizer = new ObjectNormalizer(ProfileCreated::class);
-        $normalizer->setHydrator($hydrator);
-        $normalizer->denormalize('foo');
+        $normalizer->normalize('foo', []);
     }
 
     public function testNormalizeWithValue(): void
@@ -105,7 +88,7 @@ final class ObjectNormalizerTest extends TestCase
         $normalizer->setHydrator($hydrator);
 
         self::assertEquals(
-            $normalizer->normalize($event),
+            $normalizer->normalize($event, []),
             ['profileId' => '1', 'email' => 'info@patchlevel.de'],
         );
     }
@@ -130,14 +113,14 @@ final class ObjectNormalizerTest extends TestCase
 
         $this->assertEquals(
             $expected,
-            $normalizer->denormalize(['profileId' => '1', 'email' => 'info@patchlevel.de']),
+            $normalizer->denormalize(['profileId' => '1', 'email' => 'info@patchlevel.de'], []),
         );
     }
 
     public function testNormalizePassesContextToHydrator(): void
     {
         $context = ['key' => 'value'];
-        $hydrator = $this->createMock(HydratorWithContext::class);
+        $hydrator = $this->createMock(Hydrator::class);
 
         $event = new ProfileCreated(
             ProfileId::fromString('1'),
@@ -159,7 +142,7 @@ final class ObjectNormalizerTest extends TestCase
     public function testDenormalizePassesContextToHydrator(): void
     {
         $context = ['key' => 'value'];
-        $hydrator = $this->createMock(HydratorWithContext::class);
+        $hydrator = $this->createMock(Hydrator::class);
 
         $expected = new ProfileCreated(
             ProfileId::fromString('1'),
@@ -187,7 +170,7 @@ final class ObjectNormalizerTest extends TestCase
 
         $normalizer = new ObjectNormalizer();
         $normalizer->setHydrator($hydrator);
-        $normalizer->handleReflectionType($this->reflectionType(AutoTypeDto::class, 'profileCreated'));
+        $normalizer->handleType(Type::object(ProfileCreated::class));
 
         self::assertEquals(ProfileCreated::class, $normalizer->className());
     }
@@ -198,7 +181,7 @@ final class ObjectNormalizerTest extends TestCase
 
         $normalizer = new ObjectNormalizer(AutoTypeDto::class);
         $normalizer->setHydrator($hydrator);
-        $normalizer->handleReflectionType($this->reflectionType(AutoTypeDto::class, 'profileCreated'));
+        $normalizer->handleType(Type::object(ProfileCreated::class));
 
         self::assertEquals(AutoTypeDto::class, $normalizer->className());
     }
@@ -223,7 +206,7 @@ final class ObjectNormalizerTest extends TestCase
 
         $normalizer = new ObjectNormalizer();
         $normalizer->setHydrator($hydrator);
-        $normalizer->handleReflectionType(null);
+        $normalizer->handleType(null);
 
         $normalizer->className();
     }
@@ -263,20 +246,5 @@ final class ObjectNormalizerTest extends TestCase
 
         self::assertInstanceOf(ObjectNormalizer::class, $normalizer2);
         self::assertEquals(new ObjectNormalizer(ProfileCreated::class), $normalizer2);
-    }
-
-    /** @param class-string $class */
-    private function reflectionType(string $class, string $property): ReflectionType
-    {
-        $reflection = new ReflectionClass($class);
-        $property = $reflection->getProperty($property);
-
-        $type = $property->getType();
-
-        if (!$type instanceof ReflectionType) {
-            throw new RuntimeException('no type');
-        }
-
-        return $type;
     }
 }

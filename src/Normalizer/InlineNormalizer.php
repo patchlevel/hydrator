@@ -25,7 +25,12 @@ final class InlineNormalizer implements Normalizer
     ) {
     }
 
-    public function normalize(mixed $value): mixed
+    /**
+     * @param array<string, mixed> $context
+     *
+     * @throws InvalidArgument
+     */
+    public function normalize(mixed $value, array $context): mixed
     {
         if (!$this->passNull && $value === null) {
             return null;
@@ -38,7 +43,12 @@ final class InlineNormalizer implements Normalizer
         }
     }
 
-    public function denormalize(mixed $value): mixed
+    /**
+     * @param array<string, mixed> $context
+     *
+     * @throws InvalidArgument
+     */
+    public function denormalize(mixed $value, array $context): mixed
     {
         if (!$this->passNull && $value === null) {
             return null;

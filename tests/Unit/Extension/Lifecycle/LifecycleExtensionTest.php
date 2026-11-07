@@ -28,6 +28,7 @@ final class LifecycleExtensionTest extends TestCase
 
         $extractedData = $hydrator->extract($object);
 
+        self::assertIsArray($extractedData);
         self::assertSame('foo [preHydrate] [postHydrate] [preExtract] [postExtract]', $extractedData['name']);
     }
 }

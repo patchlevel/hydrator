@@ -6,7 +6,6 @@ namespace Patchlevel\Hydrator\Extension\Upcast;
 
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 
-/** @experimental */
 interface Upcaster
 {
     /**

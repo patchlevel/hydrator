@@ -13,7 +13,6 @@ use function openssl_cipher_key_length;
 use function openssl_get_cipher_methods;
 use function openssl_random_pseudo_bytes;
 
-/** @experimental */
 final class OpensslCipherKeyFactory implements CipherKeyFactory
 {
     public const DEFAULT_METHOD = 'aes-128-gcm';

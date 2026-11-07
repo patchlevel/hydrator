@@ -7,7 +7,6 @@ namespace Patchlevel\Hydrator\Extension\Cryptography\Cipher;
 use DateTimeImmutable;
 use SensitiveParameter;
 
-/** @experimental */
 final class CipherKey
 {
     /**

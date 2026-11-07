@@ -17,7 +17,7 @@ final class InlineNormalizerTest extends TestCase
             static fn (string $value): int => (int)$value,
         );
 
-        $this->assertEquals('123', $normalizer->normalize(123));
+        $this->assertEquals('123', $normalizer->normalize(123, []));
     }
 
     public function testDenormalizeWithValue(): void
@@ -27,7 +27,7 @@ final class InlineNormalizerTest extends TestCase
             static fn (string $value): int => (int)$value,
         );
 
-        $this->assertEquals(123, $normalizer->denormalize('123'));
+        $this->assertEquals(123, $normalizer->denormalize('123', []));
     }
 
     public function testNormalizeWithNull(): void
@@ -37,7 +37,7 @@ final class InlineNormalizerTest extends TestCase
             static fn (mixed $value) => 'not null',
         );
 
-        $this->assertNull($normalizer->normalize(null));
+        $this->assertNull($normalizer->normalize(null, []));
     }
 
     public function testDenormalizeWithNull(): void
@@ -47,7 +47,7 @@ final class InlineNormalizerTest extends TestCase
             static fn (mixed $value) => 'not null',
         );
 
-        $this->assertNull($normalizer->denormalize(null));
+        $this->assertNull($normalizer->denormalize(null, []));
     }
 
     public function testNormalizePassNull(): void
@@ -58,7 +58,7 @@ final class InlineNormalizerTest extends TestCase
             true,
         );
 
-        $this->assertEquals('is null', $normalizer->normalize(null));
+        $this->assertEquals('is null', $normalizer->normalize(null, []));
     }
 
     public function testDenormalizePassNull(): void
@@ -69,7 +69,7 @@ final class InlineNormalizerTest extends TestCase
             true,
         );
 
-        $this->assertEquals('is null', $normalizer->denormalize(null));
+        $this->assertEquals('is null', $normalizer->denormalize(null, []));
     }
 
     public function testNormalizeInvalidType(): void
@@ -81,7 +81,7 @@ final class InlineNormalizerTest extends TestCase
             static fn (mixed $value) => $value,
         );
 
-        $normalizer->normalize(123);
+        $normalizer->normalize(123, []);
     }
 
     public function testDenormalizeInvalidType(): void
@@ -93,6 +93,6 @@ final class InlineNormalizerTest extends TestCase
             static fn (string $value) => $value,
         );
 
-        $normalizer->denormalize(123);
+        $normalizer->denormalize(123, []);
     }
 }

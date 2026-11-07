@@ -7,7 +7,6 @@ namespace Patchlevel\Hydrator\Extension\Upcast;
 use Closure;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 
-/** @experimental */
 final class CallbackUpcaster implements Upcaster
 {
     /** @var Closure(array<string, mixed>, array<string, mixed>): array<string, mixed> */

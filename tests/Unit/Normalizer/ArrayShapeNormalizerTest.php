@@ -4,20 +4,19 @@ declare(strict_types=1);
 
 namespace Patchlevel\Hydrator\Tests\Unit\Normalizer;
 
-use Attribute;
 use Patchlevel\Hydrator\Hydrator;
 use Patchlevel\Hydrator\Normalizer\ArrayShapeNormalizer;
 use Patchlevel\Hydrator\Normalizer\EnumNormalizer;
 use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
 use Patchlevel\Hydrator\Normalizer\InvalidArgument;
 use Patchlevel\Hydrator\Normalizer\Normalizer;
-use Patchlevel\Hydrator\Normalizer\NormalizerWithContext;
 use Patchlevel\Hydrator\Normalizer\TypeAwareNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\TypeInfo\Type;
 
-#[Attribute(Attribute::TARGET_PROPERTY)]
+#[CoversClass(ArrayShapeNormalizer::class)]
 final class ArrayShapeNormalizerTest extends TestCase
 {
     public function testNormalizeWithNull(): void
@@ -25,7 +24,7 @@ final class ArrayShapeNormalizerTest extends TestCase
         $innerNormalizer = $this->createMock(Normalizer::class);
 
         $normalizer = new ArrayShapeNormalizer(['foo' => $innerNormalizer]);
-        $this->assertEquals(null, $normalizer->normalize(null));
+        $this->assertEquals(null, $normalizer->normalize(null, []));
     }
 
     public function testDenormalizeWithNull(): void
@@ -33,7 +32,7 @@ final class ArrayShapeNormalizerTest extends TestCase
         $innerNormalizer = $this->createMock(Normalizer::class);
 
         $normalizer = new ArrayShapeNormalizer(['foo' => $innerNormalizer]);
-        $this->assertEquals(null, $normalizer->denormalize(null));
+        $this->assertEquals(null, $normalizer->denormalize(null, []));
     }
 
     public function testNormalizeWithInvalidArgument(): void
@@ -44,7 +43,7 @@ final class ArrayShapeNormalizerTest extends TestCase
         $innerNormalizer = $this->createMock(Normalizer::class);
 
         $normalizer = new ArrayShapeNormalizer(['foo' => $innerNormalizer]);
-        $normalizer->normalize('foo');
+        $normalizer->normalize('foo', []);
     }
 
     public function testDenormalizeWithInvalidArgument(): void
@@ -55,89 +54,93 @@ final class ArrayShapeNormalizerTest extends TestCase
         $innerNormalizer = $this->createMock(Normalizer::class);
 
         $normalizer = new ArrayShapeNormalizer(['foo' => $innerNormalizer]);
-        $normalizer->denormalize('foo');
+        $normalizer->denormalize('foo', []);
     }
 
     public function testNormalizeWithValue(): void
     {
         $innerNormalizer = new class implements Normalizer {
-            public function normalize(mixed $value): string
+            /** @param array<string, mixed> $context */
+            public function normalize(mixed $value, array $context): string
             {
                 return (string)$value;
             }
 
-            public function denormalize(mixed $value): int
+            /** @param array<string, mixed> $context */
+            public function denormalize(mixed $value, array $context): int
             {
                 return (int)$value;
             }
         };
 
         $normalizer = new ArrayShapeNormalizer(['foo' => $innerNormalizer]);
-        $this->assertEquals(['foo' => '1'], $normalizer->normalize(['foo' => 1]));
+        $this->assertEquals(['foo' => '1'], $normalizer->normalize(['foo' => 1], []));
     }
 
     public function testDenormalizeWithValue(): void
     {
         $innerNormalizer = new class implements Normalizer {
-            public function normalize(mixed $value): string
+            /** @param array<string, mixed> $context */
+            public function normalize(mixed $value, array $context): string
             {
                 return (string)$value;
             }
 
-            public function denormalize(mixed $value): int
+            /** @param array<string, mixed> $context */
+            public function denormalize(mixed $value, array $context): int
             {
                 return (int)$value;
             }
         };
 
         $normalizer = new ArrayShapeNormalizer(['foo' => $innerNormalizer]);
-        $this->assertEquals(['foo' => 1], $normalizer->denormalize(['foo' => '1']));
+        $this->assertEquals(['foo' => 1], $normalizer->denormalize(['foo' => '1'], []));
     }
 
     public function testNormalizeKeepsKeysWithoutNormalizer(): void
     {
         $innerNormalizer = $this->createMock(Normalizer::class);
-        $innerNormalizer->expects($this->once())->method('normalize')->with(1)->willReturn('1');
+        $innerNormalizer->expects($this->once())->method('normalize')->with(1, [])->willReturn('1');
 
         $normalizer = new ArrayShapeNormalizer(['foo' => $innerNormalizer]);
 
         $this->assertSame(
             ['height' => 180, 'foo' => '1', 'note' => null, 'unknown' => ['x']],
-            $normalizer->normalize(['height' => 180, 'foo' => 1, 'note' => null, 'unknown' => ['x']]),
+            $normalizer->normalize(['height' => 180, 'foo' => 1, 'note' => null, 'unknown' => ['x']], []),
         );
     }
 
     public function testDenormalizeKeepsKeysWithoutNormalizer(): void
     {
         $innerNormalizer = $this->createMock(Normalizer::class);
-        $innerNormalizer->expects($this->once())->method('denormalize')->with('1')->willReturn(1);
+        $innerNormalizer->expects($this->once())->method('denormalize')->with('1', [])->willReturn(1);
 
         $normalizer = new ArrayShapeNormalizer(['foo' => $innerNormalizer]);
 
         $this->assertSame(
             ['height' => 180, 'foo' => 1, 'note' => null, 'unknown' => ['x']],
-            $normalizer->denormalize(['height' => 180, 'foo' => '1', 'note' => null, 'unknown' => ['x']]),
+            $normalizer->denormalize(['height' => 180, 'foo' => '1', 'note' => null, 'unknown' => ['x']], []),
         );
     }
 
     public function testNormalizePassesNullToInnerNormalizer(): void
     {
         $innerNormalizer = $this->createMock(Normalizer::class);
-        $innerNormalizer->expects($this->once())->method('normalize')->with(null)->willReturn(null);
+        $innerNormalizer->expects($this->once())->method('normalize')->with(null, [])->willReturn(null);
 
         $normalizer = new ArrayShapeNormalizer(['foo' => $innerNormalizer]);
 
-        $this->assertSame(['foo' => null], $normalizer->normalize(['foo' => null]));
+        $this->assertSame(['foo' => null], $normalizer->normalize(['foo' => null], []));
     }
 
     public function testDenormalizePassesNullToInnerNormalizer(): void
     {
         $innerNormalizer = $this->createMock(Normalizer::class);
-        $innerNormalizer->expects($this->once())->method('denormalize')->with(null)->willReturn(null);
+        $innerNormalizer->expects($this->once())->method('denormalize')->with(null, [])->willReturn(null);
 
         $normalizer = new ArrayShapeNormalizer(['foo' => $innerNormalizer]);
 
-        $this->assertSame(['foo' => null], $normalizer->denormalize(['foo' => null]));
+        $this->assertSame(['foo' => null], $normalizer->denormalize(['foo' => null], []));
     }
 
     public function testNormalizeSkipsMissingKeys(): void
@@ -147,7 +150,7 @@ final class ArrayShapeNormalizerTest extends TestCase
 
         $normalizer = new ArrayShapeNormalizer(['foo' => $innerNormalizer]);
 
-        $this->assertSame(['bar' => 1], $normalizer->normalize(['bar' => 1]));
+        $this->assertSame(['bar' => 1], $normalizer->normalize(['bar' => 1], []));
     }
 
     public function testDenormalizeSkipsMissingKeys(): void
@@ -157,14 +160,14 @@ final class ArrayShapeNormalizerTest extends TestCase
 
         $normalizer = new ArrayShapeNormalizer(['foo' => $innerNormalizer]);
 
-        $this->assertSame(['bar' => 1], $normalizer->denormalize(['bar' => 1]));
+        $this->assertSame(['bar' => 1], $normalizer->denormalize(['bar' => 1], []));
     }
 
     public function testNormalizePassesContextToInnerNormalizer(): void
     {
         $context = ['key' => 'value'];
 
-        $innerNormalizer = new class implements NormalizerWithContext {
+        $innerNormalizer = new class implements Normalizer {
             /** @var array<int, array<string, mixed>> */
             public array $contexts = [];
 
@@ -195,7 +198,7 @@ final class ArrayShapeNormalizerTest extends TestCase
     {
         $context = ['key' => 'value'];
 
-        $innerNormalizer = new class implements NormalizerWithContext {
+        $innerNormalizer = new class implements Normalizer {
             /** @var array<int, array<string, mixed>> */
             public array $contexts = [];
 

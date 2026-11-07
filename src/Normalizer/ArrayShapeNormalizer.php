@@ -14,7 +14,7 @@ use function array_key_exists;
 use function is_array;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
-final readonly class ArrayShapeNormalizer implements NormalizerWithContext, TypeAwareNormalizer, HydratorAwareNormalizer
+final readonly class ArrayShapeNormalizer implements Normalizer, TypeAwareNormalizer, HydratorAwareNormalizer
 {
     /** @param array<array-key, Normalizer> $normalizerMap */
     public function __construct(
@@ -27,7 +27,7 @@ final readonly class ArrayShapeNormalizer implements NormalizerWithContext, Type
      *
      * @return array<array-key, mixed>|null
      */
-    public function normalize(mixed $value, array $context = []): array|null
+    public function normalize(mixed $value, array $context): array|null
     {
         if ($value === null) {
             return null;
@@ -42,11 +42,7 @@ final readonly class ArrayShapeNormalizer implements NormalizerWithContext, Type
                 continue;
             }
 
-            if ($normalizer instanceof NormalizerWithContext) {
-                $value[$field] = $normalizer->normalize($value[$field], $context);
-            } else {
-                $value[$field] = $normalizer->normalize($value[$field]);
-            }
+            $value[$field] = $normalizer->normalize($value[$field], $context);
         }
 
         return $value;
@@ -57,7 +53,7 @@ final readonly class ArrayShapeNormalizer implements NormalizerWithContext, Type
      *
      * @return array<array-key, mixed>|null
      */
-    public function denormalize(mixed $value, array $context = []): array|null
+    public function denormalize(mixed $value, array $context): array|null
     {
         if ($value === null) {
             return null;
@@ -72,11 +68,7 @@ final readonly class ArrayShapeNormalizer implements NormalizerWithContext, Type
                 continue;
             }
 
-            if ($normalizer instanceof NormalizerWithContext) {
-                $value[$field] = $normalizer->denormalize($value[$field], $context);
-            } else {
-                $value[$field] = $normalizer->denormalize($value[$field]);
-            }
+            $value[$field] = $normalizer->denormalize($value[$field], $context);
         }
 
         return $value;
