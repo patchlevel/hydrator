@@ -36,6 +36,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\DefaultDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DummyMiddleware;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ExplicitArrayShapeNormalizerDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\ExplicitObjectNormalizerDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithArrayShapeDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithIterablesDto;
@@ -744,6 +745,30 @@ final class StackHydratorTest extends TestCase
             new Circle(5),
             $this->hydrator->hydrate(Circle::class, ['radius' => 5]),
         );
+    }
+
+    public function testRoundTripWithExplicitObjectNormalizerAndClassNormalizer(): void
+    {
+        $object = new ExplicitObjectNormalizerDto(ProfileId::fromString('1'));
+
+        $data = $this->hydrator->extract($object);
+
+        self::assertEquals(['profileId' => '1'], $data);
+        self::assertEquals($object, $this->hydrator->hydrate(ExplicitObjectNormalizerDto::class, $data));
+    }
+
+    public function testHydrateWithExplicitObjectNormalizerAndNonArrayData(): void
+    {
+        try {
+            $this->hydrator->hydrate(
+                ProfileCreatedWrapper::class,
+                ['event' => 'foo'],
+            );
+
+            self::fail('DenormalizationFailure was not thrown');
+        } catch (DenormalizationFailure $e) {
+            self::assertInstanceOf(ArrayDataRequired::class, $e->getPrevious());
+        }
     }
 
     #[RequiresPhp('>=8.4')]

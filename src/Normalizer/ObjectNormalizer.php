@@ -12,8 +12,6 @@ use Symfony\Component\TypeInfo\Type\NullableType;
 use Symfony\Component\TypeInfo\Type\ObjectType;
 use Symfony\Component\TypeInfo\Type\TemplateType;
 
-use function is_array;
-
 #[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_CLASS)]
 final class ObjectNormalizer implements Normalizer, TypeAwareNormalizer, HydratorAwareNormalizer
 {
@@ -54,10 +52,6 @@ final class ObjectNormalizer implements Normalizer, TypeAwareNormalizer, Hydrato
 
         if ($value === null) {
             return null;
-        }
-
-        if (!is_array($value)) {
-            throw InvalidArgument::withWrongType('array<string, mixed>|null', $value);
         }
 
         $className = $this->className();
