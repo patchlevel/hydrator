@@ -19,7 +19,6 @@ $hydrator = (new StackHydratorBuilder())
     ->useExtension(new LifecycleExtension())
     ->build();
 ```
-
 ## Hooks
 
 The hooks are **static** methods on the class being hydrated. The data hooks

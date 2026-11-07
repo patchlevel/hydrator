@@ -6,6 +6,7 @@ namespace Patchlevel\Hydrator\Tests\Unit\Metadata;
 
 use Patchlevel\Hydrator\Attribute\Lazy;
 use Patchlevel\Hydrator\Attribute\NormalizedName;
+use Patchlevel\Hydrator\Guesser\Guesser;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassNotFound;
 use Patchlevel\Hydrator\Metadata\DuplicatedFieldNameInMetadata;
@@ -29,8 +30,10 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerWithNullableShapeItems
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ParentDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWithGeneric;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\PureEnum;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Skill;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\StatusWithNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Wrapper;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -457,5 +460,44 @@ final class AttributeMetadataFactoryTest extends TestCase
             ]),
             $metadata->propertyForField('shape')->normalizer,
         );
+    }
+
+    public function testClassMetadataOfBackedEnumGetsEnumNormalizer(): void
+    {
+        $metadataFactory = new AttributeMetadataFactory();
+        $metadata = $metadataFactory->metadata(Status::class);
+
+        self::assertEquals(new EnumNormalizer(Status::class), $metadata->normalizer);
+    }
+
+    public function testClassMetadataOfBackedEnumWithEnumNormalizerAttribute(): void
+    {
+        $metadataFactory = new AttributeMetadataFactory();
+        $metadata = $metadataFactory->metadata(StatusWithNormalizer::class);
+
+        self::assertEquals(new EnumNormalizer(StatusWithNormalizer::class), $metadata->normalizer);
+    }
+
+    public function testClassMetadataOfPureEnumHasNoNormalizer(): void
+    {
+        $metadataFactory = new AttributeMetadataFactory();
+        $metadata = $metadataFactory->metadata(PureEnum::class);
+
+        self::assertNull($metadata->normalizer);
+    }
+
+    public function testGuesserGetsEnumTypeForEnumClass(): void
+    {
+        $guesser = $this->createMock(Guesser::class);
+        $guesser
+            ->expects(self::once())
+            ->method('guess')
+            ->with(Type::enum(PureEnum::class))
+            ->willReturn(null);
+
+        $metadataFactory = new AttributeMetadataFactory(guesser: $guesser);
+        $metadata = $metadataFactory->metadata(PureEnum::class);
+
+        self::assertNull($metadata->normalizer);
     }
 }

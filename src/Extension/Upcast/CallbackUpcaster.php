@@ -16,7 +16,7 @@ final class CallbackUpcaster implements Upcaster
      * @param class-string                                                               $className
      * @param callable(array<string, mixed>, array<string, mixed>): array<string, mixed> $callback
      */
-    public function __construct(private readonly string $className, callable $callback)
+    public function __construct(public readonly string $className, callable $callback)
     {
         $this->callback = Closure::fromCallable($callback);
     }

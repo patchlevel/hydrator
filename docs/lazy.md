@@ -42,7 +42,6 @@ $hydrator = (new StackHydratorBuilder())
     ->enableDefaultLazy()
     ->build();
 ```
-
 Single classes can then opt out again with the attribute:
 
 ```php

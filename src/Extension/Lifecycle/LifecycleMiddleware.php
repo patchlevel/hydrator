@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace Patchlevel\Hydrator\Extension\Lifecycle;
 
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
-use Patchlevel\Hydrator\Middleware\Middleware;
+use Patchlevel\Hydrator\Middleware\Skip;
+use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
 use Patchlevel\Hydrator\Middleware\Stack;
 
 use function assert;
 
-final class LifecycleMiddleware implements Middleware
+final class LifecycleMiddleware implements SkippableMiddleware
 {
     /**
      * @param ClassMetadata<T>     $metadata
@@ -66,5 +67,29 @@ final class LifecycleMiddleware implements Middleware
         }
 
         return $data;
+    }
+
+    /**
+     * @param ClassMetadata<T> $metadata
+     *
+     * @template T of object
+     */
+    public function skip(ClassMetadata $metadata): Skip
+    {
+        $lifecycle = $metadata->extras[Lifecycle::class] ?? null;
+
+        if (!$lifecycle instanceof Lifecycle) {
+            return Skip::Both;
+        }
+
+        $hydrate = $lifecycle->preHydrate !== null || $lifecycle->postHydrate !== null;
+        $extract = $lifecycle->preExtract !== null || $lifecycle->postExtract !== null;
+
+        return match (true) {
+            !$hydrate && !$extract => Skip::Both,
+            !$hydrate => Skip::Hydrate,
+            !$extract => Skip::Extract,
+            default => Skip::None,
+        };
     }
 }

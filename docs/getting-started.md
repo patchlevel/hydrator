@@ -79,11 +79,10 @@ $event = new ProfileCreated(
 
 $data = $hydrator->extract($event);
 ```
-
 The result looks like this:
 
 ```php
-[
+$eventData = [
     'id' => 1,
     'name' => 'patchlevel',
     'role' => 'admin',
@@ -92,9 +91,8 @@ The result looks like this:
         ['name' => 'event-sourcing', 'level' => 10],
     ],
     'createdAt' => '2023-10-01T12:00:00+00:00',
-]
+];
 ```
-
 You can now turn this array into JSON with `json_encode` and store it anywhere.
 
 ## Hydrate the object back

@@ -33,7 +33,6 @@ final class NameGuesser implements Guesser
     }
 }
 ```
-
 To use the guesser, add it to the builder:
 
 ```php

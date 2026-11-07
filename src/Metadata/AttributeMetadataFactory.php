@@ -219,7 +219,10 @@ final class AttributeMetadataFactory implements MetadataFactory
     /** @param ReflectionClass<object> $reflectionClass */
     private function getNormalizerOnClass(ReflectionClass $reflectionClass): Normalizer|null
     {
-        $type = Type::object($reflectionClass->getName());
+        // Build the type like the type resolver does for a property of this class,
+        // so enums get an enum type and the guesser can offer the EnumNormalizer.
+        $className = $reflectionClass->getName();
+        $type = $reflectionClass->isEnum() ? Type::enum($className) : Type::object($className);
         $normalizer = $this->inferNormalizerByType($type);
 
         if ($normalizer instanceof ObjectNormalizer) {

@@ -5,6 +5,10 @@ name: "Backward Compatibility Check"
 on:
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow_ref }}
+  cancel-in-progress: true
+
 jobs:
   roave-backwards-compatibility-check:
     name: "Backward Compatibility Check"
@@ -22,12 +26,12 @@ jobs:
 
     steps:
       - name: "Checkout"
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: "Install PHP"
-        uses: "shivammathur/setup-php@2.37.2"
+        uses: "shivammathur/setup-php@2.40.0"
         with:
           php-version: "${{ matrix.php-version }}"
           ini-values: memory_limit=-1

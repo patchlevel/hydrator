@@ -8,7 +8,8 @@ use Closure;
 use Patchlevel\Hydrator\Extension\Cryptography\Cipher\DecryptionFailed;
 use Patchlevel\Hydrator\Extension\Cryptography\Store\CipherKeyNotExists;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
-use Patchlevel\Hydrator\Middleware\Middleware;
+use Patchlevel\Hydrator\Middleware\Skip;
+use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
 use Patchlevel\Hydrator\Middleware\Stack;
 use Stringable;
 
@@ -18,7 +19,7 @@ use function is_array;
 use function is_int;
 use function is_string;
 
-final class CryptographyMiddleware implements Middleware
+final class CryptographyMiddleware implements SkippableMiddleware
 {
     public function __construct(
         private readonly Cryptographer $cryptographer,
@@ -115,6 +116,26 @@ final class CryptographyMiddleware implements Middleware
         }
 
         return $data;
+    }
+
+    /**
+     * @param ClassMetadata<T> $metadata
+     *
+     * @template T of object
+     */
+    public function skip(ClassMetadata $metadata): Skip
+    {
+        if (($metadata->extras[SubjectIdFieldMapping::class] ?? null) instanceof SubjectIdFieldMapping) {
+            return Skip::None;
+        }
+
+        foreach ($metadata->properties as $propertyMetadata) {
+            if (($propertyMetadata->extras[SensitiveDataInfo::class] ?? null) instanceof SensitiveDataInfo) {
+                return Skip::None;
+            }
+        }
+
+        return Skip::Both;
     }
 
     /**

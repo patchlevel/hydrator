@@ -29,7 +29,6 @@ $hydrator = (new StackHydratorBuilder())
     ->useExtension(new CryptographyExtension(BaseCryptographer::createWithOpenssl($cipherKeyStore)))
     ->build();
 ```
-
 ## DataSubjectId
 
 First you need to define which field identifies the subject the data belongs
@@ -78,7 +77,6 @@ final class ProfilesMerged
     }
 }
 ```
-
 ## Fallback values
 
 If the data could not be decrypted, because the key has been removed, a
@@ -100,7 +98,6 @@ final class ProfileCreated
     }
 }
 ```
-
 You can also use a callable as a fallback. It receives the subject id:
 
 ```php
@@ -140,7 +137,6 @@ use Patchlevel\Hydrator\Extension\Cryptography\Store\InMemoryCipherKeyStore;
 
 $cipherKeyStore = new InMemoryCipherKeyStore();
 ```
-
 For production you have to implement the `CipherKeyStore` interface yourself,
 backed by a database or a key management service, because only you know where
 the keys should live:
@@ -165,19 +161,17 @@ interface CipherKeyStore
     public function removeWithSubjectId(string $subjectId): void;
 }
 ```
-
 To avoid hitting your key storage for every operation, you can wrap the store
 in one of the cache decorators:
 
 ```php
-use Patchlevel\Hydrator\Extension\Cryptography\Store\Psr6CacheStoreDecorator;
 use Patchlevel\Hydrator\Extension\Cryptography\Store\Psr16CacheStoreDecorator;
+use Patchlevel\Hydrator\Extension\Cryptography\Store\Psr6CacheStoreDecorator;
 
 $cipherKeyStore = new Psr6CacheStoreDecorator($myDatabaseStore, $psr6CachePool);
 // or
 $cipherKeyStore = new Psr16CacheStoreDecorator($myDatabaseStore, $psr16Cache);
 ```
-
 ## Remove personal data
 
 To remove personal data, you only need to remove the keys for the subject from

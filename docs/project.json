@@ -18,7 +18,14 @@
       "subEntries": [
         { "title": "Lifecycle Hooks", "file": "lifecycle-hooks.md" },
         { "title": "Cryptography", "file": "cryptography.md" },
-        { "title": "Upcasting", "file": "upcasting.md" }
+        { "title": "Upcasting", "file": "upcasting.md" },
+        { "title": "Groups", "file": "groups.md" }
+      ]
+    },
+    {
+      "title": "Miscellaneous",
+      "subEntries": [
+        { "title": "Upgrade from 1.x", "file": "UPGRADE-2.0.md" }
       ]
     }
   ]

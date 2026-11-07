@@ -9,6 +9,7 @@ use Patchlevel\Hydrator\Extension\Lifecycle\LifecycleMiddleware;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Middleware\Middleware;
+use Patchlevel\Hydrator\Middleware\Skip;
 use Patchlevel\Hydrator\Middleware\Stack;
 use Patchlevel\Hydrator\Tests\Unit\Extension\Lifecycle\Fixture\LifecycleFixture;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -120,6 +121,53 @@ final class LifecycleMiddlewareTest extends TestCase
         $data = $middleware->extract($metadata, $object, [], $stack);
 
         self::assertSame('foo [preExtract] [postExtract]', $data['name']);
+    }
+
+    public function testSkipWithoutLifecycle(): void
+    {
+        $middleware = new LifecycleMiddleware();
+        $metadata = $this->metadata(LifecycleFixture::class);
+
+        self::assertSame(Skip::Both, $middleware->skip($metadata));
+    }
+
+    public function testSkipWithEmptyLifecycle(): void
+    {
+        $middleware = new LifecycleMiddleware();
+        $metadata = $this->metadata(LifecycleFixture::class);
+        $metadata->extras[Lifecycle::class] = new Lifecycle();
+
+        self::assertSame(Skip::Both, $middleware->skip($metadata));
+    }
+
+    public function testSkipExtractWithOnlyHydrateHooks(): void
+    {
+        $middleware = new LifecycleMiddleware();
+        $metadata = $this->metadata(LifecycleFixture::class);
+        $metadata->extras[Lifecycle::class] = new Lifecycle(preHydrate: 'preHydrate');
+
+        self::assertSame(Skip::Extract, $middleware->skip($metadata));
+    }
+
+    public function testSkipHydrateWithOnlyExtractHooks(): void
+    {
+        $middleware = new LifecycleMiddleware();
+        $metadata = $this->metadata(LifecycleFixture::class);
+        $metadata->extras[Lifecycle::class] = new Lifecycle(postExtract: 'postExtract');
+
+        self::assertSame(Skip::Hydrate, $middleware->skip($metadata));
+    }
+
+    public function testSkipNothingWithHooksForBothDirections(): void
+    {
+        $middleware = new LifecycleMiddleware();
+        $metadata = $this->metadata(LifecycleFixture::class);
+        $metadata->extras[Lifecycle::class] = new Lifecycle(
+            preHydrate: 'preHydrate',
+            preExtract: 'preExtract',
+        );
+
+        self::assertSame(Skip::None, $middleware->skip($metadata));
     }
 
     /** @param class-string $class */

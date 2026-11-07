@@ -8,7 +8,10 @@ use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Metadata\ClassNotFound;
 use Patchlevel\Hydrator\Metadata\MetadataFactory;
+use Patchlevel\Hydrator\Middleware\AllMiddlewaresSkipped;
 use Patchlevel\Hydrator\Middleware\Middleware;
+use Patchlevel\Hydrator\Middleware\Skip;
+use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
 use Patchlevel\Hydrator\Middleware\Stack;
 use Patchlevel\Hydrator\Middleware\TransformMiddleware;
 use Patchlevel\Hydrator\Normalizer\HydratorAwareNormalizer;
@@ -24,6 +27,14 @@ final class StackHydrator implements Hydrator
     /** @var array<class-string, ClassMetadata> */
     private array $classMetadata = [];
 
+    /** @var array<class-string, non-empty-list<Middleware>> */
+    private array $hydrateMiddlewares = [];
+
+    /** @var array<class-string, non-empty-list<Middleware>> */
+    private array $extractMiddlewares = [];
+
+    private readonly bool $hasSkippableMiddlewares;
+
     /** @param list<Middleware> $middlewares */
     public function __construct(
         private readonly MetadataFactory $metadataFactory = new AttributeMetadataFactory(),
@@ -33,6 +44,18 @@ final class StackHydrator implements Hydrator
         if ($middlewares === []) {
             throw new MissingMiddlewares();
         }
+
+        $hasSkippableMiddlewares = false;
+
+        foreach ($middlewares as $middleware) {
+            if ($middleware instanceof SkippableMiddleware) {
+                $hasSkippableMiddlewares = true;
+
+                break;
+            }
+        }
+
+        $this->hasSkippableMiddlewares = $hasSkippableMiddlewares;
     }
 
     /**
@@ -66,7 +89,7 @@ final class StackHydrator implements Hydrator
         }
 
         if (PHP_VERSION_ID < 80400) {
-            $stack = new Stack($this->middlewares);
+            $stack = new Stack($this->middlewaresFor($metadata, Skip::Hydrate));
 
             return $stack->next()->hydrate($metadata, $data, $context, $stack);
         }
@@ -74,14 +97,14 @@ final class StackHydrator implements Hydrator
         $lazy = $metadata->lazy ?? $this->defaultLazy;
 
         if (!$lazy) {
-            $stack = new Stack($this->middlewares);
+            $stack = new Stack($this->middlewaresFor($metadata, Skip::Hydrate));
 
             return $stack->next()->hydrate($metadata, $data, $context, $stack);
         }
 
         return (new ReflectionClass($class))->newLazyProxy(
             function () use ($metadata, $data, $context): object {
-                $stack = new Stack($this->middlewares);
+                $stack = new Stack($this->middlewaresFor($metadata, Skip::Hydrate));
 
                 return $stack->next()->hydrate($metadata, $data, $context, $stack);
             },
@@ -101,9 +124,56 @@ final class StackHydrator implements Hydrator
             return $metadata->normalizer->normalize($object, $context);
         }
 
-        $stack = new Stack($this->middlewares);
+        $stack = new Stack($this->middlewaresFor($metadata, Skip::Extract));
 
         return $stack->next()->extract($metadata, $object, $context, $stack);
+    }
+
+    /**
+     * @param ClassMetadata<T>            $metadata
+     * @param Skip::Hydrate|Skip::Extract $direction
+     *
+     * @return non-empty-list<Middleware>
+     *
+     * @template T of object
+     */
+    private function middlewaresFor(ClassMetadata $metadata, Skip $direction): array
+    {
+        if (!$this->hasSkippableMiddlewares) {
+            return $this->middlewares;
+        }
+
+        $cached = $direction === Skip::Hydrate
+            ? $this->hydrateMiddlewares[$metadata->className] ?? null
+            : $this->extractMiddlewares[$metadata->className] ?? null;
+
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        $middlewares = [];
+
+        foreach ($this->middlewares as $middleware) {
+            if ($middleware instanceof SkippableMiddleware) {
+                $skip = $middleware->skip($metadata);
+
+                if ($skip === $direction || $skip === Skip::Both) {
+                    continue;
+                }
+            }
+
+            $middlewares[] = $middleware;
+        }
+
+        if ($middlewares === []) {
+            throw new AllMiddlewaresSkipped($metadata->className);
+        }
+
+        if ($direction === Skip::Hydrate) {
+            return $this->hydrateMiddlewares[$metadata->className] = $middlewares;
+        }
+
+        return $this->extractMiddlewares[$metadata->className] = $middlewares;
     }
 
     /**

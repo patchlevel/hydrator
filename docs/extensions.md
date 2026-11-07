@@ -21,10 +21,9 @@ $hydrator = (new StackHydratorBuilder())
     ->useExtension(new LifecycleExtension())
     ->build();
 ```
-
 ## Built-in extensions
 
-The library ships with four extensions out of the box:
+The library ships with five extensions out of the box:
 
 | Extension | Purpose |
 | --- | --- |
@@ -32,6 +31,7 @@ The library ships with four extensions out of the box:
 | `LifecycleExtension` | [Lifecycle hooks](lifecycle-hooks.md), run code before and after the extract and hydrate process. |
 | `CryptographyExtension` | [Cryptography](cryptography.md), encrypt and decrypt sensitive data with crypto-shredding. |
 | `UpcastExtension` | [Upcasting](upcasting.md), reshape outdated stored data while it is hydrated. |
+| `GroupsExtension` | [Groups](groups.md), extract and hydrate only the properties of selected groups. |
 
 ## Middleware
 
@@ -60,7 +60,6 @@ final class RemoveNullValuesMiddleware implements Middleware
     }
 }
 ```
-
 Middlewares are added with a priority, higher priorities run first (outermost).
 The `TransformMiddleware` from the `CoreExtension` has priority `-64`, so it
 always runs last.
@@ -68,6 +67,57 @@ always runs last.
 ```php
 $builder->addMiddleware(new RemoveNullValuesMiddleware(), 0);
 ```
+## Skipping middlewares
+
+A middleware usually only has something to do for a few classes. Instead of
+walking through the whole stack every time, a middleware can implement
+`SkippableMiddleware` and tell the hydrator that it is not needed for a class.
+The decision is made once per class and then reused, so it must only depend on
+the metadata.
+
+The `skip` method returns a `Skip` case: `Skip::None` to always run,
+`Skip::Hydrate` or `Skip::Extract` to be left out in one direction only and
+`Skip::Both` to be left out completely.
+
+```php
+use Patchlevel\Hydrator\Metadata\ClassMetadata;
+use Patchlevel\Hydrator\Middleware\Skip;
+use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
+use Patchlevel\Hydrator\Middleware\Stack;
+
+final class RemoveNullValuesMiddleware implements SkippableMiddleware
+{
+    public function hydrate(ClassMetadata $metadata, array $data, array $context, Stack $stack): object
+    {
+        return $stack->next()->hydrate($metadata, $data, $context, $stack);
+    }
+
+    public function extract(ClassMetadata $metadata, object $object, array $context, Stack $stack): array
+    {
+        $data = $stack->next()->extract($metadata, $object, $context, $stack);
+
+        return array_filter($data, static fn (mixed $value) => $value !== null);
+    }
+
+    public function skip(ClassMetadata $metadata): Skip
+    {
+        // the middleware only does something while extracting
+        return Skip::Hydrate;
+    }
+}
+```
+The built-in middlewares use this as well: the `CryptographyMiddleware` is left
+out for classes without sensitive data, the `LifecycleMiddleware` only runs in
+the directions the class has hooks for, and the `UpcastMiddleware` is left out
+while extracting, since upcasting only ever happens while hydrating. If every
+upcaster is a `CallbackUpcaster` or carries an
+[`#[UpcasterFor]`](upcasting.md#writing-an-upcaster) attribute, it is also left
+out while hydrating classes none of them target.
+
+:::warning
+At least one middleware has to run. If every middleware skips a class, an
+`AllMiddlewaresSkipped` exception is thrown.
+:::
 
 ## Metadata enricher
 
@@ -94,7 +144,6 @@ final class AuditMetadataEnricher implements MetadataEnricher
     }
 }
 ```
-
 ```php
 $builder->addMetadataEnricher(new AuditMetadataEnricher());
 ```
@@ -122,7 +171,6 @@ final class AuditExtension implements Extension
     }
 }
 ```
-
 ## Learn more
 
 * [How to run code before extract and after hydrate](lifecycle-hooks.md)

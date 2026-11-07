@@ -15,6 +15,7 @@ use Patchlevel\Hydrator\Extension\Cryptography\UnsupportedSubjectId;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
 use Patchlevel\Hydrator\Middleware\Middleware;
+use Patchlevel\Hydrator\Middleware\Skip;
 use Patchlevel\Hydrator\Middleware\Stack;
 use Patchlevel\Hydrator\Middleware\TransformMiddleware;
 use Patchlevel\Hydrator\Tests\Unit\Extension\Cryptography\Fixture\SensitiveDataProfileCreated;
@@ -240,6 +241,27 @@ final class CryptographyMiddlewareTest extends TestCase
         self::assertInstanceOf(SensitiveDataProfileCreated::class, $result);
         self::assertEquals(ProfileId::fromString('foo'), $result->profileId);
         self::assertEquals(Email::fromString('info@patchlevel.de'), $result->email);
+    }
+
+    public function testSkipClassWithoutSensitiveData(): void
+    {
+        $middleware = new CryptographyMiddleware(
+            $this->createMock(Cryptographer::class),
+        );
+
+        self::assertSame(Skip::Both, $middleware->skip($this->metadata(ProfileCreated::class)));
+    }
+
+    public function testDoNotSkipClassWithSensitiveData(): void
+    {
+        $middleware = new CryptographyMiddleware(
+            $this->createMock(Cryptographer::class),
+        );
+
+        self::assertSame(
+            Skip::None,
+            $middleware->skip($this->metadata(SensitiveDataProfileCreated::class)),
+        );
     }
 
     /** @param class-string $class */

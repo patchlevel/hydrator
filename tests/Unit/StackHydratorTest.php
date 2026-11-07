@@ -14,7 +14,10 @@ use Patchlevel\Hydrator\CoreExtension;
 use Patchlevel\Hydrator\DenormalizationFailure;
 use Patchlevel\Hydrator\Metadata\AttributeMetadataFactory;
 use Patchlevel\Hydrator\Metadata\ClassMetadata;
+use Patchlevel\Hydrator\Middleware\AllMiddlewaresSkipped;
 use Patchlevel\Hydrator\Middleware\Middleware;
+use Patchlevel\Hydrator\Middleware\Skip;
+use Patchlevel\Hydrator\Middleware\SkippableMiddleware;
 use Patchlevel\Hydrator\Middleware\Stack;
 use Patchlevel\Hydrator\Middleware\TransformMiddleware;
 use Patchlevel\Hydrator\MissingMiddlewares;
@@ -27,6 +30,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle2Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Circle3Dto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ContextAwareDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\DefaultDto;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\DummyMiddleware;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Email;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ExplicitArrayShapeNormalizerDto;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\InferNormalizerDto;
@@ -44,6 +48,7 @@ use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileCreatedWrapper;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ProfileId;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Skill;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\Status;
+use Patchlevel\Hydrator\Tests\Unit\Fixture\StatusWithInterfaceNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\StatusWithNormalizer;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\ValueObject;
 use Patchlevel\Hydrator\Tests\Unit\Fixture\WrongNormalizer;
@@ -139,7 +144,18 @@ final class StackHydratorTest extends TestCase
         $dto2->to = $dto3;
         $dto3->to = $dto1;
 
-        $this->hydrator->extract($dto1);
+        // Prevent infinite recursion
+        $dummy = new DummyMiddleware();
+
+        $middleware = $this->createMock(Middleware::class);
+        $middleware
+            ->expects($this->exactly(4))
+            ->method('extract')
+            ->willReturnCallback($dummy->extract(...));
+
+        $hydrator = new StackHydrator(middlewares: [$middleware, new TransformMiddleware()]);
+
+        $hydrator->extract($dto1);
     }
 
     public function testExtractWithInferNormalizer(): void
@@ -224,6 +240,11 @@ final class StackHydratorTest extends TestCase
         );
 
         self::assertEquals('id', $data);
+    }
+
+    public function testExtractBackedEnum(): void
+    {
+        self::assertSame('draft', $this->hydrator->extract(Status::Draft));
     }
 
     public function testHydrate(): void
@@ -623,6 +644,26 @@ final class StackHydratorTest extends TestCase
         self::assertEquals(ProfileId::fromString('id'), $object);
     }
 
+    public function testHydrateBackedEnum(): void
+    {
+        self::assertSame(Status::Draft, $this->hydrator->hydrate(Status::class, 'draft'));
+    }
+
+    public function testBackedEnumWithEnumNormalizerOnTheEnum(): void
+    {
+        self::assertSame('draft', $this->hydrator->extract(StatusWithNormalizer::Draft));
+        self::assertSame(StatusWithNormalizer::Draft, $this->hydrator->hydrate(StatusWithNormalizer::class, 'draft'));
+    }
+
+    public function testBackedEnumWithEnumNormalizerFromAnInterface(): void
+    {
+        self::assertSame('draft', $this->hydrator->extract(StatusWithInterfaceNormalizer::Draft));
+        self::assertSame(
+            StatusWithInterfaceNormalizer::Draft,
+            $this->hydrator->hydrate(StatusWithInterfaceNormalizer::class, 'draft'),
+        );
+    }
+
     #[RequiresPhp('>=8.4')]
     public function testLazyHydrate(): void
     {
@@ -693,5 +734,138 @@ final class StackHydratorTest extends TestCase
 
         $reflection = new ReflectionProperty($normalizer, 'hydrator');
         self::assertSame($this->hydrator, $reflection->getValue($normalizer));
+    }
+
+    public function testSkippableMiddlewareIsSkipped(): void
+    {
+        $middleware = $this->createMock(SkippableMiddleware::class);
+        $middleware
+            ->expects($this->once())
+            ->method('skip')
+            ->willReturn(Skip::Both);
+        $middleware
+            ->expects($this->never())
+            ->method('extract');
+
+        $hydrator = (new StackHydratorBuilder())
+            ->useExtension(new CoreExtension())
+            ->addMiddleware($middleware)
+            ->build();
+
+        $event = new ProfileCreated(
+            ProfileId::fromString('1'),
+            Email::fromString('info@patchlevel.de'),
+        );
+
+        self::assertEquals(
+            ['profileId' => '1', 'email' => 'info@patchlevel.de'],
+            $hydrator->extract($event),
+        );
+
+        // the decision is cached per class, so skip is not called again
+        $hydrator->extract($event);
+    }
+
+    public function testSkippableMiddlewareIsExecuted(): void
+    {
+        $expect = ['profileId' => '1', 'email' => 'info@patchlevel.de'];
+
+        $middleware = $this->createMock(SkippableMiddleware::class);
+        $middleware
+            ->expects($this->once())
+            ->method('skip')
+            ->willReturn(Skip::None);
+        $middleware
+            ->expects($this->once())
+            ->method('extract')
+            ->willReturn($expect);
+
+        $hydrator = (new StackHydratorBuilder())
+            ->useExtension(new CoreExtension())
+            ->addMiddleware($middleware)
+            ->build();
+
+        $event = new ProfileCreated(
+            ProfileId::fromString('1'),
+            Email::fromString('info@patchlevel.de'),
+        );
+
+        self::assertEquals($expect, $hydrator->extract($event));
+    }
+
+    public function testSkippableMiddlewareIsOnlySkippedWhileHydrating(): void
+    {
+        $data = ['profileId' => '1', 'email' => 'info@patchlevel.de'];
+
+        $middleware = $this->createMock(SkippableMiddleware::class);
+        $middleware
+            ->method('skip')
+            ->willReturn(Skip::Hydrate);
+        $middleware
+            ->expects($this->never())
+            ->method('hydrate');
+        $middleware
+            ->expects($this->once())
+            ->method('extract')
+            ->willReturn($data);
+
+        $hydrator = (new StackHydratorBuilder())
+            ->useExtension(new CoreExtension())
+            ->addMiddleware($middleware)
+            ->build();
+
+        $event = $hydrator->hydrate(ProfileCreated::class, $data);
+
+        self::assertEquals($data, $hydrator->extract($event));
+    }
+
+    public function testSkippableMiddlewareIsOnlySkippedWhileExtracting(): void
+    {
+        $data = ['profileId' => '1', 'email' => 'info@patchlevel.de'];
+
+        $event = new ProfileCreated(
+            ProfileId::fromString('1'),
+            Email::fromString('info@patchlevel.de'),
+        );
+
+        $middleware = $this->createMock(SkippableMiddleware::class);
+        $middleware
+            ->method('skip')
+            ->willReturn(Skip::Extract);
+        $middleware
+            ->expects($this->once())
+            ->method('hydrate')
+            ->willReturn($event);
+        $middleware
+            ->expects($this->never())
+            ->method('extract');
+
+        $hydrator = (new StackHydratorBuilder())
+            ->useExtension(new CoreExtension())
+            ->addMiddleware($middleware)
+            ->build();
+
+        self::assertSame($event, $hydrator->hydrate(ProfileCreated::class, $data));
+        self::assertEquals($data, $hydrator->extract($event));
+    }
+
+    public function testAllMiddlewaresSkipped(): void
+    {
+        $middleware = $this->createMock(SkippableMiddleware::class);
+        $middleware
+            ->method('skip')
+            ->willReturn(Skip::Both);
+
+        $hydrator = new StackHydrator(
+            new AttributeMetadataFactory(),
+            [$middleware],
+        );
+
+        $this->expectException(AllMiddlewaresSkipped::class);
+        $this->expectExceptionMessage(
+            'All middlewares were skipped for the class "' . ProfileCreated::class . '", at least one middleware must run.',
+        );
+
+        $hydrator->hydrate(ProfileCreated::class, ['profileId' => '1', 'email' => 'info@patchlevel.de']);
     }
 }

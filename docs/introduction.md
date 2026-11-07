@@ -27,11 +27,11 @@ And if customization is required, it can be done easily using attributes.
 ```bash
 composer require patchlevel/hydrator
 ```
-
 ## Integration
 
 * [Event Sourcing](https://github.com/patchlevel/event-sourcing) - the hydrator powers the storage and retrieval of thousands of events and aggregates.
 * [ODM](https://github.com/patchlevel/odm) - a lightweight object document mapper for MongoDB and PostgreSQL that builds on the hydrator for fast object mapping and full extension support.
+
 :::tip
 New here? Start with the [getting started guide](getting-started.md) and build your first hydrator in a few minutes.
 :::
